@@ -4,7 +4,7 @@ cdef class WeakMethod(object):
     def __cinit__(self, object method):
         self.id = method.__hash__()
         self._func = method.__name__
-        cdef object _obj = method.im_self if method.__self__ is not None else method.im_class
+        cdef object _obj = method.im_self if (method.__self__ is not None) else method.im_class
         self._obj = <object>PyWeakref_NewRef(<PyObject*>_obj, <PyObject*>None)
 
     def __call__(self, *args):
