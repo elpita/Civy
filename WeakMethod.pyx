@@ -8,8 +8,9 @@ cdef class WeakMethod(object):
         self._obj = <object>PyWeakref_NewRef(<PyObject*>_obj, <PyObject*>None)
 
     def __call__(self, *args):
-        if not self.is_dead:
-            return <object>(PyObject_CallMethodObjArgs(PyWeakref_GetObject(<PyObject*>self._obj), <PyObject*>self._func, <PyObject*>args))
+        if self.is_dead:
+            return None
+        return <object>(PyObject_CallMethodObjArgs(PyWeakref_GetObject(<PyObject*>self._obj), <PyObject*>self._func, <PyObject*>args))
 
     def __richcmp__(self, object other, int op):
         if op == 2:
