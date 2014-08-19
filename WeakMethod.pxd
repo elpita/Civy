@@ -10,4 +10,3 @@ cdef class WeakMethod(object):
     cdef int id
     cdef object _obj
     cdef str _func
-    cdef PyObject* _get_object(self, PyObject *x)
