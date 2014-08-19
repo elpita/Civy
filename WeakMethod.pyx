@@ -4,12 +4,8 @@ cdef class WeakMethod(object):
     def __cinit__(self, object method):
         self.id = method.__hash__()
         self._func = method.__name__
-        if method.__self__ is not None:
-            # bound method
-            self._obj = <object>PyWeakref_NewRef(<PyObject*>method.im_self, <PyObject*>None)
-        else:
-            # unbound method
-            self._obj = <object>PyWeakref_NewRef(<PyObject*>method.im_class, <PyObject*>None)
+        cdef object _obj = method.im_self if method.__self__ is not None else method.im_class
+        self._obj = <object>PyWeakref_NewRef(<PyObject*>_obj, <PyObject*>None)
 
     def __call__(self, *args):
         if not self.is_dead:
