@@ -16,8 +16,9 @@ cdef class WeakMethod(object):
         Py_XINCREF(y)
         return y
 
-    def __call__(self, *args):
-        return <object>(PyObject_GetAttr(self._get_object(<PyObject*>self._obj), <PyObject*>self._func))(*args)
+    def __call__(self, *args
+        if not self.is_dead:
+            return <object>(PyObject_CallMethodObjArgs(PyWeakref_GetObject(<PyObject*>self._obj), <PyObject*>self._func, <PyObject*>args))
 
     def __richcmp__(self, object other, int op):
         if op == 2:
