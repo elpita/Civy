@@ -7,5 +7,5 @@ cdef extern from "Python.h":
     
 cdef class WeakMethod(object):
     cdef int id
-    cdef object _obj
     cdef str _func
+    cdef object _obj
