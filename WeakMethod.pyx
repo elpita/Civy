@@ -11,7 +11,7 @@ cdef class WeakMethod(object):
             # unbound method
             self._obj = <object>PyWeakref_NewRef(<PyObject*>method.im_class, <PyObject*>None)
 
-    def __call__(self, *args
+    def __call__(self, *args):
         if not self.is_dead:
             return <object>(PyObject_CallMethodObjArgs(PyWeakref_GetObject(<PyObject*>self._obj), <PyObject*>self._func, <PyObject*>args))
 
