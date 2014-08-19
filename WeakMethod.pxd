@@ -3,7 +3,7 @@ from cpython.ref cimport PyObject
 cdef extern from "Python.h":
     PyObject* PyWeakref_NewRef(PyObject *ob, PyObject *callback)
     PyObject* PyWeakref_GetObject(PyObject *ref)
-    PyObject* PyObject_GetAttr(PyObject *o, PyObject *name)
+    PyObject* PyObject_CallMethodObjArgs(PyObject *o, PyObject *name, ..., NuULL)
     void Py_XINCREF(PyObject *o)
     
 cdef class WeakMethod(object):
