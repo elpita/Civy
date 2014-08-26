@@ -7,13 +7,13 @@ cdef class EventDeque(object):
         self.head = self.tail = NULL
 
     def __dealloc__(self):
-        while self.???:
+        while (self.head <> NULL):
             Py_DECREF(self.pop())
         free(self.head)
         free(self.tail)
 
     cdef push(EventDeque self, PyGreenlet *event):
-        cdef Context *new_entry = malloc(sizeof(QueueEntry))
+        cdef Context *new_entry = malloc(sizeof(Context))
         new_entry.self = event
 
         new_entry.previous = self.tail
@@ -25,8 +25,8 @@ cdef class EventDeque(object):
             self.tail.next = self.tail = new_entry
 
     cdef PyGreenlet* pop(EventDeque self):
-        if self.???:
-            return NULL?
+        if self.head == NULL:
+            return NULL
         cdef Context *entry = self.head
         cdef PyGreenlet *result = entry.data
         self.head = entry.next
@@ -52,8 +52,8 @@ cdef class EventDeque(object):
             self.head.previous = self.head = new_entry
 
     cdef PyGreenlet* undo(EventDeque self):
-        if self.???:
-            return NULL?
+        if self.head == NULL:
+            return NULL
         cdef Context *entry = self.tail
         cdef PyGreenlet *result = entry.data
         self.tail = entry.previous
@@ -65,3 +65,6 @@ cdef class EventDeque(object):
 
         free(entry)
         return result
+
+    def bint __bool__(self):
+        return self.head <> NULL
