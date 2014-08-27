@@ -12,7 +12,7 @@ cdef class EventDeque(object):
         free(self.head)
         free(self.tail)
 
-    cdef push(EventDeque self, PyGreenlet *event):
+    cdef void push(EventDeque self, PyGreenlet *event):
         cdef Context *new_entry = malloc(sizeof(Context))
         new_entry.self = event
 
@@ -39,7 +39,7 @@ cdef class EventDeque(object):
         free(entry)
         return result
 
-    cdef urgent(EventDeque self, PyGreenlet *event):
+    cdef void urgent(EventDeque self, PyGreenlet *event):
         cdef Context *new_entry = malloc(sizeof(QueueEntry))
         new_entry.self = event
 
