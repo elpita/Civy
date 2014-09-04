@@ -122,9 +122,6 @@ static PyMethodDef module_methods[] = {
     };
 
 
-#ifndef CVOBJECTMODINIT_FUNC
-#define CVOBJECTMODINIT_FUNC void
-#endif
 CVOBJECTMOODINIT_FUNC initcivyobject(void)
 {
     CVObject.main_loop = (PyGreenlet *)PyMem_Malloc(sizeof(PyGreenlet));
