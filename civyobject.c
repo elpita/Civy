@@ -3,7 +3,7 @@
 int init_event_greenlets(PyGreenlet *g, CVObject *self);
 
 
-static PyObject *CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     CVObject *self = (CVObject *)type->tp_alloc(type, 0);
 
