@@ -41,7 +41,7 @@ int init_event_greenlets(PyGreenlet *g, CVObject *self)
     Py_DECREF(c);
     Py_DECRERF(self);
     Py_DECREF(args);
-    returrn 0;
+    return 0;
     }
 
 
@@ -143,4 +143,5 @@ CVOBJECTMOODINIT_FUNC initcivyobject(void)
          Figure out how to free `main_loop` memory
          Create the functions
          Create queues
+         Error checking for overriding `__new__`
          */
