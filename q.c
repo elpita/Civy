@@ -1,6 +1,5 @@
 /* Special thanks to Simon Howard, C Algorithms library */
 
-#include <stdlib.h>
 #include "q.h"
 
 
