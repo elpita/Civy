@@ -43,7 +43,7 @@ void CVContext_dealloc(CVContext *self)
 
     while (!Q_is_empty(self->cvthreads))
     {
-        Py_CLEAR(Q_pop(self->cvthreads));
+        Py_CLEAR(CVThreads_pop(self->cvthreads));
         }
 
     Py_CLEAR(self->handler);
