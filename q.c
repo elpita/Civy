@@ -43,7 +43,7 @@ void Q_push(Q *self, QEntry *new_entry)
     if self->tail == NULL
     {
         self->head = self->tail = new_entry;
-    else
+    } else
         self->tail->next = self->tail = new_entry;
         }
     }
@@ -62,7 +62,7 @@ QEntry* Q_pop(Q *self)
     if self->head == NULL
     {
         self->tail = self->head;
-    else
+    } else
         self->head->previous = NULL;
         }
 
