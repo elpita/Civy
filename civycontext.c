@@ -1,11 +1,12 @@
 #include "civycontext.h"
 
-CVContext* CVContext_new(PyObject *blah)
+CVContext* CVContext_new(PyObject *event_handler)
+/* To be called from `CVObject` */
 {
     CVContext *context = (CVContext *)malloc(sizeof(CVContext));
     context->loop = PyGreenlet_New(global_whatever, NULL);
     //PyGreenlet_Switch(context->loop, (PyCapsule(context)))
-    context->interrupt_handler = PyWeakref_NewProxy(blah, NULL);
+    context->handler = PyWeakref_NewProxy(event_handler, NULL);
     return context;
     }
 
@@ -23,7 +24,7 @@ void CVContext_dealloc(CVContext *self)
         Py_CLEAR(Q_pop(self->cvthreads));
         }
 
-    Py_CLEAR(self->interrupt_handler);
+    Py_CLEAR(self->handler);
     free(self->cvthreads);
     free(self);
     }
