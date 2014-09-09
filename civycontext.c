@@ -9,10 +9,10 @@ static PyObject* CVContext_loop(CVContext *self)
     {
         g = CVThreads_pop(self);
         args = PyGreenlet_Switch(g, args, NULL);
+        Py_XDECREF(g);
         }
-    
-    Py_DECREF(g);
-    Py_DECREF(args);
+
+    Py_XDECREF(args);
     Py_INCREF(Py_NONE);
     return Py_NONE;
     }
