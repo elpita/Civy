@@ -15,7 +15,7 @@ void CVContext_dealloc(CVContext *self)
         }
 
     Py_CLEAR(self->master);
-    free(self->q);
+    free(self->cvthreads);
     free(self);
 
 int CVThreads_push(CVContext *self, PyGreenlet *data)
