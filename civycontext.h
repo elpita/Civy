@@ -1,7 +1,8 @@
 #include "q.h"
 
 typedef _QEntry _CVContext {
-    PyObject *master;
+    PyObject *interrupt_handler;
+    PyGreenlet *loop;
     CVContext *parent_chain;
     Q *cvthreads;
     } CVContext;
