@@ -11,6 +11,5 @@ typedef _QEntry whatever {
     };
 
 
-int Q_is_empty(Q *q);
-void Q_push(Q *self, QEntry *new_entry)
-QEntry* Q_pop(Q *self);
+void CVThreads_push(CVContext *self, QEntry *new_entry);
+PyGreenlet* CVThreads_pop(CVContext *self);
