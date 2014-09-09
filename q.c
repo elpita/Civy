@@ -18,17 +18,6 @@ Q* Q_new(void)
     }
 
 
-void Q_dealloc(Q *q)
-{
-    while (!Q_is_empty(q))
-    {
-        Q_pop(q);
-        }
-
-    free(q);
-    }
-
-
 int Q_is_empty(Q *q)
 {
     return q->head == NULL;
