@@ -25,6 +25,7 @@ void CVContext_dealloc(CVContext *self)
         }
 
     Py_CLEAR(self->handler);
+    Py_CLEAR(self->loop);
     free(self->cvthreads);
     free(self);
     }
