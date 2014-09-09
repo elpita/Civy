@@ -38,7 +38,7 @@ int CVThreads_push(CVContext *self, PyGreenlet *data)
 PyGreenlet* CVThreads_pop(CVContext *self)
 /* CVContext method: Pop greenlets from mini-queue */
 {
-    whatever *entry = (whatever *)Q_pop(self->cvthreads)
+    whatever *entry = (whatever *)Q_pop(self->cvthreads);
 
     if (entry == NULL)
     {
