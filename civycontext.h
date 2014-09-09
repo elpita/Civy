@@ -1,3 +1,6 @@
+#ifndef civycontext_included
+#define civycontext_included
+
 #include "q.h"
 
 typedef _QEntry _CVContext {
@@ -16,3 +19,5 @@ typedef _QEntry whatever {
 void CVContext_dealloc(CVContext *self);
 void CVThreads_push(CVContext *self, PyGreenlet *new_entry);
 PyGreenlet* CVThreads_pop(CVContext *self);
+
+#endif
