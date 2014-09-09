@@ -17,6 +17,7 @@ void CVContext_dealloc(CVContext *self)
     Py_CLEAR(self->master);
     free(self->cvthreads);
     free(self);
+    }
 
 int CVThreads_push(CVContext *self, PyGreenlet *data)
 /* CVContext method: Push greenlets onto mini-queue */
@@ -47,3 +48,4 @@ PyGreenlet* CVThreads_pop(CVContext *self)
     PyGreenlet *result = entry->cvthread;
     free(entry);
     return result;
+    }
