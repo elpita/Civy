@@ -1,7 +1,7 @@
 #include "civycontext.h"
 
 int CVThreads_push(CVContext *self, PyGreenlet *data)
-/* CVThread method: Push greenlets onto mini-queue */
+/* CVContext method: Push greenlets onto mini-queue */
 {
     whatever *new_entry = (whatever *)malloc(sizeof(whatever));
     
@@ -17,7 +17,7 @@ int CVThreads_push(CVContext *self, PyGreenlet *data)
 
 
 PyGreenlet* CVThreads_pop(CVContext *self)
-/* CVThread method: Pop greenlets from mini-queue */
+/* CVContext method: Pop greenlets from mini-queue */
 {
     whatever *entry = (whatever *)Q_pop(self->cvthreads)
 
