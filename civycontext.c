@@ -1,7 +1,9 @@
 #include "civycontext.h"
 
-static PyObject* CVContext_loop(CVContext *self)
+static PyObject* CVContext_loop(PyObject *capsule)
 {
+    CVContext *self = (CVContext *)PyCapsule_GetPointer(capsule, NULL);
+    Py_DECREF(capsule);
     PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     PyGreenlet *g;
 
