@@ -25,8 +25,10 @@ CVContext* CVContext_new(PyObject *event_handler)
 {
     CVContext *context = (CVContext *)malloc(sizeof(CVContext));
     context->loop = PyGreenlet_New(CVContext_loop, NULL);
-    PyGreenlet_Switch(context->loop, PyCapsule_New((void *)context, NULL, NULL));
-    context->handler = PyWeakref_NewProxy(event_handler, NULL);
+    PyObject *capsule = PyCapsule_New((void *)context, NULL, NULL);
+    PyGreenlet_Switch(context->loop, capsule);
+    Py_XDECREF(capsule);
+    context->handler = PyWeakref_NewRef(event_handler, NULL);
     return context;
     }
 
