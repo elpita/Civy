@@ -39,7 +39,7 @@ int CVThreads_push(CVContext *self, PyGreenlet *data)
         }
 
     new_entry->cvthread = data;
-    Q_push(self->cvthreads, (QEntry *)new_entry);
+    Q_prepend(self->cvthreads, (QEntry *)new_entry);
     return 0;
     }
 
