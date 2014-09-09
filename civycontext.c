@@ -1,5 +1,14 @@
 #include "civycontext.h"
 
+CVContext* CVContext_new(PyObject *blah)
+{
+    CVContext *context = (CVContext *)malloc(sizeof(CVContext));
+    context->loop = PyGreenlet_New(global_whatever, NULL);
+    //PyGreenlet_Switch(context->loop, (PyCapsule(context)))
+    context->interrupt_handler = PyWeakref_NewProxy(blah, NULL);
+    return context;
+    }
+
 
 void CVContext_dealloc(CVContext *self)
 /* CVContext method: Kill All */
@@ -14,7 +23,7 @@ void CVContext_dealloc(CVContext *self)
         Py_CLEAR(Q_pop(self->cvthreads));
         }
 
-    Py_CLEAR(self->master);
+    Py_CLEAR(self->interrupt_handler);
     free(self->cvthreads);
     free(self);
     }
