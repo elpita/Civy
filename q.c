@@ -35,10 +35,8 @@ int Q_is_empty(Q *q)
     }
 
 
-void Q_push(Q *self)
+void Q_push(Q *self, QEntry *new_entry)
 {
-    QEntry *new_entry = (QEntry *)malloc(sizeof(QEntry));
-
     new_entry->previous = self->tail;
     new_entry->next = NULL;
 
