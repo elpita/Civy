@@ -1,10 +1,28 @@
 #include "civycontext.h"
 
+static PyObject* CVContext_loop(CVContext *self)
+{
+    PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
+    PyGreenlet *g;
+
+    while ( (!Q_is_empty(self->cvthreads)) || (g <> NULL) )
+    {
+        g = CVThreads_pop(self);
+        args = PyGreenlet_Switch(g, args, NULL);
+        }
+    
+    Py_DECREF(g);
+    Py_DECREF(args);
+    Py_INCREF(Py_NONE);
+    return Py_NONE;
+    }
+
+
 CVContext* CVContext_new(PyObject *event_handler)
 /* To be called from `CVObject` */
 {
     CVContext *context = (CVContext *)malloc(sizeof(CVContext));
-    context->loop = PyGreenlet_New(global_whatever, NULL);
+    context->loop = PyGreenlet_New(CVContext_loop, NULL);
     PyGreenlet_Switch(context->loop, PyCapsule_New((void *)context, NULL, NULL));
     context->handler = PyWeakref_NewProxy(event_handler, NULL);
     return context;
