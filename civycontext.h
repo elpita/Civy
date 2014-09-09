@@ -1,7 +1,7 @@
 #include "q.h"
 
 typedef _QEntry _CVContext {
-    CVContext *old_chain;
+    CVContext *parent_chain;
     Q *cvthreads;
     } CVContext;
 
