@@ -29,11 +29,29 @@ void Q_push(Q *self, QEntry *new_entry)
     new_entry->previous = self->tail;
     new_entry->next = NULL;
 
-    if self->tail == NULL
+    if (self->tail == NULL)
     {
         self->head = self->tail = new_entry;
-    } else
+        }
+    else
+    {
         self->tail->next = self->tail = new_entry;
+        }
+    }
+
+
+void Q_prepend(Q *self, QEntry *new_entry)
+{
+    new_entry->next = self->head;
+    new_entry->previous = NULL;
+    
+    if (self->head == NULL)
+    {
+        self->head = self->tail = new_entry;
+        }
+    else
+    {
+        self->head->previous = self->head = new_entry;
         }
     }
 
@@ -51,7 +69,9 @@ QEntry* Q_pop(Q *self)
     if self->head == NULL
     {
         self->tail = self->head;
-    } else
+        }
+    else
+    {
         self->head->previous = NULL;
         }
 
