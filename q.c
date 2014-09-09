@@ -1,28 +1,20 @@
 /* Special thanks to Simon Howard, C Algorithms library */
 
-typedef struct _QEntry {
-    QEntry *previous;
-    QEntry *next;
-    } QEntry;
-
-
-struct Q {
-    QEntry *head;
-    QEntry *next;
-    };
+#include <stdlib.h>
+#include "q.h"
 
 
 Q* Q_new(void)
 {
-    Q *Q = (Q *)malloc(sizeof(Q));
+    Q *q = (Q *)malloc(sizeof(Q));
 
-    if Q == NULL
+    if q == NULL
     {
         return NULL;
         }
 
-    Q->head = Q->tail = NULL;
-    return Q;
+    q->head = q->tail = NULL;
+    return q;
     }
 
 
@@ -30,10 +22,16 @@ void Q_dealloc(Q *q)
 {
     while (!Q_is_empty(q))
     {
-        q_pop(q);
+        Q_pop(q);
         }
 
     free(q);
+    }
+
+
+int Q_is_empty(Q *q)
+{
+    return q->head == NULL;
     }
 
 
@@ -71,10 +69,4 @@ QEntry* Q_pop(Q *self)
         }
 
     return entry;
-    }
-
-
-int Q_is_empty(Q *q)
-{
-    return q->head == NULL;
     }
