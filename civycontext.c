@@ -1,5 +1,23 @@
 #include "civycontext.h"
 
+
+void CVContext_dealloc(CVContext *self)
+/* CVContext method: Kill All */
+{
+    Py_CLEAR(self->master);
+
+    if (self->parent_chain <> NULL)
+    {
+        CVContext_dealloc(self->parent_chain);
+        }
+
+    while (!Q_is_empty(self->cvthreads))
+    {
+        Py_CLEAR(Q_pop(self->cvthreads));
+        }
+
+    free(q);
+
 int CVThreads_push(CVContext *self, PyGreenlet *data)
 /* CVContext method: Push greenlets onto mini-queue */
 {
