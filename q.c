@@ -51,7 +51,7 @@ void Q_push(Q *self, QEntry *new_entry)
 
 QEntry* Q_pop(Q *self)
 {
-    if self->head == NULL
+    if (Q_is_empty(self))
     {
         return NULL;
         }
