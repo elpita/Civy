@@ -8,7 +8,7 @@
 typedef _QEntry _CVContext {
     PyObject *handler;
     PyGreenlet *loop;
-    CVContext *parent_chain;
+    CVContext *parent;
     Q *cvthreads;
     } CVContext;
 
