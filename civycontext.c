@@ -7,11 +7,23 @@ static PyObject* CVContext_loop(PyObject *capsule)
     PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     PyGreenlet *g;
 
-    while ( (!Q_is_empty(self->cvthreads)) || (g <> NULL) )
+    while (!Q_is_empty(self->cvthreads))
     {
         g = CVThreads_pop(self);
+        
+        if (g == NULL)
+        {
+            break;
+            }
+
         args = PyGreenlet_Switch(g, args, NULL);
         Py_XDECREF(g);
+        }
+        
+    if (self->parent <> NULL)
+    {
+        CVObject *handler = self->handler;
+        /* (*handler->schedule)(self->parent); Need to figure this part out*/
         }
 
     Py_XDECREF(args);
