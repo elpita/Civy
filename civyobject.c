@@ -1,75 +1,69 @@
 #include "civyobject.h"
 #include "structmember.h"
-int init_event_greenlets(PyGreenlet *g, CVObject *self);
+
+
+static PyObject* CVObject_event_loop(PyObject *self)
+{
+    Q *cvprocesses = self->cvprocesses;
+    Py_DECREF(self);
+    PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
+    CVContext *context;
+    
+    while (1)
+    {
+        while (!Q_is_empty(self->cvthreads))
+        {
+            
+            }
+        }
+    }
 
 
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     CVObject *self = (CVObject *)type->tp_alloc(type, 0);
 
-    if (self <> NULL) {
-        PyGreenlet *store_event = PyGreenlet_New(dispatch_global, NULL);
-        PyGreenlet *load_event = PyGreenlet_New(eventloop_global, NULL);
-
-        if ((store_event == NULL) || (load_event == NULL)) {
-            Py_DECREF(self);
-            return NULL;
-            }
-
-        /* Either this is a really good idea, or a really stupid one...Let's find out! */
-        self->store_event = PyWeakref_NewProxy((PyObject *)store_event, NULL);
-        self->load_event = PyWeakref_NewProxy((PyObject *)load_event, NULL);
+    if (self == NULL)
+    {
+        Py_XDECREF(self);
+        return NULL;
         }
 
+    PyGreenlet *event_loop = PyGreenlet_New(CVObject_event_loop, NULL);
+
+    if (event_loop == NULL)
+    {
+        Py_DECREF(self);
+        return NULL;
+        }
+
+    PyGreenlet_Switch(event_loop, (PyObject *)self, NULL);
+    self->event_loop = event_loop; //proxy?
     return (PyObject *)self;
-    }
-
-
-int init_event_greenlets(PyGreenlet *g, CVObject *self)
-{
-    PyGreenlet *c = PyGreenlet_GetCurrent();
-    PyObject *args = PyTuple_Pack(2, self, c);
-    
-    if args == NULL {
-        Py_DECREF(c);
-        Py_DECRERF(self);
-        Py_DECREF(args);
-        return -1;
-        }
-
-    PyGreenlet_Switch(g, args, NULL);
-    Py_DECREF(c);
-    Py_DECRERF(self);
-    Py_DECREF(args);
-    return 0;
     }
 
 
 static int CVObject_init(CVObject *self, PyObject *args, PyObject *kwargs)
 {
-    PyGreenlet *main = self->main_loop;
-    if (main == NULL) {
+    if (self->main_loop == NULL) 
+    {
         PyErr_SetString(PyExc_TypeError, "The App Main Loop must be started first.");
         return -1;
         }
 
-    /* Finish initializing the event greenlets */
-    if (init_event_greenlets((PyGreenlet *)(self->store_event), self) < 0)
-        return -1;
-    PyGreenlet_SetParent( (PyGreenlet *)(self->store_event), main );
-    
-    if (init_event_greenlets((PyGreenlet *)(self->load_event), self) < 0)
-        return -1;
-    PyGreenlet_SetParent( (PyGreenlet *)(self->load_event), main );
     return 0
     }
 
 
 static void CVObject_dealloc(CVObject *self)
 {
-    /* Either this was a really good idea, or a really stupid one. */
-    Py_XDECREF( PyWeakref_GetObject(self->store_event) );
-    Py_XDECREF( PyWeakref_GetObject(self->load_event) );
+    while (!Q_is_empty(self->cvprocesses))
+    {
+        CVContext_dealloc(CVObject_pop_process(self->cvprocesses));
+        }
+
+    free(self->cvprocesses);
+    Py_DECREF(self->event_loop);
     self->ob_type->tp_free( (PyObject *)self );
     }
 
