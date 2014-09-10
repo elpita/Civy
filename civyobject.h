@@ -1,13 +1,12 @@
 #ifndef civyobject_included
 #define civyobject_included
 
-#include <Python.h>
-#include "greenlet.h"
+#include "civycontext.h"
 
 typedef struct {
     PyObject_HEAD
-    PyObject *store_event;
-    PyObject *load_event;
+    Q *cvprocesses;
+    PyGreenlet *process_loop;
     PyGreenlet *main_loop;   /* "Class Method" */
 } CVObject;
 
