@@ -1,6 +1,17 @@
 #include "civyobject.h"
 #include "structmember.h"
 
+static int CVObject_context_check(CVContext *context)
+/* If the greenlet chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the context */
+{
+    if ((context == NULL) || ((context->parent <> NULL) && (CVObject_context_check(context->parent) == 0)))
+    {
+        return 0;
+        }
+
+    return PyGreenlet_ACTIVE(context->handler);
+    }
+
 
 static PyObject* CVObject_process_loop(PyObject *self)
 {
@@ -12,7 +23,24 @@ static PyObject* CVObject_process_loop(PyObject *self)
         while ( (!Q_is_empty(self->cvprocesses)) || (context <> NULL) )
         {
             context = CVObject_pop_process(self);
+
+            /* Check to make sure we're not working with broken chains */
+            if (CVObject_context_check(context) == 0)
+            {
+                CVContext_dealloc(context);
+                /* Deallocate `data`? */
+                continue;
+                }
+
             data = PyGreenlet_Switch(context->loop, data, NULL);
+
+            if (context->parent <> NULL)
+            {
+                /* (context->handler->schedule)(context->parent); 
+                   (global-schedule to call `data`)
+                   data = PyGreenlet_Switch(self->main_loop, NULL, NULL); */
+                }
+
             CVContext_dealloc(context);
             }
 
