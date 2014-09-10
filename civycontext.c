@@ -27,6 +27,7 @@ CVContext* CVContext_new(PyObject *event_handler)
     PyObject *capsule = PyCapsule_New((void *)context, NULL, NULL);
     PyGreenlet_Switch(context->loop, capsule);
     context->handler = PyWeakref_NewRef(event_handler, NULL);
+    context->parent = NULL;
     return context;
     }
 
