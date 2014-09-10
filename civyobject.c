@@ -4,18 +4,24 @@
 
 static PyObject* CVObject_process_loop(PyObject *self)
 {
-    Q *cvprocesses = self->cvprocesses;
-    Py_DECREF(self);
-    PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
+    PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     CVContext *context;
-    
+
     while (1)
     {
-        while (!Q_is_empty(self->cvthreads))
+        while ( (!Q_is_empty(self->cvprocesses)) || (context <> NULL) )
         {
-            
+            context = CVObject_pop_process(self);
+            data = PyGreenlet_Switch(context->loop, data, NULL);
+            CVContext_dealloc(context);
             }
+
+        Py_XDECREF(data);
+        data = PyGreenlet_Switch(self->main_loop, NULL, NULL);
         }
+
+    Py_XDECREF(data);
+    return NULL;
     }
 
 
@@ -52,6 +58,19 @@ static int CVObject_init(CVObject *self, PyObject *args, PyObject *kwargs)
         }
 
     return 0
+    }
+
+
+int CVObject_push_process(CVObject *self, CVContext *new_entry)
+{
+    Q_push(self->cvprocesses, (QEntry *)new_entry);
+    return 0;
+    }
+
+
+CVContext* CVObject_pop_process(CVObject *self)
+{
+    return (CVContext *)Q_pop(self->cvprocesses);
     }
 
 
