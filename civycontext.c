@@ -15,8 +15,7 @@ static PyObject* CVContext_loop(PyObject *capsule)
         }
 
     Py_XDECREF(args);
-    Py_INCREF(Py_NONE);
-    return Py_NONE;
+    return NULL;
     }
 
 
