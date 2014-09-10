@@ -29,16 +29,16 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         return NULL;
         }
 
-    PyGreenlet *event_loop = PyGreenlet_New(CVObject_process_loop, NULL);
+    PyGreenlet *process_loop = PyGreenlet_New(CVObject_process_loop, NULL);
 
-    if (event_loop == NULL)
+    if (process_loop == NULL)
     {
         Py_DECREF(self);
         return NULL;
         }
 
-    PyGreenlet_Switch(event_loop, (PyObject *)self, NULL);
-    self->event_loop = event_loop; //proxy?
+    PyGreenlet_Switch(process_loop, (PyObject *)self, NULL);
+    self->process_loop = process_loop; //proxy?
     return (PyObject *)self;
     }
 
@@ -63,7 +63,7 @@ static void CVObject_dealloc(CVObject *self)
         }
 
     free(self->cvprocesses);
-    Py_DECREF(self->event_loop);
+    Py_DECREF(self->process_loop);
     self->ob_type->tp_free( (PyObject *)self );
     }
 
