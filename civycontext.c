@@ -35,6 +35,11 @@ CVContext* CVContext_new(PyObject *event_handler)
 void CVContext_dealloc(CVContext *self)
 /* CVContext method: Kill All */
 {
+    if (self == NULL)
+    {
+        return;
+        }
+
     if (self->parent <> NULL)
     {
         CVContext_dealloc(self->parent);
