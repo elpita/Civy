@@ -2,7 +2,7 @@
 #include "structmember.h"
 
 
-static PyObject* CVObject_event_loop(PyObject *self)
+static PyObject* CVObject_process_loop(PyObject *self)
 {
     Q *cvprocesses = self->cvprocesses;
     Py_DECREF(self);
@@ -29,7 +29,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         return NULL;
         }
 
-    PyGreenlet *event_loop = PyGreenlet_New(CVObject_event_loop, NULL);
+    PyGreenlet *event_loop = PyGreenlet_New(CVObject_process_loop, NULL);
 
     if (event_loop == NULL)
     {
