@@ -2,6 +2,8 @@
 #define civycontext_included
 
 #include "q.h"
+#include <Python.h>
+#include "greenlet.h"
 
 typedef _QEntry _CVContext {
     PyObject *handler;
