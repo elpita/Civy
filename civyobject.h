@@ -1,3 +1,6 @@
+#ifndef civyobject_included
+#define civyobject_included
+
 #include <Python.h>
 #include "greenlet.h"
 
@@ -17,4 +20,5 @@ static PyTypeObject CVObject_Type;
 
 #ifndef CVOBJECTMODINIT_FUNC
 #define CVOBJECTMODINIT_FUNC void
+#endif
 #endif
