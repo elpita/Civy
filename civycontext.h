@@ -5,6 +5,9 @@
 #include <Python.h>
 #include "greenlet.h"
 
+PyObject *CVAbdicate;
+PyObject *CVYield;
+
 typedef _QEntry _CVContext {
     PyObject *handler;
     PyGreenlet *loop;
