@@ -3,50 +3,44 @@
 
 static int CVObject_context_check(CVContext *context)
 /* If the greenlet chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the context */
-{
-    if ((context == NULL) || ((context->parent <> NULL) && (CVObject_context_check(context->parent) == 0)))
-    {
-        return 0;
-        }
+    {if ((context == NULL) || ((context->parent <> NULL) && (CVObject_context_check(context->parent) == 0)))
+        {return 0;}
 
-    return PyGreenlet_ACTIVE(context->handler);
-    }
+    return PyGreenlet_ACTIVE(context->handler);}
 
 
 static PyObject* CVObject_process_loop(PyObject *self)
-{
-    PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
+    {PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     CVContext *context;
 
     while (1)
     {
-        while ( (!Q_is_empty(self->cvprocesses)) || (context <> NULL) )
-        {
-            context = CVObject_pop_process(self);
-
+        if (!Q_is_empty(self->cvprocesses))
+            {context = CVObject_pop_process(self);
             /* Check to make sure we're not working with broken chains */
             if (CVObject_context_check(context) == 0)
-            {
-                CVContext_dealloc(context);
-                /* Deallocate `data`? */
-                continue;
+                {CVContext_dealloc(context);
                 }
+            else
+                {data = PyGreenlet_Switch(context->loop, data, NULL);
 
-            data = PyGreenlet_Switch(context->loop, data, NULL);
-
-            if (context->parent <> NULL)
-            {
-                /* (context->handler->schedule)(context->parent); 
-                   (global-schedule to call `data`)
-                   data = PyGreenlet_Switch(self->main_loop, NULL, NULL); */
-                }
-
-            CVContext_dealloc(context);
+                if (data == CVYield) /* Wrong */
+                    {CVObject_push_process(self, context);
+                        /* Schedule SDL */ 
+                    }
+                else if (data <> CVAbdicate) /* ...also wrong */
+                {
+                    if (context->parent <> NULL)
+                        {/* (context->handler->schedule)(context->parent); 
+                           (Schedule SDL to return `data`)
+                           context->parent = NULL; */ 
+                        }
+                    CVContext_dealloc(context);
+                }}
+                Py_XDECREF(data);
             }
-
-        Py_XDECREF(data);
         data = PyGreenlet_Switch(self->main_loop, NULL, NULL);
-        }
+    }
 
     Py_XDECREF(data);
     return NULL;
@@ -54,22 +48,17 @@ static PyObject* CVObject_process_loop(PyObject *self)
 
 
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
-{
-    CVObject *self = (CVObject *)type->tp_alloc(type, 0);
+    {CVObject *self = (CVObject *)type->tp_alloc(type, 0);
 
-    if (self == NULL)
-    {
+    if (self == NULL){
         Py_XDECREF(self);
-        return NULL;
-        }
+        return NULL;}
 
     PyGreenlet *process_loop = PyGreenlet_New(CVObject_process_loop, NULL);
 
     if (process_loop == NULL)
-    {
-        Py_DECREF(self);
-        return NULL;
-        }
+        {Py_DECREF(self);
+        return NULL;}
 
     PyGreenlet_Switch(process_loop, (PyObject *)self, NULL);
     self->process_loop = process_loop; //proxy?
