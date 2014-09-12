@@ -35,6 +35,7 @@ static PyObject* CVObject_process_loop(PyObject *self)
     {
         switch(Q_is_empty(self->cvprocesses)) {
             case 1:
+                break;
             default:
                 context = CVObject_pop_process(self);
                 i = CVObject_context_check(context);
