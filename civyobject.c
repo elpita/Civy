@@ -3,69 +3,67 @@
 
 static int CVObject_context_check(CVContext *context)
 /* If the greenlet chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the context */
+/* Returns 0 (fail), 1(pass), or -1(error) */
 {
-    if (context == NULL){
-        return 0;}
+    if (context == NULL) {
+        return 0;
+        }
 
+    int i = 1;
     if (context->parent <> NULL) {
-        int i = Py_EnterRecursiveCall(" in CVContext checking");
-
-        if i <> 0{
-            return -1;}
-
+        if (Py_EnterRecursiveCall(" in CVContext checking") <> 0) {
+            return -1;
+            }
         i = CVObject_context_check(context->parent);
         Py_LeaveRecursiveCall();
 
-        if i == 0{
-            return 0;}
-    }
-
-    return PyGreenlet_ACTIVE(context->handler);
+        if (i == -1) {
+            return -1;
+            }
+        }
+    return (i && PyGreenlet_ACTIVE(context->handler));
 }
 
 
 static PyObject* CVObject_process_loop(PyObject *self)
-    {PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
-    CVContext *context;
+{
+    PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
+    CVContext *context, *parent;
     int i;
 
     while (1)
     {
-        if (!Q_is_empty(self->cvprocesses))
-            {context = CVObject_pop_process(self);
-            /* Check to make sure we're not working with broken chains */
-            i = CVObject_context_check(context);
+        switch(Q_is_empty(self->cvprocesses)) {
+            case 1:
+            default:
+                context = CVObject_pop_process(self);
+                i = CVObject_context_check(context);
 
-            if (i < 0){
-                return -1;
-                }
-            if (i == 0)
-                {CVContext_dealloc(context);
-                }
-            else
-                {data = PyGreenlet_Switch(context->loop, data, NULL);
+                switch(i) {
+                    case -1:
+                        return -1;
+                    case 0:
+                        CVContext_dealloc(context);
+                    default:
+                        data = PyGreenlet_Switch(context->loop, data, NULL);
 
-                if (data == CVYield) /* Wrong */
-                    {CVObject_push_process(self, context);
-                        /* Schedule SDL */ 
+                        if (data == cv_wait) { /* Wrong */
+                            CVObject_push_process(self, context);
+                            /* Schedule_SDL(data.data) */ 
+                            }
+                        else if ((data <> cv_fork) && (context->parent <> NULL)) { /* ...also wrong */
+                            parent = context->parent;
+                            CVObject_push_process(parent->handler, parent);
+                            /* Schedule_SDL(data) */
+                            context->parent = NULL;
+                            CVContext_dealloc(context);
+                            }
                     }
-                else if (data <> CVAbdicate) /* ...also wrong */
-                {
-                    if (context->parent <> NULL)
-                        {/* (context->handler->schedule)(context->parent); 
-                           (Schedule SDL to return `data`)
-                           context->parent = NULL; */ 
-                        }
-                    CVContext_dealloc(context);
-                }}
-                Py_XDECREF(data);
             }
+        Py_XDECREF(data);
         data = PyGreenlet_Switch(self->main_loop, NULL, NULL);
     }
-
-    Py_XDECREF(data);
-    return NULL;
-    }
+}
 
 
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
