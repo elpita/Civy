@@ -7,21 +7,18 @@ static PyObject* CVContext_spawn(PyObject *capsule)
     PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     PyGreenlet *g;
 
-    while (!Q_is_empty(self->cvthreads))
+    while (!Q_is_empty(self->pipeline))
     {
         g = CVThreads_pop(self);
         
-        if (g == NULL)
-        {
+        if (g == NULL) {
             break;
-            }
-
+        }
         args = PyGreenlet_Switch(g, args, NULL);
         Py_XDECREF(g);
-        }
-
-    return args;
     }
+    return args;
+}
 
 
 CVContext* CVContext_new(PyObject *event_handler)
@@ -50,14 +47,14 @@ int CVContext_dealloc(CVContext *self)
         Py_LeaveRecursiveCall();
         }
 
-    while (!Q_is_empty(self->cvthreads))
+    while (!Q_is_empty(self->pipeline))
     {
-        Py_CLEAR(CVThreads_pop(self->cvthreads));
+        Py_CLEAR(CVThreads_pop(self->pipeline));
         }
 
     Py_CLEAR(self->handler);
     Py_CLEAR(self->spawn);
-    free(self->cvthreads);
+    free(self->pipeline);
     free(self);
     return 0;
     }
@@ -74,7 +71,7 @@ int CVThreads_push(CVContext *self, PyGreenlet *data)
         }
 
     new_entry->cvthread = data;
-    Q_prepend(self->cvthreads, (QEntry *)new_entry);
+    Q_prepend(self->pipeline, (QEntry *)new_entry);
     return 0;
     }
 
@@ -82,7 +79,7 @@ int CVThreads_push(CVContext *self, PyGreenlet *data)
 PyGreenlet* CVThreads_pop(CVContext *self)
 /* CVContext method: Pop greenlets from mini-queue */
 {
-    whatever *entry = (whatever *)Q_pop(self->cvthreads);
+    whatever *entry = (whatever *)Q_pop(self->pipeline);
 
     if (entry == NULL)
     {
