@@ -52,7 +52,7 @@ static PyObject* CVObject_process_loop(PyObject *self)
                                 return -1;
                         }
                     default:
-                        data = PyGreenlet_Switch(context->loop, data, NULL);
+                        data = PyGreenlet_Switch(context->spawn, data, NULL);
 
                         if (data == cv_wait) { /* Wrong */
                             CVObject_push_process(self, context);
