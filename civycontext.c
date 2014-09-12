@@ -45,10 +45,9 @@ int CVContext_dealloc(CVContext *self)
         }
 
     if (self->parent <> NULL) {
-        if (Py_EnterRecursiveCall(" in CVContext deallocation") <> 0) {
+        if (Py_EnterRecursiveCall(" in CVContext deallocation. Stack overvlow.") <> 0) || (CVContext_dealloc(self->parent) == -1) {
             return -1;
             }
-        CVContext_dealloc(self->parent);
         Py_LeaveRecursiveCall();
         }
 
