@@ -28,9 +28,9 @@ CVContext* CVContext_new(PyObject *event_handler)
 /* To be called from `CVObject` */
 {
     CVContext *context = (CVContext *)malloc(sizeof(CVContext));
-    context->loop = PyGreenlet_New(CVContext_spawn, NULL);
+    context->spawn = PyGreenlet_New(CVContext_spawn, NULL);
     PyObject *capsule = PyCapsule_New((void *)context, NULL, NULL);
-    PyGreenlet_Switch(context->loop, capsule);
+    PyGreenlet_Switch(context->spawn, capsule);
     context->handler = PyWeakref_NewRef(event_handler, NULL);
     context->parent = NULL;
     return context;
@@ -56,7 +56,7 @@ int CVContext_dealloc(CVContext *self)
         }
 
     Py_CLEAR(self->handler);
-    Py_CLEAR(self->loop);
+    Py_CLEAR(self->spawn);
     free(self->cvthreads);
     free(self);
     return 0;
