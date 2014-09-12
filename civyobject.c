@@ -12,7 +12,7 @@ static int CVObject_context_check(CVContext *context)
 
     if (context->parent <> NULL) 
     {
-        switch(Py_EnterRecursiveCall(" in CVContext checking. Stack overflow.")) {
+        switch(Py_EnterRecursiveCall(" in CVContext checking.")) {
             case 0:
                 i = CVObject_context_check(context->parent);
 
