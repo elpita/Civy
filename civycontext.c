@@ -45,11 +45,15 @@ void CVContext_dealloc(CVContext *self)
         return;
         }
 
-    if ((self->parent <> NULL) && (Py_EnterRecursiveCall(" in CVContext deallocation") == 0))
-        {
-            CVContext_dealloc(self->parent);
-            Py_LeaveRecursiveCall();
+    if (self->parent <> NULL) {
+        int i = Py_EnterRecursiveCall(" in CVContext deallocation");
+        
+        if (i < 0) {
+            return -1;
             }
+        CVContext_dealloc(self->parent);
+        Py_LeaveRecursiveCall();
+        }
 
     while (!Q_is_empty(self->cvthreads))
     {
