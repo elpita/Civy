@@ -63,6 +63,7 @@ static PyObject* CVObject_process_loop(PyObject *self)
                             CVObject_push_process(parent->handler, parent);
                             /* Schedule_SDL(data) */
                             context->parent = NULL;
+
                             switch(CVContext_dealloc(context)) {
                                 case -1:
                                     return -1;
