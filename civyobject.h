@@ -6,7 +6,7 @@
 typedef struct {
     PyObject_HEAD
     Q *cvprocesses;
-    PyGreenlet *process_loop;
+    PyGreenlet *exec;
     PyGreenlet *main_loop;   /* "Class Method" */
 } CVObject;
 
