@@ -3,22 +3,43 @@
 
 static int CVObject_context_check(CVContext *context)
 /* If the greenlet chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the context */
-    {if ((context == NULL) || ((context->parent <> NULL) && (CVObject_context_check(context->parent) == 0)))
-        {return 0;}
+{
+    if (context == NULL){
+        return 0;}
 
-    return PyGreenlet_ACTIVE(context->handler);}
+    if (context->parent <> NULL) {
+        int i = Py_EnterRecursiveCall(" in CVContext checking");
+
+        if i <> 0{
+            return -1;}
+
+        i = CVObject_context_check(context->parent);
+        Py_LeaveRecursiveCall();
+
+        if i == 0{
+            return 0;}
+    }
+
+    return PyGreenlet_ACTIVE(context->handler);
+}
 
 
 static PyObject* CVObject_process_loop(PyObject *self)
     {PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     CVContext *context;
+    int i;
 
     while (1)
     {
         if (!Q_is_empty(self->cvprocesses))
             {context = CVObject_pop_process(self);
             /* Check to make sure we're not working with broken chains */
-            if (CVObject_context_check(context) == 0)
+            i = CVObject_context_check(context);
+
+            if (i < 0){
+                return -1;
+                }
+            if (i == 0)
                 {CVContext_dealloc(context);
                 }
             else
