@@ -1,6 +1,6 @@
 #include "civycontext.h"
 
-static PyObject* CVContext_loop(PyObject *capsule)
+static PyObject* CVContext_spawn(PyObject *capsule)
 {
     CVContext *self = (CVContext *)PyCapsule_GetPointer(capsule, NULL);
     Py_DECREF(capsule);
@@ -28,7 +28,7 @@ CVContext* CVContext_new(PyObject *event_handler)
 /* To be called from `CVObject` */
 {
     CVContext *context = (CVContext *)malloc(sizeof(CVContext));
-    context->loop = PyGreenlet_New(CVContext_loop, NULL);
+    context->loop = PyGreenlet_New(CVContext_spawn, NULL);
     PyObject *capsule = PyCapsule_New((void *)context, NULL, NULL);
     PyGreenlet_Switch(context->loop, capsule);
     context->handler = PyWeakref_NewRef(event_handler, NULL);
