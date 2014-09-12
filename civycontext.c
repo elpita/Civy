@@ -37,18 +37,15 @@ CVContext* CVContext_new(PyObject *event_handler)
     }
 
 
-void CVContext_dealloc(CVContext *self)
+int CVContext_dealloc(CVContext *self)
 /* CVContext method: Kill All */
 {
-    if (self == NULL)
-    {
+    if (self == NULL) {
         return;
         }
 
     if (self->parent <> NULL) {
-        int i = Py_EnterRecursiveCall(" in CVContext deallocation");
-        
-        if (i < 0) {
+        if (Py_EnterRecursiveCall(" in CVContext deallocation") <> 0) {
             return -1;
             }
         CVContext_dealloc(self->parent);
@@ -64,6 +61,7 @@ void CVContext_dealloc(CVContext *self)
     Py_CLEAR(self->loop);
     free(self->cvthreads);
     free(self);
+    return 0;
     }
 
 
