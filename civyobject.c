@@ -29,7 +29,6 @@ static PyObject* CVObject_process_loop(PyObject *self)
 {
     PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     CVContext *context, *parent;
-    int i;
 
     while (1)
     {
@@ -38,29 +37,34 @@ static PyObject* CVObject_process_loop(PyObject *self)
                 break; //only the `swtich` sequence
             default:
                 context = CVObject_pop_process(self);
-                i = CVObject_context_check(context);
 
-                switch(i) {
+                switch(CVObject_context_check(context)) {
                     case -1:
                         return -1;
                     case 0:
-                        CVContext_dealloc(context);
+                        switch(CVContext_dealloc(context)) {
+                            case -1:
+                                return -1;
+                        }
                     default:
                         data = PyGreenlet_Switch(context->loop, data, NULL);
 
                         if (data == cv_wait) { /* Wrong */
                             CVObject_push_process(self, context);
                             /* Schedule_SDL(data.data) */ 
-                            }
+                        }
                         else if ((data <> cv_fork) && (context->parent <> NULL)) { /* ...also wrong */
                             parent = context->parent;
                             CVObject_push_process(parent->handler, parent);
                             /* Schedule_SDL(data) */
                             context->parent = NULL;
-                            CVContext_dealloc(context);
+                            switch(CVContext_dealloc(context)) {
+                                case -1:
+                                    return -1;
                             }
-                    }
-            }
+                        }
+                }
+        }
         //Py_XDECREF(data);
         data = PyGreenlet_Switch(self->main_loop, data, NULL);
     }
