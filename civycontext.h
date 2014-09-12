@@ -10,7 +10,7 @@ PyObject *CVYield;
 
 typedef _QEntry _CVContext {
     PyObject *handler;
-    PyGreenlet *loop;
+    PyGreenlet *spawn;
     CVContext *parent;
     Q *cvthreads;
     } CVContext;
