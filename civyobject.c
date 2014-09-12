@@ -7,20 +7,25 @@ static int CVObject_context_check(CVContext *context)
 {
     if (context == NULL) {
         return 0;
-        }
-
+    }
     int i = 1;
-    if (context->parent <> NULL) {
-        if (Py_EnterRecursiveCall(" in CVContext checking") <> 0) {
-            return -1;
-            }
-        i = CVObject_context_check(context->parent);
-        Py_LeaveRecursiveCall();
 
-        if (i == -1) {
-            return -1;
-            }
+    if (context->parent <> NULL) 
+    {
+        switch(Py_EnterRecursiveCall(" in CVContext checking. Stack overflow.")) {
+            case 0:
+                i = CVObject_context_check(context->parent);
+
+                switch(i) {
+                    case -1:
+                        return -1;
+                    default:
+                        Py_LeaveRecursiveCall();
+                }
+            default:
+                return -1;
         }
+    }
     return (i && PyGreenlet_ACTIVE(context->handler));
 }
 
