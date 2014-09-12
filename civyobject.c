@@ -61,8 +61,8 @@ static PyObject* CVObject_process_loop(PyObject *self)
                             }
                     }
             }
-        Py_XDECREF(data);
-        data = PyGreenlet_Switch(self->main_loop, NULL, NULL);
+        //Py_XDECREF(data);
+        data = PyGreenlet_Switch(self->main_loop, data, NULL);
     }
 }
 
