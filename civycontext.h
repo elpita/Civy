@@ -35,6 +35,6 @@ void CVThreads_push(CVContext *self, PyGreenlet *new_entry);
 PyGreenlet* CVThreads_pop(CVContext *self);
 
 
-#define Fork_Check(op)    ((op <> NULL) && PyObject_TypeCheck(op, &cv_ForkSentinelType))
-#define Wait_Check(op)    ((op <> NULL) && PyObject_TypeCheck(op, &cv_WaitSentinelType))
+#define Fork_Check(op)    PyObject_TypeCheck(op, &cv_ForkSentinelType)
+#define Wait_Check(op)    PyObject_TypeCheck(op, &cv_WaitSentinelType)
 #endif
