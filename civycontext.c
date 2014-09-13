@@ -1,5 +1,7 @@
 #include "civycontext.h"
 
+static char *sentinel_doc = "If you can read this, you're probably looking at the wrong object.";
+
 static PyObject* CVContext_spawn(PyObject *capsule)
 {
     CVContext *self = (CVContext *)PyCapsule_GetPointer(capsule, NULL);
@@ -89,4 +91,56 @@ PyGreenlet* CVThreads_pop(CVContext *self)
     PyGreenlet *result = entry->cvthread;
     free(entry);
     return result;
-    }
+}
+
+
+static PyTypeObject cv_ForkSentinelType = {
+    PyObject_HEAD_INIT(NULL)
+    0,                         /*ob_size*/
+    "forksentinel",            /*tp_name*/
+    sizeof(cv_ForkSentinel),   /*tp_basicsize*/
+    0,                         /*tp_itemsize*/
+    0,                         /*tp_dealloc*/
+    0,                         /*tp_print*/
+    0,                         /*tp_getattr*/
+    0,                         /*tp_setattr*/
+    0,                         /*tp_compare*/
+    0,                         /*tp_repr*/
+    0,                         /*tp_as_number*/
+    0,                         /*tp_as_sequence*/
+    0,                         /*tp_as_mapping*/
+    0,                         /*tp_hash */
+    0,                         /*tp_call*/
+    0,                         /*tp_str*/
+    0,                         /*tp_getattro*/
+    0,                         /*tp_setattro*/
+    0,                         /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT,        /*tp_flags*/
+    sentinel_doc,              /* tp_doc */
+    };
+
+
+static PyTypeObject cv_WaitSentinelType = {
+    PyObject_HEAD_INIT(NULL)
+    0,                         /*ob_size*/
+    "waitsentinel",            /*tp_name*/
+    sizeof(cv_WaitSentinel),   /*tp_basicsize*/
+    0,                         /*tp_itemsize*/
+    0,                         /*tp_dealloc*/
+    0,                         /*tp_print*/
+    0,                         /*tp_getattr*/
+    0,                         /*tp_setattr*/
+    0,                         /*tp_compare*/
+    0,                         /*tp_repr*/
+    0,                         /*tp_as_number*/
+    0,                         /*tp_as_sequence*/
+    0,                         /*tp_as_mapping*/
+    0,                         /*tp_hash */
+    0,                         /*tp_call*/
+    0,                         /*tp_str*/
+    0,                         /*tp_getattro*/
+    0,                         /*tp_setattro*/
+    0,                         /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT,        /*tp_flags*/
+    sentinel_doc,              /* tp_doc */
+    };
