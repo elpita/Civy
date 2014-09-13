@@ -36,7 +36,7 @@ static PyObject* CVObject_exec(PyObject *self)
     CVContext *context, *parent;
 
     while (1)
-    {
+    { /* Yeah, that's right. I'm using `switch`es, and i don't care. */
         switch(Q_is_empty(self->cvprocesses)) {
             case 1:
                 break; //only the `swtich` sequence
@@ -56,17 +56,19 @@ static PyObject* CVObject_exec(PyObject *self)
                         
                         switch(data == NULL) {
                             case 1:
-                                break; //only this `swtich` sequence
+                                break;
                             default:
                                 switch(Wait_Check(data)) {
                                     case 1:
                                         CVObject_push_process(self, context);
                                         /* Schedule_SDL(data.data) */
                                         Py_DECREF(data);
+                                        break;
                                     default:
                                         switch(Fork_Check(data)) {
                                             case 1:
                                                 Py_DECREF(data);
+                                                break;
                                             default:
                                                 switch(context->parent == NULL) {
                                                     case 0:
@@ -79,11 +81,17 @@ static PyObject* CVObject_exec(PyObject *self)
                                                             case -1:
                                                                 return -1;
                                                         }
+                                                        break;
                                                 }
+                                                break;
                                         }
+                                        break;
                                 }
+                            break;
                         }
+                    break;
                 }
+            break;
         }
         //Py_XDECREF(data);
         data = PyGreenlet_Switch(self->main_loop, data, NULL);
