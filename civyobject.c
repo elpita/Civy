@@ -54,11 +54,15 @@ static PyObject* CVObject_exec(PyObject *self)
                     default:
                         data = PyGreenlet_Switch(context->spawn, data, NULL);
 
-                        if (data == cv_wait) { /* Wrong */
+                        if Wait_Check(data) {
                             CVObject_push_process(self, context);
-                            /* Schedule_SDL(data.data) */ 
+                            /* Schedule_SDL(data.data) */
+                            Py_DECREF(data);
                         }
-                        else if ((data <> cv_fork) && (context->parent <> NULL)) { /* ...also wrong */
+                        else if Fork_Check(data) {
+                            Py_DECREF(data);
+                        }
+                        else if (context->parent <> NULL)) { /* ...also wrong */
                             parent = context->parent;
                             CVObject_push_process(parent->handler, parent);
                             /* Schedule_SDL(data) */
