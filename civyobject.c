@@ -54,27 +54,34 @@ static PyObject* CVObject_exec(PyObject *self)
                     default:
                         data = PyGreenlet_Switch(context->spawn, data, NULL);
                         
-                        if (data <> NULL)
-                        {
-                            if Wait_Check(data) {
-                                CVObject_push_process(self, context);
-                                /* Schedule_SDL(data.data) */
-                                Py_DECREF(data);
-                            }
-                            else if Fork_Check(data) {
-                                Py_DECREF(data);
-                            }
-                            else if (context->parent <> NULL)) { /* ...also wrong */
-                                parent = context->parent;
-                                CVObject_push_process(parent->handler, parent);
-                                /* Schedule_SDL(data) */
-                                context->parent = NULL;
-    
-                                switch(CVContext_dealloc(context)) {
-                                    case -1:
-                                        return -1;
+                        switch(data == NULL) {
+                            case 1:
+                                break; //only this `swtich` sequence
+                            default:
+                                switch(Wait_Check(data)) {
+                                    case 1:
+                                        CVObject_push_process(self, context);
+                                        /* Schedule_SDL(data.data) */
+                                        Py_DECREF(data);
+                                    default:
+                                        switch(Fork_Check(data)) {
+                                            case 1:
+                                                Py_DECREF(data);
+                                            default:
+                                                switch(context->parent == NULL) {
+                                                    case 0:
+                                                        parent = context->parent;
+                                                        CVObject_push_process(parent->handler, parent);
+                                                        /* Schedule_SDL(data) */
+                                                        context->parent = NULL;
+                            
+                                                        switch(CVContext_dealloc(context)) {
+                                                            case -1:
+                                                                return -1;
+                                                        }
+                                                }
+                                        }
                                 }
-                            }
                         }
                 }
         }
