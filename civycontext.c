@@ -115,7 +115,7 @@ static PyTypeObject cv_ForkSentinelType = {
     0,                         /*tp_getattro*/
     0,                         /*tp_setattro*/
     0,                         /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT,        /*tp_flags*/
+    0,                         /*tp_flags*/
     sentinel_doc,              /* tp_doc */
     };
 
@@ -141,6 +141,6 @@ static PyTypeObject cv_WaitSentinelType = {
     0,                         /*tp_getattro*/
     0,                         /*tp_setattro*/
     0,                         /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT,        /*tp_flags*/
+    0,                         /*tp_flags*/
     sentinel_doc,              /* tp_doc */
     };
