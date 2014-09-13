@@ -53,24 +53,27 @@ static PyObject* CVObject_exec(PyObject *self)
                         }
                     default:
                         data = PyGreenlet_Switch(context->spawn, data, NULL);
-
-                        if Wait_Check(data) {
-                            CVObject_push_process(self, context);
-                            /* Schedule_SDL(data.data) */
-                            Py_DECREF(data);
-                        }
-                        else if Fork_Check(data) {
-                            Py_DECREF(data);
-                        }
-                        else if (context->parent <> NULL)) { /* ...also wrong */
-                            parent = context->parent;
-                            CVObject_push_process(parent->handler, parent);
-                            /* Schedule_SDL(data) */
-                            context->parent = NULL;
-
-                            switch(CVContext_dealloc(context)) {
-                                case -1:
-                                    return -1;
+                        
+                        if (data <> NULL)
+                        {
+                            if Wait_Check(data) {
+                                CVObject_push_process(self, context);
+                                /* Schedule_SDL(data.data) */
+                                Py_DECREF(data);
+                            }
+                            else if Fork_Check(data) {
+                                Py_DECREF(data);
+                            }
+                            else if (context->parent <> NULL)) { /* ...also wrong */
+                                parent = context->parent;
+                                CVObject_push_process(parent->handler, parent);
+                                /* Schedule_SDL(data) */
+                                context->parent = NULL;
+    
+                                switch(CVContext_dealloc(context)) {
+                                    case -1:
+                                        return -1;
+                                }
                             }
                         }
                 }
