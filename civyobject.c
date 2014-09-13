@@ -21,7 +21,9 @@ static int CVObject_context_check(CVContext *context)
                         return -1;
                     default:
                         Py_LeaveRecursiveCall();
+                        break;
                 }
+                break;
             default:
                 return -1;
         }
