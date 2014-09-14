@@ -1,18 +1,29 @@
-#include "civycontext.h"
+#include "civyprocess.h"
+#define sentinel_doc "If you can read this, you're probably looking at the wrong object."
 
-static char *sentinel_doc = "If you can read this, you're probably looking at the wrong object.";
 
-static PyObject* CVContext_spawn(PyObject *capsule)
+QueueEntry _CVProcess {
+    PyObject *handler;
+    PyGreenlet *loop;
+    CVProcess parent;
+    Q pipeline;
+    };
+
+typedef QueueEntry CVContext {
+    PyGreenlet *cvthread;
+    };
+
+
+static PyObject* CVProcess_loop(PyObject *capsule)
 {
-    CVContext *self = (CVContext *)PyCapsule_GetPointer(capsule, NULL);
+    CVProcess self = (_CVProcess *)PyCapsule_GetPointer(capsule, NULL);
     Py_DECREF(capsule);
     PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     PyGreenlet *g;
 
-    while (!Q_is_empty(self->pipeline))
-    {
+    while (!Q_IS_EMPTY(self->pipeline)) {
         g = CVThreads_pop(self);
-        
+
         if (g == NULL) {
             break;
         }
@@ -23,71 +34,68 @@ static PyObject* CVContext_spawn(PyObject *capsule)
 }
 
 
-CVContext* CVContext_new(PyObject *event_handler)
+CVProcess CVProcess_new(PyObject *event_handler)
 /* To be called from `CVObject` */
 {
-    CVContext *context = (CVContext *)malloc(sizeof(CVContext));
-    context->spawn = PyGreenlet_New(CVContext_spawn, NULL);
+    CVProcess context = (_CVProcess *)malloc(sizeof(_CVProcess));
+
+    if (context == NULL) {
+        return NULL;
+    }
+    context->loop = PyGreenlet_New(CVProcess_loop, NULL);
     PyObject *capsule = PyCapsule_New((void *)context, NULL, NULL);
-    PyGreenlet_Switch(context->spawn, capsule);
+    PyGreenlet_Switch(context->loop, capsule);
     context->handler = PyWeakref_NewRef(event_handler, NULL);
     context->parent = NULL;
     return context;
-    }
+}
 
 
-int CVContext_dealloc(CVContext *self)
-/* CVContext method: Kill All */
+int CVProcess_dealloc(CVProcess self)
+/* CVProcess method: Kill All */
 {
     if (self == NULL) {
         return 0;
-        }
+    }
     if (self->parent <> NULL) {
-        if (Py_EnterRecursiveCall(" in CVContext deallocation. Stack overvlow.") <> 0) || (CVContext_dealloc(self->parent) == -1) {
+        if (Py_EnterRecursiveCall(" in CVProcess deallocation. Stack overvlow.") <> 0) || (CVProcess_dealloc(self->parent) == -1) {
             return -1;
-            }
+        }
         Py_LeaveRecursiveCall();
-        }
-
-    while (!Q_is_empty(self->pipeline))
-    {
+    }
+    while (!Q_IS_EMPTY(self->pipeline)) {
         Py_CLEAR(CVThreads_pop(self->pipeline));
-        }
-
+    }
     Py_CLEAR(self->handler);
-    Py_CLEAR(self->spawn);
+    Py_CLEAR(self->loop);
     free(self->pipeline);
     free(self);
     return 0;
-    }
+}
 
 
-int CVThreads_push(CVContext *self, PyGreenlet *data)
-/* CVContext method: Push greenlets onto mini-queue */
+int CVProcess_push_thread(CVProcess self, PyGreenlet *data)
+/* CVProcess method: Push greenlets onto mini-queue */
 {
-    whatever *new_entry = (whatever *)malloc(sizeof(whatever));
+    CVContext *new_entry = (CVContext *)malloc(sizeof(CVContext));
     
-    if (new_entry == NULL)
-    {
+    if (new_entry == NULL) {
         return -1;
-        }
-
+    }
     new_entry->cvthread = data;
     Q_prepend(self->pipeline, (QEntry *)new_entry);
     return 0;
-    }
+}
 
 
-PyGreenlet* CVThreads_pop(CVContext *self)
-/* CVContext method: Pop greenlets from mini-queue */
+PyGreenlet* CVProcess_pop_thread(CVProcess self)
+/* CVProcess method: Pop greenlets from mini-queue */
 {
-    whatever *entry = (whatever *)Q_pop(self->pipeline);
+    CVContext *entry = (CVContext *)Q_pop(self->pipeline);
 
-    if (entry == NULL)
-    {
+    if (entry == NULL) {
         return NULL;
-        }
-
+    }
     PyGreenlet *result = entry->cvthread;
     free(entry);
     return result;
