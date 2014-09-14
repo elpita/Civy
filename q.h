@@ -1,23 +1,17 @@
 #ifndef q_included
 #define q_included
 
-typedef struct _QEntry {
-    QEntry *previous;
-    QEntry *next;
-    } QEntry;
+typedef struct QueueEntry *QEntry;
+typedef struct Queue *Q;
 
 
-struct Q {
-    QEntry *head;
-    QEntry *next;
-    };
+static Q Queue_new(void);
+static void Queue_dealloc(Q q);
+static void Queue_push(Q self, QEntry new_entry);
+static void Queue_prepend(Q self, QEntry new_entry);
+static QEntry Queue_pop(Q self);
+#define Q_IS_EMPTY(q) (q->head == NULL)
 
 
-Q* Q_new(void);
-void Q_dealloc(Q *q);
-int Q_is_empty(Q *q);
-void Q_push(Q *self, QEntry *new_entry);
-void Q_prepend(Q *self, QEntry *new_entry);
-QEntry* Q_pop(Q *self);
-
+static void ** IMPORT_q = NULL;
 #endif
