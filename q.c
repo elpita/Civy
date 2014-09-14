@@ -3,77 +3,88 @@
 #include <stdlib.h>
 #include "q.h"
 
+/* Structures */
+struct QueueEntry {
+    QEntry previous;
+    QEntry next;
+    };
 
-Q* Q_new(void)
+struct Queue {
+    QueueEntry head;
+    QueueEntry next;
+    };
+
+
+/* Functions */
+static Q Queue_new(void)
 {
-    Q *q = (Q *)malloc(sizeof(Q));
+    Q q = (Queue *)malloc(sizeof(Queue));
 
-    if q == NULL
-    {
+    if (q == NULL) {
         return NULL;
-        }
-
+    }
     q->head = q->tail = NULL;
     return q;
-    }
+}
 
 
-int Q_is_empty(Q *q)
-{
-    return q->head == NULL;
-    }
-
-
-void Q_push(Q *self, QEntry *new_entry)
+static void Queue_push(Q self, QEntry new_entry)
 {
     new_entry->previous = self->tail;
     new_entry->next = NULL;
 
-    if (self->tail == NULL)
-    {
-        self->head = self->tail = new_entry;
-        }
-    else
-    {
-        self->tail->next = self->tail = new_entry;
-        }
+    switch(self->tail == NULL) {
+        case 1:
+            self->head = self->tail = new_entry;
+            break;
+        case 0:
+            self->tail->next = self->tail = new_entry;
+            break;
     }
+}
 
 
-void Q_prepend(Q *self, QEntry *new_entry)
+static void Queue_prepend(Q self, QEntry new_entry)
 {
     new_entry->next = self->head;
     new_entry->previous = NULL;
-    
-    if (self->head == NULL)
-    {
-        self->head = self->tail = new_entry;
-        }
-    else
-    {
-        self->head->previous = self->head = new_entry;
-        }
+
+    switch(self->head == NULL) {
+        case 1:
+            self->head = self->tail = new_entry;
+            break;
+        case 0:
+            self->head->previous = self->head = new_entry;
+            break;
     }
+}
 
 
-QEntry* Q_pop(Q *self)
+static QEntry Queue_pop(Q self)
 {
-    if (Q_is_empty(self))
-    {
+    if (Q_IS_EMPTY(self)) {
         return NULL;
-        }
-
-    QEntry *entry = self->head;
+    }
+    QueueEntry *entry = self->head;
     self->head = entry->next;
 
-    if self->head == NULL
-    {
-        self->tail = self->head;
-        }
-    else
-    {
-        self->head->previous = NULL;
-        }
-
-    return entry;
+    switch(self->head == NULL) {
+        case 1:
+            self->tail = self->head;
+            break;
+        case 0:
+            self->head->previous = NULL;
+            break;
     }
+    return entry;
+}
+
+
+
+#define DOT_QUEUE_NEW 0
+#define DOT_QUEUE_DEALLOC 1
+#define DOT_QUEUE_PUSH 2
+#define DOT_QUEUE_PREPEND 3
+#define DOT_QUEUE_POP 4
+
+#define q_DOT_Queue_new (*(Queue *) IMPORT_q[DOT_QUEUE_NEW])
