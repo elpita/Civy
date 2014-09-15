@@ -1,7 +1,7 @@
 #include "civyobject.h"
 #include "structmember.h"
-#define CVObject_push_process(self, new_entry)  q_DOT_Queue_push(self->cvprocesses, (QEntry *)new_entry)
-#define CVObject_pop_process(self)              (_CVProcess *)q_DOT_Queue_pop(self->cvprocesses)
+#define CVObject_push_process(self, new_entry)  q_dot_Queue_push(self->cvprocesses, (QEntry *)new_entry)
+#define CVObject_pop_process(self)              (_CVProcess *)q_dot_Queue_pop(self->cvprocesses)
 
 struct _cvobject {
     PyObject_HEAD
@@ -58,7 +58,7 @@ static PyObject* CVObject_exec(PyObject *self)
                     case -1:
                         return -1;
                     case 0:
-                        switch(civyprocess_DOT_CVProcess_dealloc(process)) {
+                        switch(civyprocess_dot_CVProcess_dealloc(process)) {
                             case -1:
                                 return -1;
                         }
@@ -88,7 +88,7 @@ static PyObject* CVObject_exec(PyObject *self)
                                                         /* Schedule_SDL(data) */
                                                         process->parent = NULL;
                             
-                                                        switch(civyprocess_DOT_CVProcess_dealloc(process)) {
+                                                        switch(civyprocess_dot_CVProcess_dealloc(process)) {
                                                             case -1:
                                                                 return -1;
                                                         }
@@ -119,7 +119,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         return NULL;
     }
 
-    self->cvprocesses = q_DOT_Queue_new();
+    self->cvprocesses = q_dot_Queue_new();
 
     if (self->cvprocesses == NULL) {
         Py_XDECREF(self);
@@ -152,9 +152,9 @@ static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 static void CVObject_dealloc(CVObject self)
 {
     while (!Q_IS_EMPTY(self->cvprocesses)) {
-        civyprocess_DOT_CVProcess_dealloc(CVObject_pop_process(self->cvprocesses));
+        civyprocess_dot_CVProcess_dealloc(CVObject_pop_process(self->cvprocesses));
     }
-    q_DOT_Queue_dealloc(self->cvprocesses);
+    q_dot_Queue_dealloc(self->cvprocesses);
     Py_DECREF(self->exec);
     self->ob_type->tp_free( (PyObject *)self );
 }
