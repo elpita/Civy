@@ -21,9 +21,9 @@ static void **IMPORT_q = NULL;
 #define DOT_QUEUE_PREPEND       3
 #define DOT_QUEUE_POP           4
 
-#define q_DOT_Queue_new         (*(Queue *)IMPORT_q[DOT_QUEUE_NEW])
-#define q_DOT_Queue_dealloc     (*(void *)IMPORT_q[DOT_QUEUE_DEALLOC])
-#define q_DOT_Queue_push        (*(void *)IMPORT_q[DOT_QUEUE_PUSH])
-#define q_DOT_Queue_prepend     (*(void *)IMPORT_q[DOT_QUEUE_PREPEND])
-#define q_DOT_Queue_pop         (*(QueueEntry *)IMPORT_q[DOT_QUEUE_POP])
+#define q_dot_Queue_new         (*(Queue *)IMPORT_q[DOT_QUEUE_NEW])
+#define q_dot_Queue_dealloc     (*(void *)IMPORT_q[DOT_QUEUE_DEALLOC])
+#define q_dot_Queue_push        (*(void *)IMPORT_q[DOT_QUEUE_PUSH])
+#define q_dot_Queue_prepend     (*(void *)IMPORT_q[DOT_QUEUE_PREPEND])
+#define q_dot_Queue_pop         (*(QueueEntry *)IMPORT_q[DOT_QUEUE_POP])
 #endif
