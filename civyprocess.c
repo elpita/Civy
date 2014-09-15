@@ -102,6 +102,9 @@ PyGreenlet* CVProcess_pop_thread(CVProcess self)
 }
 
 
+struct cv_ForkSentinel {
+    PyObject_HEAD
+    };
 static PyTypeObject cv_ForkSentinelType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
@@ -128,6 +131,9 @@ static PyTypeObject cv_ForkSentinelType = {
     };
 
 
+cv_ForkSentinel cv_WaitSentinel {
+    PyObject *data;
+    };
 static PyTypeObject cv_WaitSentinelType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
