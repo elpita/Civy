@@ -28,6 +28,15 @@ static Q Queue_new(void)
 }
 
 
+static void Queue_dealloc(Q self)
+{
+    while (!Q_IS_EMPTY(self)) {
+        free( Queue_pop(self) );
+    }
+    free(self);
+}
+
+
 static void Queue_push(Q self, QEntry new_entry)
 {
     new_entry->previous = self->tail;
@@ -80,11 +89,10 @@ static QEntry Queue_pop(Q self)
 }
 
 
-
-#define DOT_QUEUE_NEW 0
-#define DOT_QUEUE_DEALLOC 1
-#define DOT_QUEUE_PUSH 2
-#define DOT_QUEUE_PREPEND 3
-#define DOT_QUEUE_POP 4
-
-#define q_DOT_Queue_new (*(Queue *) IMPORT_q[DOT_QUEUE_NEW])
+IMPORT_q[] = {
+    (void *) Queue_new,
+    (void *) Queue_dealloc,
+    (void *) Queue_push,
+    (void *) Queue_prepend,
+    (void *) Queue_pop
+    };
