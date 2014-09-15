@@ -29,10 +29,10 @@ static void **IMPORT_civyprocess = NULL;
 #define DOT_CVPROCESS_PUSH_THREAD               2
 #define DOT_CVPROCESS_POP_THREAD                3
 
-#define civyprocess_DOT_CVProcess_new           (*(_CVProcess *)IMPORT_civyprocess[DOT_CVPROCESS_NEW])
-#define civyprocess_DOT_CVProcess_dealloc       (*(int)IMPORT_civyprocess[DOT_CVPROCESS_DEALLOC])
-#define civyprocess_DOT_CVProcess_push_thread   (*(int *)IMPORT_civyprocess[DOT_CVPROCESS_PUSH_THREAD])
-#define civyprocess_DOT_CVProcess_pop_thread    (*(PyGreenlet *)IMPORT_civyprocess[DOT_CVPROCESS_POP_THREAD])
+#define civyprocess_dot_CVProcess_new           (*(_CVProcess *)IMPORT_civyprocess[DOT_CVPROCESS_NEW])
+#define civyprocess_dot_CVProcess_dealloc       (*(int)IMPORT_civyprocess[DOT_CVPROCESS_DEALLOC])
+#define civyprocess_dot_CVProcess_push_thread   (*(int *)IMPORT_civyprocess[DOT_CVPROCESS_PUSH_THREAD])
+#define civyprocess_dot_CVProcess_pop_thread    (*(PyGreenlet *)IMPORT_civyprocess[DOT_CVPROCESS_POP_THREAD])
 #define Fork_Check(op)                          PyObject_TypeCheck(op, &cv_ForkSentinelType)
 #define Wait_Check(op)                          PyObject_TypeCheck(op, &cv_WaitSentinelType)
 #endif
