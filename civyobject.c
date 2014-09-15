@@ -1,20 +1,29 @@
 #include "civyobject.h"
 #include "structmember.h"
+#define CVObject_push_process(self, new_entry)  q_DOT_Queue_push(self->cvprocesses, (QEntry *)new_entry)
+#define CVObject_pop_process(self)              (_CVProcess *)q_DOT_Queue_pop(self->cvprocesses)
 
-static int CVObject_context_check(CVContext *context)
-/* If the greenlet chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the context */
+struct _cvobject {
+    PyObject_HEAD
+    Q cvprocesses;
+    PyGreenlet *exec;
+    };
+
+
+static int check_process(CVProcess process)
+/* If the process chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the process */
 /* Returns 0 (fail), 1(pass), or -1(error) */
 {
-    if (context == NULL) {
+    if (process == NULL) {
         return 0;
     }
     int i = 1;
 
-    if (context->parent <> NULL) 
+    if (process->parent <> NULL) 
     {
-        switch(Py_EnterRecursiveCall(" in CVContext checking.")) {
+        switch(Py_EnterRecursiveCall(" in CVprocess checking.")) {
             case 0:
-                i = CVObject_context_check(context->parent);
+                i = check_process(process->parent);
 
                 switch(i) {
                     case -1:
@@ -28,33 +37,33 @@ static int CVObject_context_check(CVContext *context)
                 return -1;
         }
     }
-    return (i && PyGreenlet_ACTIVE(context->handler));
+    return (i && PyGreenlet_ACTIVE(process->handler));
 }
 
 
 static PyObject* CVObject_exec(PyObject *self)
 {
     PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
-    CVContext *context, *parent;
+    CVprocess *process, *parent;
 
     while (1)
     { /* Yeah, that's right. I'm using `switch`es, and i don't care. */
-        switch(Q_is_empty(self->cvprocesses)) {
+        switch(Q_IS_EMPTY(self->cvprocesses)) {
             case 1:
                 break; //only the `swtich` sequence
             default:
-                context = CVObject_pop_process(self);
+                process = CVObject_pop_process(self);
 
-                switch(CVObject_context_check(context)) {
+                switch(check_process(process)) {
                     case -1:
                         return -1;
                     case 0:
-                        switch(CVContext_dealloc(context)) {
+                        switch(civyprocess_DOT_CVProcess_dealloc(process)) {
                             case -1:
                                 return -1;
                         }
                     default:
-                        data = PyGreenlet_Switch(context->spawn, data, NULL);
+                        data = PyGreenlet_Switch(process->spawn, data, NULL);
                         
                         switch(data == NULL) {
                             case 1:
@@ -62,7 +71,7 @@ static PyObject* CVObject_exec(PyObject *self)
                             default:
                                 switch(Wait_Check(data)) {
                                     case 1:
-                                        CVObject_push_process(self, context);
+                                        CVObject_push_process(self, process);
                                         /* Schedule_SDL(data.data) */
                                         Py_DECREF(data);
                                         break;
@@ -72,14 +81,14 @@ static PyObject* CVObject_exec(PyObject *self)
                                                 Py_DECREF(data);
                                                 break;
                                             default:
-                                                switch(context->parent == NULL) {
+                                                switch(process->parent == NULL) {
                                                     case 0:
-                                                        parent = context->parent;
+                                                        parent = process->parent;
                                                         CVObject_push_process(parent->handler, parent);
                                                         /* Schedule_SDL(data) */
-                                                        context->parent = NULL;
+                                                        process->parent = NULL;
                             
-                                                        switch(CVContext_dealloc(context)) {
+                                                        switch(civyprocess_DOT_CVProcess_dealloc(process)) {
                                                             case -1:
                                                                 return -1;
                                                         }
@@ -102,60 +111,53 @@ static PyObject* CVObject_exec(PyObject *self)
 
 
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
-    {CVObject *self = (CVObject *)type->tp_alloc(type, 0);
+{
+    CVObject self = (_cvobject *)type->tp_alloc(type, 0);
 
-    if (self == NULL){
+    if (self == NULL) {
         Py_XDECREF(self);
-        return NULL;}
+        return NULL;
+    }
+
+    self->cvprocesses = q_DOT_Queue_new();
+
+    if (self->cvprocesses == NULL) {
+        Py_XDECREF(self);
+        return NULL;
+    }
 
     PyGreenlet *process_loop = PyGreenlet_New(CVObject_exec, NULL);
 
-    if (process_loop == NULL)
-        {Py_DECREF(self);
-        return NULL;}
+    if (process_loop == NULL) {
+        Py_DECREF(self);
+        return NULL;
+    }
 
     PyGreenlet_Switch(process_loop, (PyObject *)self, NULL);
     self->exec = process_loop; //proxy?
     return (PyObject *)self;
-    }
+}
 
 
-static int CVObject_init(CVObject *self, PyObject *args, PyObject *kwargs)
+static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 {
-    if (self->main_loop == NULL) 
-    {
+    if (self->main_loop == NULL) { /* Fix this */
         PyErr_SetString(PyExc_TypeError, "The App Main Loop must be started first.");
         return -1;
-        }
-
+    }
     return 0
-    }
+}
 
 
-int CVObject_push_process(CVObject *self, CVContext *new_entry)
+static void CVObject_dealloc(CVObject self)
 {
-    Q_push(self->cvprocesses, (QEntry *)new_entry);
-    return 0;
+    while (!Q_IS_EMPTY(self->cvprocesses)) {
+        civyprocess_DOT_CVProcess_dealloc(CVObject_pop_process(self->cvprocesses));
     }
-
-
-CVContext* CVObject_pop_process(CVObject *self)
-{
-    return (CVContext *)Q_pop(self->cvprocesses);
-    }
-
-
-static void CVObject_dealloc(CVObject *self)
-{
-    while (!Q_is_empty(self->cvprocesses))
-    {
-        CVContext_dealloc(CVObject_pop_process(self->cvprocesses));
-        }
-
-    free(self->cvprocesses);
+    q_DOT_Queue_dealloc(self->cvprocesses);
     Py_DECREF(self->exec);
     self->ob_type->tp_free( (PyObject *)self );
-    }
+}
 
 
 static PyTypeObject CVObject_Type = {
@@ -206,10 +208,10 @@ static PyMethodDef module_methods[] = {
     };
 
 
-CVOBJECTMOODINIT_FUNC initcivyobject(void)
+PyMODINIT_FUNC initcivyobject(void)
 {
-    CVObject.main_loop = (PyGreenlet *)PyMem_Malloc(sizeof(PyGreenlet));
-    CVObject.main_loop = NULL;
+    CVObject.main_loop = (PyGreenlet *)PyMem_Malloc(sizeof(PyGreenlet)); /*Fix this */
+    CVObject.main_loop = NULL; /*Fix this */
 
     if (PyType_Ready(&CVObject_Type) == 0) {
         PyObject *m = Py_InitModule3("civyobject", module_methods, "The heart of Civy.");
@@ -218,9 +220,9 @@ CVOBJECTMOODINIT_FUNC initcivyobject(void)
             Py_INCREF(&CVObject_Type);
             PyModule_AddObject(m, "CVObject", (PyObject *)&CVObject_Type);
             PyGreenlet_Import();
-            }
         }
     }
+}
 
 
 /* TODO: Incorporate `SDL_Event`
