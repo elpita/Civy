@@ -34,24 +34,29 @@ static PyObject* CVProcess_loop(PyObject *capsule)
 }
 
 
-CVProcess CVProcess_new(PyObject *event_handler)
+static CVProcess CVProcess_new(PyObject *event_handler)
 /* To be called from `CVObject` */
 {
-    CVProcess context = (_CVProcess *)malloc(sizeof(_CVProcess));
+    CVProcess process = (_CVProcess *)malloc(sizeof(_CVProcess));
 
-    if (context == NULL) {
+    if (process == NULL) {
         return NULL;
     }
-    context->loop = PyGreenlet_New(CVProcess_loop, NULL);
-    PyObject *capsule = PyCapsule_New((void *)context, NULL, NULL);
-    PyGreenlet_Switch(context->loop, capsule);
-    context->handler = PyWeakref_NewRef(event_handler, NULL);
-    context->parent = NULL;
-    return context;
+    process->pipeline = q_DOT_Queue_new();
+    
+    if (process->pipeline == NULL) {
+        return NULL;
+    }
+    process->loop = PyGreenlet_New(CVProcess_loop, NULL);
+    PyObject *capsule = PyCapsule_New((void *)process, NULL, NULL);
+    PyGreenlet_Switch(process->loop, capsule);
+    process->handler = PyWeakref_NewRef(event_handler, NULL);
+    process->parent = NULL;
+    return process;
 }
 
 
-int CVProcess_dealloc(CVProcess self)
+static int CVProcess_dealloc(CVProcess self)
 /* CVProcess method: Kill All */
 {
     if (self == NULL) {
@@ -68,13 +73,13 @@ int CVProcess_dealloc(CVProcess self)
     }
     Py_CLEAR(self->handler);
     Py_CLEAR(self->loop);
-    free(self->pipeline);
+    q_DOT_Queue_dealloc(self->pipeline);
     free(self);
     return 0;
 }
 
 
-int CVProcess_push_thread(CVProcess self, PyGreenlet *data)
+static int CVProcess_push_thread(CVProcess self, PyGreenlet *data)
 /* CVProcess method: Push greenlets onto mini-queue */
 {
     CVContext *new_entry = (CVContext *)malloc(sizeof(CVContext));
@@ -83,15 +88,15 @@ int CVProcess_push_thread(CVProcess self, PyGreenlet *data)
         return -1;
     }
     new_entry->cvthread = data;
-    Q_prepend(self->pipeline, (QEntry *)new_entry);
+    q_DOT_Queue_prepend(self->pipeline, (QEntry *)new_entry);
     return 0;
 }
 
 
-PyGreenlet* CVProcess_pop_thread(CVProcess self)
+static PyGreenlet* CVProcess_pop_thread(CVProcess self)
 /* CVProcess method: Pop greenlets from mini-queue */
 {
-    CVContext *entry = (CVContext *)Q_pop(self->pipeline);
+    CVContext *entry = (CVContext *)q_DOT_Queue_pop(self->pipeline);
 
     if (entry == NULL) {
         return NULL;
@@ -157,4 +162,12 @@ static PyTypeObject cv_WaitSentinelType = {
     0,                         /*tp_as_buffer*/
     0,                         /*tp_flags*/
     sentinel_doc,              /* tp_doc */
+    };
+
+
+IMPORT_civyprocess = {
+    (void *)CVProcess_new,
+    (void *)CVProcess_dealloc,
+    (void *)CVProcess_push_thread,
+    (void *)CVProcess_pop_thread
     };
