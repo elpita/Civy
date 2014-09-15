@@ -79,7 +79,7 @@ static int CVProcess_dealloc(CVProcess self)
 }
 
 
-static int CVProcess_push_thread(CVProcess self, PyGreenlet *data)
+static int CVProcess_push_thread(CVProcess self, PyGreenlet *thread)
 /* CVProcess method: Push greenlets onto mini-queue */
 {
     CVContext *new_entry = (CVContext *)malloc(sizeof(CVContext));
@@ -87,9 +87,9 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *data)
     if (new_entry == NULL) {
         return -1;
     }
-    new_entry->cvthread = data;
+    new_entry->cvthread = thread;
     q_dot_Queue_prepend(self->pipeline, (QEntry *)new_entry);
-    return 0;
+    return PyGreenlet_SetParent(g, self->loop);
 }
 
 
