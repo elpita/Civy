@@ -165,7 +165,7 @@ static PyTypeObject cv_WaitSentinelType = {
     };
 
 
-IMPORT_civyprocess = {
+IMPORT_civyprocess[] = {
     (void *)CVProcess_new,
     (void *)CVProcess_dealloc,
     (void *)CVProcess_push_thread,
