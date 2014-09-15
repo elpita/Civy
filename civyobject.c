@@ -1,7 +1,10 @@
 #include "civyobject.h"
 #include "structmember.h"
+#include <assert.h>
 #define CVObject_push_process(self, new_entry)  q_dot_Queue_push(self->cvprocesses, (QEntry *)new_entry)
 #define CVObject_pop_process(self)              (_CVProcess *)q_dot_Queue_pop(self->cvprocesses)
+
+CVObject const _current = NULL;
 
 struct _cvobject {
     PyObject_HEAD
@@ -41,26 +44,73 @@ static int check_process(CVProcess process)
 }
 
 
+static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *args)
+{
+	PyObject *ret;
+	PyGreenlet *event = PyGreenlet_New(callback, NULL);
+	PyGreenlet *live_thread = PyGreenlet_GetCurrent();
+
+	if (_current == NULL) { /* i.e., a fresh process */
+		assert(Q_IS_EMPTY(self->cvprocesses)); //You shouldn't be able to reach this function directly;
+		CVProcess new_processs = civyprocess_dot_CVProcess_new(self);
+
+		if (new_process == NULL) { /* Need To Raise Critical Error. */
+			return NULL;
+		}
+		CVProcess_push_threads(new_processs, live_thread);
+		CVObject_push_process(self, new_process);
+		args = PyGreenlet_Switch(self->exec, args, NULL);
+	}
+	if (_current->handler == self) {
+		CVProcess_push_threads(_current, live_thread);
+		CVProcess_push_threads(_current, event);
+		PyObject *WaitSentinel = (PyObject *)PyObject_New(cv_WaitSentinel, (PyTypeObject *)cv_WaitSentinelType);
+		WaitSentinel->data = args;
+		Py_INCREF(args);
+		ret = PyGreenlet_Switch(self->exec, (PyObject *)WaitSentinel, NULL);
+	}
+	else {
+		CVProcess child_process = civyprocess_dot_CVProcess_new(self);
+
+		if (child_process == NULL) { /* Need To Raise Critical Error. */
+			return NULL;
+		}
+		child_process->parent = _current;
+		CVProcess_push_threads(child_process, live_thread);
+		CVProcess_push_threads(child_process, event);
+		PyObject *ForkSentinel = (PyObject *)PyObject_New(cv_ForkSentinel, (PyTypeObject *)cv_ForkSentinelType);
+		ForkSentinel->process = child_process;
+		((WaitSentinel *)ForkSentinel)->data = args;
+		Py_INCREF(args);
+		ret = PyGreenlet_Switch(_current->handler->exec, (PyObject *)ForkSentinel, NULL);
+	}
+	return ret;
+}
+
+
 static PyObject* CVObject_exec(PyObject *self)
 {
     PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
-    CVprocess *process, *parent;
+    CVProcess process, parent;
 
     while (1)
     { /* Yeah, that's right. I'm using `switch`es, and i don't care. */
         switch(Q_IS_EMPTY(self->cvprocesses)) {
             case 1:
-                break; //only the `swtich` sequence
+                break;
             default:
                 process = CVObject_pop_process(self);
+        		_current = process;
 
                 switch(check_process(process)) {
                     case -1:
-                        return -1;
+                        return -1; //Not right...
                     case 0:
                         switch(civyprocess_dot_CVProcess_dealloc(process)) {
                             case -1:
-                                return -1;
+                                return -1; //Not right...
+                            case 0:
+                                break;
                         }
                     default:
                         data = PyGreenlet_Switch(process->spawn, data, NULL);
@@ -105,6 +155,7 @@ static PyObject* CVObject_exec(PyObject *self)
             break;
         }
         //Py_XDECREF(data);
+        _current = NULL;
         data = PyGreenlet_Switch(self->main_loop, data, NULL);
     }
 }
