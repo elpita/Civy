@@ -165,10 +165,22 @@ static PyTypeObject cv_ForkSentinelType = {
     sentinel_doc,              /* tp_doc */
     };
 
+static int _initcivyprocess(void)
+{
+    cv_WaitSentinelType.tp_new = PyType_GenericNew;
+    cv_ForkSentinelType.tp_new = PyType_GenericNew;
+
+    if ((PyType_Ready(&cv_WaitSentinelType) < 0) || (PyType_Ready(&cv_ForkSentinelType)) {
+        return -1;
+    }
+    return 0;
+}
+
 
 IMPORT_civyprocess[] = {
     (void *)CVProcess_new,
     (void *)CVProcess_dealloc,
     (void *)CVProcess_push_thread,
-    (void *)CVProcess_pop_thread
+    (void *)CVProcess_pop_thread,
+    (void *)_initcivyprocess
     };
