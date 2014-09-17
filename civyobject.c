@@ -259,11 +259,17 @@ static PyMethodDef module_methods[] = {
     };
 
 
-PyMODINIT_FUNC initcivyobject(void)
+static int _initcivyobject(void *type)
 {
-    CVObject.main_loop = (PyGreenlet *)PyMem_Malloc(sizeof(PyGreenlet)); /*Fix this */
-    CVObject.main_loop = NULL; /*Fix this */
+    /* Set the Main Loop? */
 
+    if (_INITCIVYPROCESS() < 0) {
+    	return -1;
+    }
+    (*((PyTypeObject*)type)).tp_base = &CVObject_Type; //reminder --> expecting address
+    return 0;
+}
+/*
     if (PyType_Ready(&CVObject_Type) == 0) {
         PyObject *m = Py_InitModule3("civyobject", module_methods, "The heart of Civy.");
 
@@ -273,12 +279,9 @@ PyMODINIT_FUNC initcivyobject(void)
             PyGreenlet_Import();
         }
     }
-}
+}*/
 
 
 /* TODO: Incorporate `SDL_Event`
          Figure out how to free `main_loop` memory
-         Create the functions
-         Create queues
-         Error checking for overriding `__new__`
          */
