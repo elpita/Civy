@@ -170,7 +170,7 @@ static int _initcivyprocess(void)
     cv_WaitSentinelType.tp_new = PyType_GenericNew;
     cv_ForkSentinelType.tp_new = PyType_GenericNew;
 
-    if ((PyType_Ready(&cv_WaitSentinelType) < 0) || (PyType_Ready(&cv_ForkSentinelType)) {
+    if ((PyType_Ready(&cv_WaitSentinelType) < 0) || (PyType_Ready(&cv_ForkSentinelType) < 0) {
         return -1;
     }
     return 0;
