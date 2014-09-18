@@ -1,5 +1,4 @@
 #include "civyprocess.h"
-#define sentinel_doc "If you can read this, you're probably looking at the wrong object."
 
 
 QueueEntry _CVProcess {
@@ -107,80 +106,9 @@ static PyGreenlet* CVProcess_pop_thread(CVProcess self)
 }
 
 
-struct cv_WaitSentinel {
-    PyObject_HEAD
-    PyObject *data;
-    };
-static PyTypeObject cv_WaitSentinelType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/  
-    "waitsentinel",            /*tp_name*/
-    sizeof(cv_WaitSentinel),   /*tp_basicsize*/
-    0,                         /*tp_itemsize*/
-    0,                         /*tp_dealloc*/
-    0,                         /*tp_print*/
-    0,                         /*tp_getattr*/
-    0,                         /*tp_setattr*/
-    0,                         /*tp_compare*/
-    0,                         /*tp_repr*/
-    0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
-    0,                         /*tp_as_mapping*/
-    0,                         /*tp_hash */
-    0,                         /*tp_call*/
-    0,                         /*tp_str*/
-    0,                         /*tp_getattro*/
-    0,                         /*tp_setattro*/
-    0,                         /*tp_as_buffer*/
-    0,                         /*tp_flags*/
-    sentinel_doc,              /* tp_doc */
-    };
-
-
-cv_WaitSentinel cv_ForkSentinel {
-    PyObject *handler;
-    };
-static PyTypeObject cv_ForkSentinelType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
-    "forksentinel",            /*tp_name*/
-    sizeof(cv_ForkSentinel),   /*tp_basicsize*/
-    0,                         /*tp_itemsize*/
-    0,                         /*tp_dealloc*/
-    0,                         /*tp_print*/
-    0,                         /*tp_getattr*/
-    0,                         /*tp_setattr*/
-    0,                         /*tp_compare*/
-    0,                         /*tp_repr*/
-    0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
-    0,                         /*tp_as_mapping*/
-    0,                         /*tp_hash */
-    0,                         /*tp_call*/
-    0,                         /*tp_str*/
-    0,                         /*tp_getattro*/
-    0,                         /*tp_setattro*/
-    0,                         /*tp_as_buffer*/
-    0,                         /*tp_flags*/
-    sentinel_doc,              /* tp_doc */
-    };
-
-static int _initcivyprocess(void)
-{
-    cv_WaitSentinelType.tp_new = PyType_GenericNew;
-    cv_ForkSentinelType.tp_new = PyType_GenericNew;
-
-    if ((PyType_Ready(&cv_WaitSentinelType) < 0) || (PyType_Ready(&cv_ForkSentinelType) < 0)) {
-        return -1;
-    }
-    return 0;
-}
-
-
 IMPORT_civyprocess[] = {
     (void *)CVProcess_new,
     (void *)CVProcess_dealloc,
     (void *)CVProcess_push_thread,
-    (void *)CVProcess_pop_thread,
-    (void *)_initcivyprocess
+    (void *)CVProcess_pop_thread
     };
