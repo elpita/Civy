@@ -3,13 +3,117 @@
 #include <assert.h>
 #define CVObject_push_process(self, new_entry)  q_dot_Queue_push(self->cvprocesses, (QEntry *)new_entry)
 #define CVObject_pop_process(self)              (_CVProcess *)q_dot_Queue_pop(self->cvprocesses)
+#define Fork_Check(op)                          PyObject_TypeCheck(op, &cv_ForkSentinelType)
+#define Wait_Check(op)                          PyObject_TypeCheck(op, &cv_WaitSentinelType)
+#define sentinel_doc "If you can read this, you're probably looking at the wrong object."
 
 CVObject const _current = NULL;
+
 
 struct _cvobject {
     PyObject_HEAD
     Q cvprocesses;
     PyGreenlet *exec;
+    };
+static PyTypeObject CVObject_Type = {
+    PyObject_HEAD_INIT(NULL)
+    0,                                          /*ob_size*/
+    "CVObject",                                 /*tp_name*/
+    sizeof(CVObject),                           /*tp_basicsize*/
+    0,                                          /*tp_itemsize*/
+    (destructor)CVObject_dealloc,               /*tp_dealloc*/
+    0,                                          /*tp_print*/
+    0,                                          /*tp_getattr*/
+    0,                                          /*tp_setattr*/
+    0,                                          /*tp_compare*/
+    0,                                          /*tp_repr*/
+    0,                                          /*tp_as_number*/
+    0,                                          /*tp_as_sequence*/
+    0,                                          /*tp_as_mapping*/
+    0,                                          /*tp_hash */
+    0,                                          /*tp_call*/
+    0,                                          /*tp_str*/
+    0,                                          /*tp_getattro*/
+    0,                                          /*tp_setattro*/
+    0,                                          /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /*tp_flags*/
+    "The Control ",                             /* tp_doc */
+    0,                                          /* tp_traverse */
+    0,                                          /* tp_clear */
+    0,                                          /* tp_richcompare */
+    0,                                          /* tp_weaklistoffset */
+    0,                                          /* tp_iter */
+    0,                                          /* tp_iternext */
+    0,                                          /* tp_methods */
+    0,                                          /* tp_members */
+    0,                                          /* tp_getset */
+    0,                                          /* tp_base */
+    0,                                          /* tp_dict */
+    0,                                          /* tp_descr_get */
+    0,                                          /* tp_descr_set */
+    0,                                          /* tp_dictoffset */
+    (initproc)CVObject_init,                    /* tp_init */
+    0,                                          /* tp_alloc */
+    CVObject_new,                               /* tp_new */
+    };
+
+
+struct cv_WaitSentinel {
+    PyObject_HEAD
+    PyObject *data;
+    };
+static PyTypeObject cv_WaitSentinelType = {
+    PyObject_HEAD_INIT(NULL)
+    0,                         /*ob_size*/  
+    "waitsentinel",            /*tp_name*/
+    sizeof(cv_WaitSentinel),   /*tp_basicsize*/
+    0,                         /*tp_itemsize*/
+    0,                         /*tp_dealloc*/
+    0,                         /*tp_print*/
+    0,                         /*tp_getattr*/
+    0,                         /*tp_setattr*/
+    0,                         /*tp_compare*/
+    0,                         /*tp_repr*/
+    0,                         /*tp_as_number*/
+    0,                         /*tp_as_sequence*/
+    0,                         /*tp_as_mapping*/
+    0,                         /*tp_hash */
+    0,                         /*tp_call*/
+    0,                         /*tp_str*/
+    0,                         /*tp_getattro*/
+    0,                         /*tp_setattro*/
+    0,                         /*tp_as_buffer*/
+    0,                         /*tp_flags*/
+    sentinel_doc,              /* tp_doc */
+    };
+
+
+cv_WaitSentinel cv_ForkSentinel {
+    PyObject *handler;
+    };
+static PyTypeObject cv_ForkSentinelType = {
+    PyObject_HEAD_INIT(NULL)
+    0,                         /*ob_size*/
+    "forksentinel",            /*tp_name*/
+    sizeof(cv_ForkSentinel),   /*tp_basicsize*/
+    0,                         /*tp_itemsize*/
+    0,                         /*tp_dealloc*/
+    0,                         /*tp_print*/
+    0,                         /*tp_getattr*/
+    0,                         /*tp_setattr*/
+    0,                         /*tp_compare*/
+    0,                         /*tp_repr*/
+    0,                         /*tp_as_number*/
+    0,                         /*tp_as_sequence*/
+    0,                         /*tp_as_mapping*/
+    0,                         /*tp_hash */
+    0,                         /*tp_call*/
+    0,                         /*tp_str*/
+    0,                         /*tp_getattro*/
+    0,                         /*tp_setattro*/
+    0,                         /*tp_as_buffer*/
+    0,                         /*tp_flags*/
+    sentinel_doc,              /* tp_doc */
     };
 
 
@@ -148,11 +252,11 @@ static PyObject* CVObject_exec(PyObject *self)
                                         }
                                         break;
                                 }
-                            break;
+                                break;
                         }
-                    break;
+                        break;
                 }
-            break;
+                break;
         }
         //Py_XDECREF(data);
         _current = NULL;
@@ -211,60 +315,15 @@ static void CVObject_dealloc(CVObject self)
 }
 
 
-static PyTypeObject CVObject_Type = {
-    PyObject_HEAD_INIT(NULL)
-    0,                                          /*ob_size*/
-    "CVObject",                                 /*tp_name*/
-    sizeof(CVObject),                           /*tp_basicsize*/
-    0,                                          /*tp_itemsize*/
-    (destructor)CVObject_dealloc,               /*tp_dealloc*/
-    0,                                          /*tp_print*/
-    0,                                          /*tp_getattr*/
-    0,                                          /*tp_setattr*/
-    0,                                          /*tp_compare*/
-    0,                                          /*tp_repr*/
-    0,                                          /*tp_as_number*/
-    0,                                          /*tp_as_sequence*/
-    0,                                          /*tp_as_mapping*/
-    0,                                          /*tp_hash */
-    0,                                          /*tp_call*/
-    0,                                          /*tp_str*/
-    0,                                          /*tp_getattro*/
-    0,                                          /*tp_setattro*/
-    0,                                          /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /*tp_flags*/
-    "The Control ",                             /* tp_doc */
-    0,                                          /* tp_traverse */
-    0,                                          /* tp_clear */
-    0,                                          /* tp_richcompare */
-    0,                                          /* tp_weaklistoffset */
-    0,                                          /* tp_iter */
-    0,                                          /* tp_iternext */
-    0,                                          /* tp_methods */
-    0,                                          /* tp_members */
-    0,                                          /* tp_getset */
-    0,                                          /* tp_base */
-    0,                                          /* tp_dict */
-    0,                                          /* tp_descr_get */
-    0,                                          /* tp_descr_set */
-    0,                                          /* tp_dictoffset */
-    (initproc)CVObject_init,                    /* tp_init */
-    0,                                          /* tp_alloc */
-    CVObject_new,                               /* tp_new */
-    };
-
-
-static PyMethodDef module_methods[] = {
-    {NULL}
-    };
-
-
 static int _initcivyobject(void *type)
 {
     /* Set the Main Loop? */
+    
+    cv_WaitSentinelType.tp_new = PyType_GenericNew;
+    cv_ForkSentinelType.tp_new = PyType_GenericNew;
 
-    if (_INITCIVYPROCESS() < 0) {
-    	return -1;
+    if ((PyType_Ready(&cv_WaitSentinelType) < 0) || (PyType_Ready(&cv_ForkSentinelType) < 0)) {
+        return -1;
     }
     (*((PyTypeObject*)type)).tp_base = &CVObject_Type; //reminder --> expecting address
     return 0;
