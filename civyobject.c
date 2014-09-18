@@ -1,10 +1,8 @@
 #include "civyobject.h"
 #include "structmember.h"
 #include <assert.h>
-#define CVObject_push_process(self, new_entry)  q_dot_Queue_push(self->cvprocesses, (QEntry *)new_entry)
-#define CVObject_pop_process(self)              (_CVProcess *)q_dot_Queue_pop(self->cvprocesses)
-#define Fork_Check(op)                          PyObject_TypeCheck(op, &cv_ForkSentinelType)
-#define Wait_Check(op)                          PyObject_TypeCheck(op, &cv_WaitSentinelType)
+#define CVObject_push_process(self, new_entry)	q_dot_Queue_push(self->cvprocesses, (QEntry *)new_entry)
+#define CVObject_pop_process(self)				(_CVProcess *)q_dot_Queue_pop(self->cvprocesses)
 #define sentinel_doc "If you can read this, you're probably looking at the wrong object."
 
 CVObject const _current = NULL;
@@ -115,6 +113,10 @@ static PyTypeObject cv_ForkSentinelType = {
     0,                         /*tp_flags*/
     sentinel_doc,              /* tp_doc */
     };
+
+
+#define Fork_Check(op	PyObject_TypeCheck(op, &cv_ForkSentinelType)
+#define Wait_Check(op	PyObject_TypeCheck(op, &cv_WaitSentinelType)
 
 
 static int check_process(CVProcess process)
