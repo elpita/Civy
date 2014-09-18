@@ -56,7 +56,7 @@ static PyTypeObject CVObject_Type = {
     };
 
 
-struct cv_WaitSentinel {
+typedef struct cv_WaitSentinel {
     PyObject_HEAD
     PyObject *data;
     };
@@ -86,7 +86,7 @@ static PyTypeObject cv_WaitSentinelType = {
     };
 
 
-cv_WaitSentinel cv_ForkSentinel {
+typedef cv_WaitSentinel cv_ForkSentinel {
     PyObject *handler;
     };
 static PyTypeObject cv_ForkSentinelType = {
