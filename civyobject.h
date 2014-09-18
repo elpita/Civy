@@ -12,4 +12,13 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
 static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs);
 static void CVObject_dealloc(CVObject self);
 
+static int _initcivyobject(void *type)
+static void **IMPORT_civyprocess = NULL;
+
+#define DOT_CVOBJECT_SPAWN                  0
+#define DOT__initcivyobject                 1
+
+#define civyobject_dot_CVObject_spawn       (*(_cvobject *)IMPORT_civyobject[DOT_CVOBJECT_SPAWN])
+#define _INITCIVYOBJECT                     (*(int)IMPORT_civyobject[DOT__initcivyobject])
+
 #endif
