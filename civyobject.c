@@ -328,6 +328,10 @@ static int _initcivyobject(void *type)
         return -1;
     }
     (*((PyTypeObject*)type)).tp_base = &CVObject_Type; //reminder --> expecting address
+    
+    if (PyType_Ready(&cv_WaitSentinelType) < 0) {
+    	return -1;
+    }
     return 0;
 }
 /*
