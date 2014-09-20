@@ -160,14 +160,10 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 		assert(Q_IS_EMPTY(self->cvprocesses)); //You shouldn't be able to reach this function directly;
 		CVProcess new_processs = civyprocess_dot_CVProcess_new(self);
 
-		if (new_process == NULL) { /* Need To Raise Critical Error. */
-			PyErr_NoMemory();
+		if (new_process == NULL) {
 			return NULL;
 		}
 		if (CVProcess_push_threads(new_processs, live_thread) < 0) {
-			if (!PyErr_Occurred()) {
-				PyErr_NoMemory();
-			}
 			return NULL;
 		}
 		CVObject_push_process(self, new_process);
@@ -175,9 +171,6 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 	}
 	if (_current->handler == self) {
 		if ((CVProcess_push_threads(_current, live_thread)) || (CVProcess_push_threads(_current, event))) {
-			if (!PyErr_Occurred()) {
-				PyErr_NoMemory();
-			}
 			return NULL;
 		}
 		PyObject *WaitSentinel = (PyObject *)PyObject_New(cv_WaitSentinel, (PyTypeObject *)cv_WaitSentinelType);
@@ -188,16 +181,12 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 	else {
 		CVProcess child_process = civyprocess_dot_CVProcess_new(self);
 
-		if (child_process == NULL) { /* Need To Raise Critical Error. */
-			PyErr_NoMemory();
+		if (child_process == NULL) {
 			return NULL;
 		}
 		child_process->parent = _current;
 
 		if ((CVProcess_push_threads(child_process, live_thread) < 0) || (CVProcess_push_threads(child_process, event) < 0)) {
-			if (!PyErr_Occurred()) {
-				PyErr_NoMemory();
-			}
 			return NULL;
 		}
 		PyObject *ForkSentinel = (PyObject *)PyObject_New(cv_ForkSentinel, (PyTypeObject *)cv_ForkSentinelType);
