@@ -87,7 +87,7 @@ static PyTypeObject cv_WaitSentinelType = {
 
 
 typedef cv_WaitSentinel cv_ForkSentinel {
-    PyObject *handler;
+    CVProcess process;
     };
 static PyTypeObject cv_ForkSentinelType = {
     PyObject_HEAD_INIT(NULL)
@@ -159,10 +159,10 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 	if (_current == NULL) { /* i.e., a fresh process */
 		assert(Q_IS_EMPTY(self->cvprocesses)); //You shouldn't be able to reach this function directly;
 		CVProcess new_processs = civyprocess_dot_CVProcess_new(self);
-
 		if (new_process == NULL) {
 			return NULL;
 		}
+
 		if (CVProcess_push_threads(new_processs, live_thread) < 0) {
 			return NULL;
 		}
@@ -173,23 +173,32 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 		if ((CVProcess_push_threads(_current, live_thread)) || (CVProcess_push_threads(_current, event))) {
 			return NULL;
 		}
+
 		PyObject *WaitSentinel = (PyObject *)PyObject_New(cv_WaitSentinel, (PyTypeObject *)cv_WaitSentinelType);
+		if (WaitSentinel == NULL) {
+			return NULL;
+		}
+
 		WaitSentinel->data = args;
 		Py_INCREF(args);
 		ret = PyGreenlet_Switch(self->exec, (PyObject *)WaitSentinel, NULL);
 	}
 	else {
-		CVProcess child_process = civyprocess_dot_CVProcess_new(self);
-
+		CVProcess child_process = civyprocess_dot_CVProcess_new(self)
 		if (child_process == NULL) {
 			return NULL;
 		}
-		child_process->parent = _current;
 
+		child_process->parent = _current;
 		if ((CVProcess_push_threads(child_process, live_thread) < 0) || (CVProcess_push_threads(child_process, event) < 0)) {
 			return NULL;
 		}
+
 		PyObject *ForkSentinel = (PyObject *)PyObject_New(cv_ForkSentinel, (PyTypeObject *)cv_ForkSentinelType);
+		if (ForkSentinel == NULL) {
+			return NULL;
+		}
+
 		ForkSentinel->process = child_process;
 		((WaitSentinel *)ForkSentinel)->data = args;
 		Py_INCREF(args);
