@@ -166,8 +166,9 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 		}
 		if (CVProcess_push_threads(new_processs, live_thread) < 0) {
 			if (!PyErr_Occurred()) {
-					PyErr_NoMemory();
+				PyErr_NoMemory();
 			}
+			return NULL;
 		}
 		CVObject_push_process(self, new_process);
 		args = PyGreenlet_Switch(self->exec, args, NULL);
@@ -175,8 +176,9 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 	if (_current->handler == self) {
 		if ((CVProcess_push_threads(_current, live_thread)) || (CVProcess_push_threads(_current, event))) {
 			if (!PyErr_Occurred()) {
-					PyErr_NoMemory();
+				PyErr_NoMemory();
 			}
+			return NULL;
 		}
 		PyObject *WaitSentinel = (PyObject *)PyObject_New(cv_WaitSentinel, (PyTypeObject *)cv_WaitSentinelType);
 		WaitSentinel->data = args;
@@ -196,6 +198,7 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 			if (!PyErr_Occurred()) {
 				PyErr_NoMemory();
 			}
+			return NULL;
 		}
 		PyObject *ForkSentinel = (PyObject *)PyObject_New(cv_ForkSentinel, (PyTypeObject *)cv_ForkSentinelType);
 		ForkSentinel->process = child_process;
@@ -259,9 +262,6 @@ static PyObject* CVObject_exec(PyObject *self)
                             
                                                         switch(civyprocess_dot_CVProcess_dealloc(process)) {
                                                             case -1:
-	                                                            if (!PyErr_Occurred()) {
-	                                                            	PyErr_NoMemory();
-	                                                            }
                                                                 return -1;
                                                         }
                                                         break;
