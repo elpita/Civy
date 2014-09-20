@@ -220,7 +220,7 @@ static PyObject* CVObject_exec(PyObject *self)
                 break;
             default:
                 process = CVObject_pop_process(self);
-        		_current = process;
+                _current = process;
 
                 switch(check_process(process)) {
                     case -1:
@@ -364,4 +364,4 @@ static int _initcivyobject(void *type)
 
 /* TODO: Incorporate `SDL_Event`
          Figure out how to free `main_loop` memory
-         */
+*/
