@@ -224,11 +224,11 @@ static PyObject* CVObject_exec(PyObject *self)
                                 break;
                         }
                     default:
-                        data = PyGreenlet_Switch(process->spawn, data, NULL);
+                        data = PyGreenlet_Switch(process->loop, data, NULL);
                         
                         switch(data == NULL) {
                             case 1:
-                                break;
+                                return NULL;
                             default:
                                 switch(Wait_Check(data)) {
                                     case 1:
