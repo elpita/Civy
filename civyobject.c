@@ -174,7 +174,7 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 			return NULL;
 		}
 
-		PyObject *WaitSentinel = (PyObject *)PyObject_New(cv_WaitSentinel, (PyTypeObject *)cv_WaitSentinelType);
+		cv_WaitSentinel *WaitSentinel = PyObject_New(cv_WaitSentinel, (PyTypeObject *)cv_WaitSentinelType);
 		if (WaitSentinel == NULL) {
 			return NULL;
 		}
@@ -194,13 +194,13 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 			return NULL;
 		}
 
-		PyObject *ForkSentinel = (PyObject *)PyObject_New(cv_ForkSentinel, (PyTypeObject *)cv_ForkSentinelType);
+		cv_ForkSentinel *ForkSentinel = PyObject_New(cv_ForkSentinel, (PyTypeObject *)cv_ForkSentinelType);
 		if (ForkSentinel == NULL) {
 			return NULL;
 		}
 
 		ForkSentinel->process = child_process;
-		((WaitSentinel *)ForkSentinel)->data = args;
+		((cv_WaitSentinel *)ForkSentinel)->data = args;
 		Py_INCREF(args);
 		ret = PyGreenlet_Switch(_current->handler->exec, (PyObject *)ForkSentinel, NULL);
 	}
