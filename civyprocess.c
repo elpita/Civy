@@ -62,7 +62,7 @@ static int CVProcess_dealloc(CVProcess self)
         return 0;
     }
     if (self->parent <> NULL) {
-        if (Py_EnterRecursiveCall(" in CVProcess deallocation. Stack overvlow.") <> 0) || (CVProcess_dealloc(self->parent) == -1) {
+        if (Py_EnterRecursiveCall(" in CVProcess deallocation.") <> 0) || (CVProcess_dealloc(self->parent) == -1) {
             return -1;
         }
         Py_LeaveRecursiveCall();
