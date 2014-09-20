@@ -39,11 +39,13 @@ static CVProcess CVProcess_new(PyObject *event_handler)
     CVProcess process = (_CVProcess *)malloc(sizeof(_CVProcess));
 
     if (process == NULL) {
+        PyErr_NoMemory();
         return NULL;
     }
     process->pipeline = q_dot_Queue_new();
     
     if (process->pipeline == NULL) {
+        PyErr_NoMemory();
         return NULL;
     }
     process->loop = PyGreenlet_New(CVProcess_loop, NULL);
@@ -84,6 +86,7 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
     CVContext *new_entry = (CVContext *)malloc(sizeof(CVContext));
     
     if (new_entry == NULL) {
+        PyErr_NoMemory();
         return -1;
     }
     new_entry->cvthread = cvthread;
@@ -99,6 +102,7 @@ static PyGreenlet* CVProcess_pop_thread(CVProcess self)
     CVContext *entry = (CVContext *)q_dot_Queue_pop(self->pipeline);
 
     if (entry == NULL) {
+        PyErr_NoMemory();
         return NULL;
     }
     PyGreenlet *result = entry->cvthread;
