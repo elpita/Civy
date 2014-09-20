@@ -56,15 +56,15 @@ static PyTypeObject CVObject_Type = {
     };
 
 
-typedef struct cv_WaitSentinel {
+typedef struct SentinelObject {
     PyObject_HEAD
     PyObject *data;
     };
-static PyTypeObject cv_WaitSentinelType = {
+static PyTypeObject SentinelObjectType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/  
-    "waitsentinel",            /*tp_name*/
-    sizeof(cv_WaitSentinel),   /*tp_basicsize*/
+    "sentinel",                /*tp_name*/
+    sizeof(SentinelObject),       /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     0,                         /*tp_dealloc*/
     0,                         /*tp_print*/
@@ -86,37 +86,7 @@ static PyTypeObject cv_WaitSentinelType = {
     };
 
 
-typedef cv_WaitSentinel cv_ForkSentinel {
-    CVProcess process;
-    };
-static PyTypeObject cv_ForkSentinelType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
-    "forksentinel",            /*tp_name*/
-    sizeof(cv_ForkSentinel),   /*tp_basicsize*/
-    0,                         /*tp_itemsize*/
-    0,                         /*tp_dealloc*/
-    0,                         /*tp_print*/
-    0,                         /*tp_getattr*/
-    0,                         /*tp_setattr*/
-    0,                         /*tp_compare*/
-    0,                         /*tp_repr*/
-    0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
-    0,                         /*tp_as_mapping*/
-    0,                         /*tp_hash */
-    0,                         /*tp_call*/
-    0,                         /*tp_str*/
-    0,                         /*tp_getattro*/
-    0,                         /*tp_setattro*/
-    0,                         /*tp_as_buffer*/
-    0,                         /*tp_flags*/
-    sentinel_doc,              /* tp_doc */
-    };
-
-
-#define Fork_Check(op	PyObject_TypeCheck(op, &cv_ForkSentinelType)
-#define Wait_Check(op	PyObject_TypeCheck(op, &cv_WaitSentinelType)
+#define Sentinel_Check(op)	PyObject_TypeCheck(op, &SentinelObjectType)
 
 
 static int check_process(CVProcess process)
@@ -152,7 +122,6 @@ static int check_process(CVProcess process)
 
 static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *args)
 {
-	PyObject *ret;
 	PyGreenlet *event = PyGreenlet_New(callback, NULL);
 	PyGreenlet *live_thread = PyGreenlet_GetCurrent();
 
@@ -169,42 +138,30 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 		CVObject_push_process(self, new_process);
 		args = PyGreenlet_Switch(self->exec, args, NULL);
 	}
-	if (_current->handler == self) {
-		if ((CVProcess_push_threads(_current, live_thread)) || (CVProcess_push_threads(_current, event))) {
-			return NULL;
-		}
-
-		cv_WaitSentinel *WaitSentinel = PyObject_New(cv_WaitSentinel, &cv_WaitSentinelType);
-		if (WaitSentinel == NULL) {
-			return NULL;
-		}
-
-		WaitSentinel->data = args;
-		Py_INCREF(args);
-		ret = PyGreenlet_Switch(self->exec, (PyObject *)WaitSentinel, NULL);
+	
+	SentinelObject *sentinel =  PyObject_New(SentinelObject, &SentinelObjectType);
+	if (sentinel == NULL) {
+		return NULL;
 	}
-	else {
-		CVProcess child_process = civyprocess_dot_CVProcess_new(self)
+
+	sentinel->data = args;
+	Py_INCREF(args);
+
+	if (_current->handler <> self) {
+		CVProcess child_process = civyprocess_dot_CVProcess_new(self);
+
 		if (child_process == NULL) {
+			Py_XDECREF(args);
 			return NULL;
 		}
-
 		child_process->parent = _current;
-		if ((CVProcess_push_threads(child_process, live_thread) < 0) || (CVProcess_push_threads(child_process, event) < 0)) {
-			return NULL;
-		}
-
-		cv_ForkSentinel *ForkSentinel = PyObject_New(cv_ForkSentinel, &cv_ForkSentinelType);
-		if (ForkSentinel == NULL) {
-			return NULL;
-		}
-
-		ForkSentinel->process = child_process;
-		((cv_WaitSentinel *)ForkSentinel)->data = args;
-		Py_INCREF(args);
-		ret = PyGreenlet_Switch(_current->handler->exec, (PyObject *)ForkSentinel, NULL);
+		_current = child_process;
 	}
-	return ret;
+
+	if ((CVProcess_push_threads(_current, live_thread) < 0) || (CVProcess_push_threads(_current, event) < 0)) {
+		return NULL;
+	}
+	return PyGreenlet_Switch(self->exec, (PyObject *)sentinel, NULL);
 }
 
 
@@ -239,30 +196,23 @@ static PyObject* CVObject_exec(PyObject *self)
                             case 1:
                                 return NULL;
                             default:
-                                switch(Wait_Check(data)) {
+                                switch(Sentinel_Check(data)) {
                                     case 1:
                                         CVObject_push_process(self, process);
                                         /* Schedule_SDL(data.data) */
                                         Py_DECREF(data);
                                         break;
                                     default:
-                                        switch(Fork_Check(data)) {
-                                            case 1:
-                                                Py_DECREF(data);
-                                                break;
-                                            default:
-                                                switch(process->parent == NULL) {
-                                                    case 0:
-                                                        parent = process->parent;
-                                                        CVObject_push_process(parent->handler, parent);
-                                                        /* Schedule_SDL(data) */
-                                                        process->parent = NULL;
-                            
-                                                        switch(civyprocess_dot_CVProcess_dealloc(process)) {
-                                                            case -1:
-                                                                return -1;
-                                                        }
-                                                        break;
+                                        switch(process->parent == NULL) {
+                                            case 0:
+                                                parent = process->parent;
+                                                CVObject_push_process(parent->handler, parent);
+                                                /* Schedule_SDL(data) */
+                                                process->parent = NULL;
+                    
+                                                switch(civyprocess_dot_CVProcess_dealloc(process)) {
+                                                    case -1:
+                                                        return -1;
                                                 }
                                                 break;
                                         }
@@ -336,10 +286,9 @@ static int _initcivyobject(void *type)
 {
     /* Set the Main Loop? */
     
-    cv_WaitSentinelType.tp_new = PyType_GenericNew;
-    cv_ForkSentinelType.tp_new = PyType_GenericNew;
+    SentinelObjectType.tp_new = PyType_GenericNew;
 
-    if ((PyType_Ready(&cv_WaitSentinelType) < 0) || (PyType_Ready(&cv_ForkSentinelType) < 0)) {
+    if (PyType_Ready(&SentinelObjectType) < 0) {
         return -1;
     }
     (*((PyTypeObject*)type)).tp_base = &CVObject_Type; //reminder --> expecting address
