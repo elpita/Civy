@@ -72,7 +72,7 @@ static int CVProcess_dealloc(CVProcess self)
     while (!Q_IS_EMPTY(self->pipeline)) {
         Py_CLEAR(CVThreads_pop(self->pipeline));
     }
-    Py_CLEAR(self->handler);
+    self->handler == NULL;
     Py_CLEAR(self->loop);
     q_dot_Queue_dealloc(self->pipeline);
     free(self);
