@@ -88,6 +88,7 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
     }
     new_entry->cvthread = cvthread;
     q_dot_Queue_prepend(self->pipeline, (QEntry *)new_entry);
+    Py_INCREF(cvthread);
     return PyGreenlet_SetParent(g, self->loop);
 }
 
@@ -102,6 +103,7 @@ static PyGreenlet* CVProcess_pop_thread(CVProcess self)
     }
     PyGreenlet *result = entry->cvthread;
     free(entry);
+    Py_DECREF(result);
     return result;
 }
 
