@@ -161,15 +161,23 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 		CVProcess new_processs = civyprocess_dot_CVProcess_new(self);
 
 		if (new_process == NULL) { /* Need To Raise Critical Error. */
+			PyErr_NoMemory();
 			return NULL;
 		}
-		CVProcess_push_threads(new_processs, live_thread);
+		if (CVProcess_push_threads(new_processs, live_thread) < 0) {
+			if (!PyErr_Occurred()) {
+					PyErr_NoMemory();
+			}
+		}
 		CVObject_push_process(self, new_process);
 		args = PyGreenlet_Switch(self->exec, args, NULL);
 	}
 	if (_current->handler == self) {
-		CVProcess_push_threads(_current, live_thread);
-		CVProcess_push_threads(_current, event);
+		if ((CVProcess_push_threads(_current, live_thread)) || (CVProcess_push_threads(_current, event))) {
+			if (!PyErr_Occurred()) {
+					PyErr_NoMemory();
+			}
+		}
 		PyObject *WaitSentinel = (PyObject *)PyObject_New(cv_WaitSentinel, (PyTypeObject *)cv_WaitSentinelType);
 		WaitSentinel->data = args;
 		Py_INCREF(args);
@@ -179,11 +187,16 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 		CVProcess child_process = civyprocess_dot_CVProcess_new(self);
 
 		if (child_process == NULL) { /* Need To Raise Critical Error. */
+			PyErr_NoMemory();
 			return NULL;
 		}
 		child_process->parent = _current;
-		CVProcess_push_threads(child_process, live_thread);
-		CVProcess_push_threads(child_process, event);
+
+		if ((CVProcess_push_threads(child_process, live_thread) < 0) || (CVProcess_push_threads(child_process, event) < 0)) {
+			if (!PyErr_Occurred()) {
+				PyErr_NoMemory();
+			}
+		}
 		PyObject *ForkSentinel = (PyObject *)PyObject_New(cv_ForkSentinel, (PyTypeObject *)cv_ForkSentinelType);
 		ForkSentinel->process = child_process;
 		((WaitSentinel *)ForkSentinel)->data = args;
@@ -210,11 +223,11 @@ static PyObject* CVObject_exec(PyObject *self)
 
                 switch(check_process(process)) {
                     case -1:
-                        return -1; //Not right...
+                        return NULL;
                     case 0:
                         switch(civyprocess_dot_CVProcess_dealloc(process)) {
                             case -1:
-                                return -1; //Not right...
+                                return NULL;
                             case 0:
                                 break;
                         }
@@ -246,6 +259,9 @@ static PyObject* CVObject_exec(PyObject *self)
                             
                                                         switch(civyprocess_dot_CVProcess_dealloc(process)) {
                                                             case -1:
+	                                                            if (!PyErr_Occurred()) {
+	                                                            	PyErr_NoMemory();
+	                                                            }
                                                                 return -1;
                                                         }
                                                         break;
@@ -306,9 +322,10 @@ static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 }
 
 
-static void CVObject_dealloc(CVObject self)
+static int CVObject_dealloc(CVObject self)
 {
     while (!Q_IS_EMPTY(self->cvprocesses)) {
+    	/* DANGER ZONE: How to check for stack overflow...? */
         civyprocess_dot_CVProcess_dealloc(CVObject_pop_process(self->cvprocesses));
     }
     q_dot_Queue_dealloc(self->cvprocesses);
