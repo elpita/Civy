@@ -311,7 +311,7 @@ static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 }
 
 
-static int CVObject_dealloc(CVObject self)
+static void CVObject_dealloc(CVObject self)
 {
     while (!Q_IS_EMPTY(self->cvprocesses)) {
     	/* DANGER ZONE: How to check for stack overflow...? */
