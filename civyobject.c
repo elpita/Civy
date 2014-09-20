@@ -174,7 +174,7 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 			return NULL;
 		}
 
-		cv_WaitSentinel *WaitSentinel = PyObject_New(cv_WaitSentinel, (PyTypeObject *)cv_WaitSentinelType);
+		cv_WaitSentinel *WaitSentinel = PyObject_New(cv_WaitSentinel, &cv_WaitSentinelType);
 		if (WaitSentinel == NULL) {
 			return NULL;
 		}
@@ -194,7 +194,7 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 			return NULL;
 		}
 
-		cv_ForkSentinel *ForkSentinel = PyObject_New(cv_ForkSentinel, (PyTypeObject *)cv_ForkSentinelType);
+		cv_ForkSentinel *ForkSentinel = PyObject_New(cv_ForkSentinel, &cv_ForkSentinelType);
 		if (ForkSentinel == NULL) {
 			return NULL;
 		}
