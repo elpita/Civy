@@ -165,6 +165,32 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 }
 
 
+void CV_join(PyObject* _target, PyObject *args, Uint32 event_type)
+{
+	PyObject* target = PyWeakref_NewRef(PyObject *_target, NULL);
+	Py_INCREF(args);
+
+	SDL_Event event;
+	SDL_zero(event);
+	event.type = event_type;
+	event.user.code = 0;
+	event.user.data1 = &target;
+	event.user.data2 = &args;
+	SDL_PushEvent(&event);
+
+	/* if (SDL_PushEvent(&event) < 0) {
+		Py_DECREF(target);
+		Py_DECREF(args);
+
+		if (PyErr_WarnEx(NULL, SDL_GetError(), 1) < 0) {
+			return -1;
+		}
+		return 0;
+	}
+	return 1; */
+}
+
+
 static PyObject* CVObject_exec(PyObject *self)
 {
     PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
@@ -199,7 +225,8 @@ static PyObject* CVObject_exec(PyObject *self)
                                 switch(Sentinel_Check(data)) {
                                     case 1:
                                         CVObject_push_process(self, process);
-                                        /* Schedule_SDL(data.data) */
+                                        CV_join(self, data->data, DISPATCHED_EVENT);
+                                        Py_DECREF(data->data);
                                         Py_DECREF(data);
                                         break;
                                     default:
@@ -207,7 +234,7 @@ static PyObject* CVObject_exec(PyObject *self)
                                             case 0:
                                                 parent = process->parent;
                                                 CVObject_push_process(parent->handler, parent);
-                                                /* Schedule_SDL(data) */
+                                                CV_join(self, data, DISPATCHED_EVENT);
                                                 process->parent = NULL;
                     
                                                 switch(civyprocess_dot_CVProcess_dealloc(process)) {
@@ -228,6 +255,7 @@ static PyObject* CVObject_exec(PyObject *self)
         _current = NULL;
         data = PyGreenlet_Switch(self->main_loop, data, NULL);
     }
+    return data;
 }
 
 
@@ -284,33 +312,28 @@ static void CVObject_dealloc(CVObject self)
 
 static int _initcivyobject(void *type)
 {
-    /* Set the Main Loop? */
-    
-    SentinelObjectType.tp_new = PyType_GenericNew;
+	/* Set the Main Loop? */
+	assert(DISPATCHED_EVENT <> (Uint32)-1));
 
-    if (PyType_Ready(&SentinelObjectType) < 0) {
-        return -1;
-    }
-    (*((PyTypeObject*)type)).tp_base = &CVObject_Type; //reminder --> expecting address
-    
-    if (PyType_Ready(&CVObject_Type) < 0) {
-    	return -1;
-    }
-    return 0;
+	SentinelObjectType.tp_new = PyType_GenericNew;
+
+	if (PyType_Ready(&SentinelObjectType) < 0) {
+		return -1;
+	}
+	(*((PyTypeObject*)type)).tp_base = &CVObject_Type; //reminder --> expecting address
+
+	if (PyType_Ready(&CVObject_Type) < 0) {
+		return -1;
+	}
+	return 0;
 }
 /*
-    if (PyType_Ready(&CVObject_Type) == 0) {
-        PyObject *m = Py_InitModule3("civyobject", module_methods, "The heart of Civy.");
-
-        if (m <> NULL) {
-            Py_INCREF(&CVObject_Type);
-            PyModule_AddObject(m, "CVObject", (PyObject *)&CVObject_Type);
-            PyGreenlet_Import();
-        }
-    }
+	if (PyType_Ready(&CVObject_Type) == 0) {
+		PyObject *m = Py_InitModule3("civyobject", module_methods, "The heart of Civy.");
+		if (m <> NULL) {
+			Py_INCREF(&CVObject_Type);
+			PyModule_AddObject(m, "CVObject", (PyObject *)&CVObject_Type);
+			PyGreenlet_Import();
+		}
+	}
 }*/
-
-
-/* TODO: Incorporate `SDL_Event`
-         Figure out how to free `main_loop` memory
-*/
