@@ -2,7 +2,9 @@
 #define civyobject_included
 
 #include "civyprocess.h"
+#include "SDL.h"
 
+Uint32 DISPATCHED_EVENT = SDL_RegisterEvents(1);
 typedef struct _cvobject *CVObject;
 
 
