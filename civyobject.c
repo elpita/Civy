@@ -4,6 +4,7 @@
 #define CVObject_push_process(self, new_entry)	q_dot_Queue_push(self->cvprocesses, (QEntry *)new_entry)
 #define CVObject_pop_process(self)				(_CVProcess *)q_dot_Queue_pop(self->cvprocesses)
 #define sentinel_doc "If you can read this, you're probably looking at the wrong object."
+static void Sentinel_dealloc(SentinelObject *self);
 
 CVObject const _current = NULL;
 
@@ -62,31 +63,37 @@ typedef struct SentinelObject {
     };
 static PyTypeObject SentinelObjectType = {
     PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/  
-    "sentinel",                /*tp_name*/
-    sizeof(SentinelObject),       /*tp_basicsize*/
-    0,                         /*tp_itemsize*/
-    0,                         /*tp_dealloc*/
-    0,                         /*tp_print*/
-    0,                         /*tp_getattr*/
-    0,                         /*tp_setattr*/
-    0,                         /*tp_compare*/
-    0,                         /*tp_repr*/
-    0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
-    0,                         /*tp_as_mapping*/
-    0,                         /*tp_hash */
-    0,                         /*tp_call*/
-    0,                         /*tp_str*/
-    0,                         /*tp_getattro*/
-    0,                         /*tp_setattro*/
-    0,                         /*tp_as_buffer*/
-    0,                         /*tp_flags*/
-    sentinel_doc,              /* tp_doc */
+    0,                             /*ob_size*/  
+    "sentinel",                    /*tp_name*/
+    sizeof(SentinelObject),        /*tp_basicsize*/
+    0,                             /*tp_itemsize*/
+    (destructor)Sentinel_dealloc,  /*tp_dealloc*/
+    0,                             /*tp_print*/
+    0,                             /*tp_getattr*/
+    0,                             /*tp_setattr*/
+    0,                             /*tp_compare*/
+    0,                             /*tp_repr*/
+    0,                             /*tp_as_number*/
+    0,                             /*tp_as_sequence*/
+    0,                             /*tp_as_mapping*/
+    0,                             /*tp_hash */
+    0,                             /*tp_call*/
+    0,                             /*tp_str*/
+    0,                             /*tp_getattro*/
+    0,                             /*tp_setattro*/
+    0,                             /*tp_as_buffer*/
+    0,                             /*tp_flags*/
+    sentinel_doc,                  /* tp_doc */
     };
 
 
 #define Sentinel_Check(op)	PyObject_TypeCheck(op, &SentinelObjectType)
+
+static void Sentinel_dealloc(SentinelObject *self)
+{
+    Py_DECREF(self->data);
+    self->ob_type->tp_free( (PyObject *)self );
+}
 
 
 static int check_process(CVProcess process)
@@ -100,7 +107,7 @@ static int check_process(CVProcess process)
 
     if (process->parent <> NULL) 
     {
-        switch(Py_EnterRecursiveCall(" in CVprocess checking.")) {
+        switch(Py_EnterRecursiveCall(" in CVProcess checking.")) {
             case 0:
                 i = check_process(process->parent);
 
@@ -128,13 +135,14 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 	if (_current == NULL) { /* i.e., a fresh process */
 		assert(Q_IS_EMPTY(self->cvprocesses)); //You shouldn't be able to reach this function directly;
 		CVProcess new_processs = civyprocess_dot_CVProcess_new(self);
+
 		if (new_process == NULL) {
 			return NULL;
 		}
-
-		if (CVProcess_push_threads(new_processs, live_thread) < 0) {
+		else if (CVProcess_push_threads(new_processs, live_thread) < 0) {
 			return NULL;
 		}
+
 		CVObject_push_process(self, new_process);
 		args = PyGreenlet_Switch(self->exec, args, NULL);
 	}
@@ -191,6 +199,23 @@ void CV_join(PyObject* _target, PyObject *args, Uint32 event_type)
 }
 
 
+static void CVObject_fork(CVObject self, PyObject *callback, PyObject *data)
+{
+	PyGreenlet *g = PyGreenlet_New(callback, NULL);
+	CVProcess process = civyprocess_dot_CVProcess_new(self);
+	
+	if (process == NULL) {
+		return NULL;
+	}
+	else if (CVProcess_push_threads(process, g) < 0) {
+		return NULL;
+	}
+
+	CVObject_push_process(self, process);
+	return CV_join(self, data, DISPATCHED_EVENT);
+}
+
+
 static PyObject* CVObject_exec(PyObject *self)
 {
     PyObject *data = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
@@ -226,7 +251,6 @@ static PyObject* CVObject_exec(PyObject *self)
                                     case 1:
                                         CVObject_push_process(self, process);
                                         CV_join(self, data->data, DISPATCHED_EVENT);
-                                        Py_DECREF(data->data);
                                         Py_DECREF(data);
                                         break;
                                     default:
