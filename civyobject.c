@@ -314,7 +314,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
 
 static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 {
-    if (self->main_loop == NULL) { /* Fix this */
+    if (self->app == NULL) { /* To be set when the main loop starts */
         PyErr_SetString(PyExc_TypeError, "The App Main Loop must be started first.");
         return -1;
     }
