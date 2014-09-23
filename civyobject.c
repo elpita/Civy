@@ -1,8 +1,8 @@
 #include "civyobject.h"
 #include "structmember.h"
 #include <assert.h>
-#define CVObject_push_process(self, new_entry)	q_dot_Queue_push(self->cvprocesses, (QEntry *)new_entry)
-#define CVObject_pop_process(self)				(_CVProcess *)q_dot_Queue_pop(self->cvprocesses)
+#define CVObject_push_process(self, new_entry) Queue_push(self->cvprocesses, (QEntry *)new_entry)
+#define CVObject_pop_process(self) (_CVProcess *)Queue_pop(self->cvprocesses)
 #define sentinel_doc "If you can read this, you're probably looking at the wrong object."
 static void Sentinel_dealloc(SentinelObject *self);
 
@@ -134,7 +134,7 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 
 	if (_current == NULL) { /* i.e., a fresh process */
 		assert(Q_IS_EMPTY(self->cvprocesses)); //You shouldn't be able to reach this function directly;
-		CVProcess new_processs = civyprocess_dot_CVProcess_new(self);
+		CVProcess new_processs = CVProcess_new(self);
 
 		if (new_process == NULL) {
 			return NULL;
@@ -156,7 +156,7 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 	Py_INCREF(args);
 
 	if (_current->handler <> self) {
-		CVProcess child_process = civyprocess_dot_CVProcess_new(self);
+		CVProcess child_process = CVProcess_new(self);
 
 		if (child_process == NULL) {
 			Py_XDECREF(args);
@@ -202,7 +202,7 @@ void CV_join(PyObject* _target, PyObject *args, Uint32 event_type)
 static void CVObject_fork(CVObject self, PyObject *callback, PyObject *data)
 {
 	PyGreenlet *g = PyGreenlet_New(callback, NULL);
-	CVProcess process = civyprocess_dot_CVProcess_new(self);
+	CVProcess process = CVProcess_new(self);
 	
 	if (process == NULL) {
 		return NULL;
@@ -234,7 +234,7 @@ static PyObject* CVObject_exec(PyObject *self)
                     case -1:
                         return NULL;
                     case 0:
-                        switch(civyprocess_dot_CVProcess_dealloc(process)) {
+                        switch(CVProcess_dealloc(process)) {
                             case -1:
                                 return NULL;
                             case 0:
@@ -261,7 +261,7 @@ static PyObject* CVObject_exec(PyObject *self)
                                                 CV_join(self, data, DISPATCHED_EVENT);
                                                 process->parent = NULL;
                     
-                                                switch(civyprocess_dot_CVProcess_dealloc(process)) {
+                                                switch(CVProcess_dealloc(process)) {
                                                     case -1:
                                                         return -1;
                                                 }
@@ -292,7 +292,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         return NULL;
     }
 
-    self->cvprocesses = q_dot_Queue_new();
+    self->cvprocesses = Queue_new();
 
     if (self->cvprocesses == NULL) {
         Py_XDECREF(self);
@@ -326,9 +326,9 @@ static void CVObject_dealloc(CVObject self)
 {
     while (!Q_IS_EMPTY(self->cvprocesses)) {
     	/* DANGER ZONE: How to check for stack overflow...? */
-        civyprocess_dot_CVProcess_dealloc(CVObject_pop_process(self->cvprocesses));
+        CVProcess_dealloc(CVObject_pop_process(self->cvprocesses));
     }
-    q_dot_Queue_dealloc(self->cvprocesses);
+    Queue_dealloc(self->cvprocesses);
     Py_DECREF(self->exec);
     self->ob_type->tp_free( (PyObject *)self );
 }
