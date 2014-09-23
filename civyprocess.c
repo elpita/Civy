@@ -42,7 +42,7 @@ static CVProcess CVProcess_new(PyObject *event_handler)
         PyErr_NoMemory();
         return NULL;
     }
-    process->pipeline = q_dot_Queue_new();
+    process->pipeline = Queue_new();
     
     if (process->pipeline == NULL) {
         PyErr_NoMemory();
@@ -74,7 +74,7 @@ static int CVProcess_dealloc(CVProcess self)
     }
     self->handler == NULL;
     Py_CLEAR(self->loop);
-    q_dot_Queue_dealloc(self->pipeline);
+    Queue_dealloc(self->pipeline);
     free(self);
     return 0;
 }
@@ -90,7 +90,7 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
         return -1;
     }
     new_entry->cvthread = cvthread;
-    q_dot_Queue_prepend(self->pipeline, (QEntry *)new_entry);
+    Queue_prepend(self->pipeline, (QEntry *)new_entry);
     Py_INCREF(cvthread);
     return PyGreenlet_SetParent(cvthread, self->loop);
 }
@@ -99,7 +99,7 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
 static PyGreenlet* CVProcess_pop_thread(CVProcess self)
 /* CVProcess method: Pop greenlets from mini-queue */
 {
-    CVContext *entry = (CVContext *)q_dot_Queue_pop(self->pipeline);
+    CVContext *entry = (CVContext *)Queue_pop(self->pipeline);
 
     if (entry == NULL) {
         PyErr_NoMemory();
@@ -110,11 +110,3 @@ static PyGreenlet* CVProcess_pop_thread(CVProcess self)
     Py_DECREF(result);
     return result;
 }
-
-
-IMPORT_civyprocess[] = {
-    (void *)CVProcess_new,
-    (void *)CVProcess_dealloc,
-    (void *)CVProcess_push_thread,
-    (void *)CVProcess_pop_thread
-    };
