@@ -243,32 +243,3 @@ static void CVObject_dealloc(CVObject self)
     Py_DECREF(self->exec);
     self->ob_type->tp_free( (PyObject *)self );
 }
-
-
-static int _initcivyobject(void *type)
-{
-	/* Set the Main Loop? */
-	assert(DISPATCHED_EVENT <> (Uint32)-1));
-
-	SentinelObjectType.tp_new = PyType_GenericNew;
-
-	if (PyType_Ready(&SentinelObjectType) < 0) {
-		return -1;
-	}
-	(*((PyTypeObject*)type)).tp_base = &CVObject_Type; //reminder --> expecting address
-
-	if (PyType_Ready(&CVObject_Type) < 0) {
-		return -1;
-	}
-	return 0;
-}
-/*
-	if (PyType_Ready(&CVObject_Type) == 0) {
-		PyObject *m = Py_InitModule3("civyobject", module_methods, "The heart of Civy.");
-		if (m <> NULL) {
-			Py_INCREF(&CVObject_Type);
-			PyModule_AddObject(m, "CVObject", (PyObject *)&CVObject_Type);
-			PyGreenlet_Import();
-		}
-	}
-}*/
