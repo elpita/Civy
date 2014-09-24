@@ -256,12 +256,18 @@ static PyObject* CVObject_exec(PyObject *self)
                                             case 0:
                                                 parent = process->parent;
                                                 CVObject_push_process(parent->handler, parent);
-                                                CV_join(self, data, DISPATCHED_EVENT);
-                                                process->parent = NULL;
-                    
-                                                switch(CVProcess_dealloc(process)) {
+
+                                                switch(CV_join(self, data, DISPATCHED_EVENT)) {
                                                     case -1:
-                                                        return -1;
+                                                        return NULL;
+                                                    default:
+                                                        process->parent = NULL;
+                            
+                                                        switch(CVProcess_dealloc(process)) {
+                                                            case -1:
+                                                                return -1;
+                                                        }
+                                                        break;
                                                 }
                                                 break;
                                         }
