@@ -13,6 +13,7 @@ struct _cvobject {
     PyObject_HEAD
     Q cvprocesses;
     PyGreenlet *exec;
+    PyObject *app;
     };
 static PyTypeObject CVObject_Type = {
     PyObject_HEAD_INIT(NULL)
@@ -96,6 +97,28 @@ static void Sentinel_dealloc(SentinelObject *self)
 }
 
 
+static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type)
+{
+    PyObject *target = PyWeakref_NewRef(PyObject *_target, NULL);
+    Py_INCREF(args);
+    SDL_Event event;
+
+    SDL_zero(event);
+    event.type = event_type;
+    event.user.code = 0;
+    event.user.data1 = &target;
+    event.user.data2 = &args;
+
+    if (SDL_PushEvent(&event) < 0) {
+        Py_DECREF(target);
+        Py_DECREF(args);
+        return -1;
+    }
+
+    return 0;
+}
+
+
 static int check_process(CVProcess process)
 /* If the process chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the process */
 /* Returns 0 (fail), 1(pass), or -1(error) */
@@ -124,6 +147,70 @@ static int check_process(CVProcess process)
         }
     }
     return (i && PyGreenlet_ACTIVE(process->handler));
+}
+
+
+static int CVObject_fork(CVObject self, PyObject *callback, PyObject *data)
+{
+    PyGreenlet *g = PyGreenlet_New(callback, NULL);
+    CVProcess process = CVProcess_new(self);
+
+    if (process == NULL) {
+        return NULL;
+    }
+    else if (CVProcess_push_thread(process, g) < 0) {
+        return NULL;
+    }
+
+    CVObject_push_process(self, process);
+    return CV_join(self, data, DISPATCHED_EVENT);
+}
+
+
+static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *args)
+{
+    PyGreenlet *event = PyGreenlet_New(callback, NULL);
+    PyGreenlet *live_thread = PyGreenlet_GetCurrent();
+
+    if (_current == NULL) { //i.e., a fresh process
+        assert(Q_IS_EMPTY(self->cvprocesses)); //You shouldn't be able to reach this function directly
+        CVProcess new_process = CVProcess_new(self);
+
+        if (new_process == NULL) {
+            return NULL;
+        }
+        else if (CVProcess_push_thread(new_process, live_thread) < 0) {
+            return NULL;
+        }
+
+        CVObject_push_process(self, new_process);
+        args = PyGreenlet_Switch(self->exec, args, NULL);
+    }
+
+    SentinelObject *sentinel = PyObject_New(SentinelObject, &SentinelObjectType);
+
+    if (sentinel == NULL) {
+        return NULL;
+    }
+    sentinel->data = args;
+    Py_INCREF(args);
+
+    if (_current->handler <> self) {
+        CVProcess child_process = CVProcess_new(self);
+
+        if (child_process == NULL) {
+            Py_DECREF(args);
+            return NULL;
+        }
+        child_process->parent = _current;
+        _current = child_process;
+    }
+
+    if ((CVProcess_push_thread(_current, live_thread) < 0) || (CVProcess_push_thread(_current, event) < 0)) {
+        return NULL;
+    }
+
+    return PyGreenlet_Switch(self->exec, (PyObject *)sentinel, NULL);
 }
 
 
@@ -243,3 +330,27 @@ static void CVObject_dealloc(CVObject self)
     Py_DECREF(self->exec);
     self->ob_type->tp_free( (PyObject *)self );
 }
+
+
+/*
+static int _initcivyobject(void *type)
+{
+    assert(DISPATCHED_EVENT <> ((Uint32)-1));
+    _cvobject.app = NULL;
+    SentinelObjectType.tp_new = PyType_GenericNew;
+    
+    if (PyType_Ready(&SentinelObjectType) < 0) {
+        return -1;
+    }
+    
+    (*((PyTypeObject *)type)).tp_base = &CVObject_Type;
+    
+    if (PyType_Ready(&CVObject_Type) < 0) {
+        return -1;
+    }
+
+    // Must also init `CVObject_Type`
+
+    return 0;
+}
+*/
