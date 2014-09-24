@@ -14,12 +14,13 @@ struct _cvobject {
     Q cvprocesses;
     PyGreenlet *exec;
     PyObject *app;
+    PyObject *in_weakreflist;
     };
 static PyTypeObject CVObject_Type = {
     PyObject_HEAD_INIT(NULL)
     0,                                          /*ob_size*/
     "CVObject",                                 /*tp_name*/
-    sizeof(CVObject),                           /*tp_basicsize*/
+    sizeof(_cvobject),                          /*tp_basicsize*/
     0,                                          /*tp_itemsize*/
     (destructor)CVObject_dealloc,               /*tp_dealloc*/
     0,                                          /*tp_print*/
@@ -41,7 +42,7 @@ static PyTypeObject CVObject_Type = {
     0,                                          /* tp_traverse */
     0,                                          /* tp_clear */
     0,                                          /* tp_richcompare */
-    0,                                          /* tp_weaklistoffset */
+    offsetof(_cvobject, in_weakreflist),        /* tp_weaklistoffset */
     0,                                          /* tp_iter */
     0,                                          /* tp_iternext */
     0,                                          /* tp_methods */
@@ -90,10 +91,11 @@ static PyTypeObject SentinelObjectType = {
 
 #define Sentinel_Check(op)	PyObject_TypeCheck(op, &SentinelObjectType)
 
+
 static void Sentinel_dealloc(SentinelObject *self)
 {
-    Py_DECREF(self->data);
-    self->ob_type->tp_free( (PyObject *)self );
+    Py_XDECREF(self->data);
+    PyObject_Del( (PyObject *)self );
 }
 
 
@@ -232,7 +234,7 @@ static PyObject* CVObject_exec(PyObject *self)
                     case -1:
                         return NULL;
                     case 0:
-                        switch(CVProcess_dealloc(process)) {
+                        switch(CVProcess_(process)) {
                             case -1:
                                 return NULL;
                             case 0:
@@ -263,7 +265,7 @@ static PyObject* CVObject_exec(PyObject *self)
                                                     default:
                                                         process->parent = NULL;
                             
-                                                        switch(CVProcess_dealloc(process)) {
+                                                        switch(CVProcess_(process)) {
                                                             case -1:
                                                                 return -1;
                                                         }
@@ -296,6 +298,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         return NULL;
     }
 
+    self->in_weakreflist = NULL;
     self->cvprocesses = Queue_new();
 
     if (self->cvprocesses == NULL) {
@@ -328,12 +331,15 @@ static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 
 static void CVObject_dealloc(CVObject self)
 {
+    if (self->in_weakreflist <> NULL) {
+        PyObject_ClearWeakRefs((PyObject *)self);
+    }
     while (!Q_IS_EMPTY(self->cvprocesses)) {
     	/* DANGER ZONE: How to check for stack overflow...? */
         CVProcess_dealloc(CVObject_pop_process(self->cvprocesses));
     }
     Queue_dealloc(self->cvprocesses);
-    Py_DECREF(self->exec);
+    Py_XDECREF(self->exec);
     self->ob_type->tp_free( (PyObject *)self );
 }
 
