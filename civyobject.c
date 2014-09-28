@@ -116,7 +116,6 @@ static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type)
         Py_DECREF(args);
         return -1;
     }
-
     return 0;
 }
 
@@ -204,14 +203,14 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
             Py_DECREF(args);
             return NULL;
         }
-        child_process->parent = _current;
-        _current = child_process;
     }
-
-    if ((CVProcess_push_thread(_current, live_thread) < 0) || (CVProcess_push_thread(_current, event) < 0)) {
+    if ((CVProcess_push_thread(_current, live_thread) < 0) || (CVProcess_push_thread(child_process, event) < 0)) {
+        CVProcess_dealloc(child_process);
+        Py_DECREF(args);
         return NULL;
     }
-
+    child_process->parent = _current;
+    _current = child_process;
     return PyGreenlet_Switch(self->exec, (PyObject *)sentinel, NULL);
 }
 
