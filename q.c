@@ -18,7 +18,7 @@ struct _queue {
 /* Functions */
 static Q Queue_new(void)
 {
-    Q q = (_queue *)malloc(sizeof(_queue));
+    Q q = (Q)malloc(sizeof(Q));
 
     if (q == NULL) {
         return NULL;
