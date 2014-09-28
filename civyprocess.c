@@ -1,21 +1,24 @@
 #include "civyprocess.h"
 
 
-QueueEntry _CVProcess {
+struct _cvprocess {
+    QEntry super;
     PyObject *handler;
     PyGreenlet *loop;
     CVProcess parent;
     Q pipeline;
     };
 
-typedef QueueEntry CVContext {
+
+typedef struct CVContext {
+    QEntry super;
     PyGreenlet *cvthread;
     };
 
 
 static PyObject* CVProcess_loop(PyObject *capsule)
 {
-    CVProcess self = (_CVProcess *)PyCapsule_GetPointer(capsule, NULL);
+    CVProcess self = (CVProcess)PyCapsule_GetPointer(capsule, NULL);
     Py_DECREF(capsule);
     PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     PyGreenlet *g;
@@ -36,7 +39,7 @@ static PyObject* CVProcess_loop(PyObject *capsule)
 static CVProcess CVProcess_new(PyObject *event_handler)
 /* To be called from `CVObject` */
 {
-    CVProcess process = (_CVProcess *)malloc(sizeof(_CVProcess));
+    CVProcess process = (struct _cvprocess *)malloc(sizeof(struct _cvprocess));
 
     if (process == NULL) {
         PyErr_NoMemory();
@@ -90,7 +93,7 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
         return -1;
     }
     new_entry->cvthread = cvthread;
-    Queue_prepend(self->pipeline, (QEntry *)new_entry);
+    Queue_prepend(self->pipeline, (struct _queueentry *)new_entry);
     Py_INCREF(cvthread);
     return PyGreenlet_SetParent(cvthread, self->loop);
 }
