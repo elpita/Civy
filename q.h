@@ -1,8 +1,8 @@
 #ifndef q_included
 #define q_included
 
-typedef struct QueueEntry *QEntry;
-typedef struct Queue *Q;
+typedef struct _queueentry *QEntry;
+typedef struct _queue *Q;
 
 
 static Q Queue_new(void);
