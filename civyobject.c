@@ -1,8 +1,8 @@
 #include "civyobject.h"
 #include "structmember.h"
 #include <assert.h>
-#define CVObject_push_process(self, new_entry) Queue_push(self->cvprocesses, (QEntry *)new_entry)
-#define CVObject_pop_process(self) (_CVProcess *)Queue_pop(self->cvprocesses)
+#define CVObject_push_process(self, new_entry) Queue_push(self->cvprocesses, (struct _queueentry *)new_entry)
+#define CVObject_pop_process(self) (struct _cvprocess *)Queue_pop(self->cvprocesses)
 #define sentinel_doc "If you can read this, you're probably looking at the wrong object."
 static void Sentinel_dealloc(SentinelObject *self);
 
@@ -291,7 +291,7 @@ static PyObject* CVObject_exec(PyObject *self)
 
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    CVObject self = (_cvobject *)type->tp_alloc(type, 0);
+    CVObject self = (struct _cvobject *)type->tp_alloc(type, 0);
 
     if (self == NULL) {
         Py_XDECREF(self);
