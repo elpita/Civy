@@ -5,7 +5,7 @@
 #include "greenlet.h"
 
 
-typedef QueueEntry _CVProcess *CVProcess;
+typedef struct _cvprocess *CVProcess;
 
 
 static PyObject* CVProcess_loop(PyObject *capsule);
