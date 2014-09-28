@@ -4,12 +4,12 @@
 #include "q.h"
 
 /* Structures */
-struct QueueEntry {
+struct _queueentry {
     QEntry previous;
     QEntry next;
     };
 
-struct Queue {
+struct _queue {
     QueueEntry head;
     QueueEntry next;
     };
@@ -18,7 +18,7 @@ struct Queue {
 /* Functions */
 static Q Queue_new(void)
 {
-    Q q = (Queue *)malloc(sizeof(Queue));
+    Q q = (_queue *)malloc(sizeof(_queue));
 
     if (q == NULL) {
         return NULL;
@@ -87,12 +87,3 @@ static QEntry Queue_pop(Q self)
     }
     return entry;
 }
-
-
-IMPORT_q[] = {
-    (void *) Queue_new,
-    (void *) Queue_dealloc,
-    (void *) Queue_push,
-    (void *) Queue_prepend,
-    (void *) Queue_pop
-    };
