@@ -3,10 +3,10 @@
 
 struct _cvprocess {
     QEntry super;
-    PyObject *handler;
     PyGreenlet *loop;
-    CVProcess parent;
     Q pipeline;
+    PyObject *handler;
+    CVProcess parent;
     };
 
 
