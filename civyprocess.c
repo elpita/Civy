@@ -54,7 +54,8 @@ static CVProcess CVProcess_new(PyObject *event_handler)
     }
     process->loop = PyGreenlet_New(CVProcess_loop, NULL);
     PyObject *capsule = PyCapsule_New((void *)process, NULL, NULL);
-    PyGreenlet_Switch(process->loop, capsule);
+    PyObject *_ = PyGreenlet_Switch(process->loop, capsule);
+    Py_DECREF(_);
     process->handler = event_handler;
     process->parent = NULL;
     return process;
