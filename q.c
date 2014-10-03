@@ -76,6 +76,7 @@ static QEntry Queue_pop(Q self)
     }
     QEntry entry = self->head;
     self->head = entry->next;
+    entry->next = NULL;
 
     switch(self->head == NULL) {
         case 1:
