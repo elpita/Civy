@@ -1,5 +1,4 @@
 #include "civyobject.h"
-#include "structmember.h"
 #include <assert.h>
 #define CVObject_push_process(self, new_entry) Queue_push(self->cvprocesses, (struct _queueentry *)new_entry)
 #define CVObject_pop_process(self) (struct _cvprocess *)Queue_pop(self->cvprocesses)
