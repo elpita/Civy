@@ -285,7 +285,6 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     CVObject self = (struct _cvobject *)type->tp_alloc(type, 0);
 
     if (self == NULL) {
-        Py_XDECREF(self);
         return NULL;
     }
 
@@ -293,13 +292,14 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     self->cvprocesses = Queue_new();
 
     if (self->cvprocesses == NULL) {
-        Py_XDECREF(self);
+        Py_DECREF(self);
         return NULL;
     }
 
     PyGreenlet *process_loop = PyGreenlet_New(CVObject_exec, NULL);
 
     if (process_loop == NULL) {
+        Queue_dealloc(self->cvprocesses);
         Py_DECREF(self);
         return NULL;
     }
