@@ -60,6 +60,7 @@ static CVProcess CVProcess_new(PyObject *event_handler)
     return process;
 }
 
+
 static void kill_cvprocess(CVProcess)
 {
     while (!Q_IS_EMPTY(p->pipeline)) {
