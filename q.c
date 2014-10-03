@@ -10,15 +10,15 @@ struct _queueentry {
     };
 
 struct _queue {
-    QueueEntry head;
-    QueueEntry next;
+    QEntry head;
+    QEntry next;
     };
 
 
 /* Functions */
 static Q Queue_new(void)
 {
-    Q q = (Q)malloc(sizeof(Q));
+    Q q = (struct _queue *)malloc(sizeof(struct _queue));
 
     if (q == NULL) {
         return NULL;
@@ -47,7 +47,7 @@ static void Queue_push(Q self, QEntry new_entry)
             self->head = self->tail = new_entry;
             break;
         case 0:
-            self->tail->next = self->tail = new_entry;
+            self->tail = self->tail->next = new_entry;
             break;
     }
 }
@@ -60,10 +60,10 @@ static void Queue_prepend(Q self, QEntry new_entry)
 
     switch(self->head == NULL) {
         case 1:
-            self->head = self->tail = new_entry;
+            self->tail = self->head = new_entry;
             break;
         case 0:
-            self->head->previous = self->head = new_entry;
+            self->head = self->head->previous = new_entry;
             break;
     }
 }
@@ -74,7 +74,7 @@ static QEntry Queue_pop(Q self)
     if (Q_IS_EMPTY(self)) {
         return NULL;
     }
-    QueueEntry *entry = self->head;
+    QEntry entry = self->head;
     self->head = entry->next;
 
     switch(self->head == NULL) {
