@@ -233,15 +233,11 @@ static PyObject* CVObject_exec(PyObject *self)
                     case -1:
                         return NULL;
                     case 0:
-                        switch(CVProcess_(process)) {
-                            case -1:
-                                return NULL;
-                            case 0:
-                                break;
-                        }
+                        CVProcess_dealloc(process);
+                        break;
                     default:
                         data = PyGreenlet_Switch(process->loop, data, NULL);
-                        
+
                         switch(data == NULL) {
                             case 1:
                                 return NULL;
@@ -263,11 +259,7 @@ static PyObject* CVObject_exec(PyObject *self)
                                                         return NULL;
                                                     default:
                                                         process->parent = NULL;
-                            
-                                                        switch(CVProcess_(process)) {
-                                                            case -1:
-                                                                return -1;
-                                                        }
+                                                        CVProcess_dealloc(process);
                                                         break;
                                                 }
                                                 break;
@@ -334,7 +326,6 @@ static void CVObject_dealloc(CVObject self)
         PyObject_ClearWeakRefs((PyObject *)self);
     }
     while (!Q_IS_EMPTY(self->cvprocesses)) {
-    	/* DANGER ZONE: How to check for stack overflow...? */
         CVProcess_dealloc(CVObject_pop_process(self->cvprocesses));
     }
     Queue_dealloc(self->cvprocesses);
