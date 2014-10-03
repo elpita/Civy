@@ -60,6 +60,17 @@ static CVProcess CVProcess_new(PyObject *event_handler)
     return process;
 }
 
+static void kill_cvprocess(CVProcess)
+{
+    while (!Q_IS_EMPTY(p->pipeline)) {
+        Py_CLEAR(CVThreads_pop(p->pipeline));
+    }
+    self->handler == NULL;
+    Py_CLEAR(p->loop);
+    Queue_dealloc(p->pipeline);
+    free(p);
+}
+
 
 static void CVProcess_dealloc(CVProcess self)
 /* CVProcess method: Kill All */
@@ -71,16 +82,10 @@ static void CVProcess_dealloc(CVProcess self)
         CVProcess parent;
 
         for (parent = self->parent; parent <> NULL; parent = parent->parent) {
-            CVProcess_dealloc(parent);
+            kill_cvprocess(parent);
         }
     }
-    while (!Q_IS_EMPTY(self->pipeline)) {
-        Py_CLEAR(CVThreads_pop(self->pipeline));
-    }
-    self->handler == NULL;
-    Py_CLEAR(self->loop);
-    Queue_dealloc(self->pipeline);
-    free(self);
+    kill_cvprocess(self);
 }
 
 
