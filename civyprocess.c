@@ -60,17 +60,18 @@ static CVProcess CVProcess_new(PyObject *event_handler)
 }
 
 
-static int CVProcess_dealloc(CVProcess self)
+static void CVProcess_dealloc(CVProcess self)
 /* CVProcess method: Kill All */
 {
     if (self == NULL) {
-        return 0;
+        return;
     }
     if (self->parent <> NULL) {
-        if (Py_EnterRecursiveCall(" in CVProcess deallocation.") <> 0) || (CVProcess_dealloc(self->parent) == -1) {
-            return -1;
+        CVProcess parent;
+
+        for (parent = self->parent; parent <> NULL; parent = parent->parent) {
+            CVProcess_dealloc(parent);
         }
-        Py_LeaveRecursiveCall();
     }
     while (!Q_IS_EMPTY(self->pipeline)) {
         Py_CLEAR(CVThreads_pop(self->pipeline));
@@ -79,7 +80,6 @@ static int CVProcess_dealloc(CVProcess self)
     Py_CLEAR(self->loop);
     Queue_dealloc(self->pipeline);
     free(self);
-    return 0;
 }
 
 
