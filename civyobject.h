@@ -1,6 +1,7 @@
 #ifndef civyobject_included
 #define civyobject_included
 #include "civyprocess.h"
+#include "structmember.h"
 #include "SDL.h"
 
 Uint32 DISPATCHED_EVENT = SDL_RegisterEvents(1);
