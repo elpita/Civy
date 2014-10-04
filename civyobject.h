@@ -12,6 +12,6 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
 static PyObject* CVObject_exec(PyObject *self);
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs);
-static void CVObject_schedule(CVObject self, PyObject *callback, PyObject *data);
+static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data);
 static void CVObject_dealloc(CVObject self);
 #endif
