@@ -53,7 +53,22 @@ static CVProcess CVProcess_new(PyObject *event_handler)
         return NULL;
     }
     process->loop = PyGreenlet_New(CVProcess_loop, NULL);
+    
+    if (process->loop == NULL) {
+        Queue_dealloc(process->pipeline);
+        free(process);
+        PyErr_NoMemory();
+        return NULL;
+    }
     PyObject *capsule = PyCapsule_New((void *)process, NULL, NULL);
+    
+    if (capsule == NULL) {
+        Py_CLEAR(process->loop);
+        Queue_dealloc(process->pipeline);
+        free(process);
+        PyErr_NoMemory();
+        return NULL;
+    }
     PyObject *_ = PyGreenlet_Switch(process->loop, capsule);
     process->handler = event_handler;
     process->parent = NULL;
