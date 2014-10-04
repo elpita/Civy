@@ -124,37 +124,6 @@ static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type)
 }
 
 
-static int check_cvprocess(CVProcess process)
-/* If the process chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the process */
-/* Returns 0 (fail), 1(pass), or -1(error) */
-{
-    if (process == NULL) {
-        return 0;
-    }
-    int i = 1;
-
-    if (process->parent <> NULL) 
-    {
-        switch(Py_EnterRecursiveCall(" in CVProcess checking.")) {
-            case 0:
-                i = check_cvprocess(process->parent);
-
-                switch(i) {
-                    case -1:
-                        return -1;
-                    default:
-                        Py_LeaveRecursiveCall();
-                        break;
-                }
-                break;
-            default:
-                return -1;
-        }
-    }
-    return (i && PyGreenlet_ACTIVE(process->handler));
-}
-
-
 static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data)
 {
     CVProcess process = CVProcess_new(self);
