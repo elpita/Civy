@@ -101,6 +101,11 @@ static void Sentinel_dealloc(SentinelObject *self)
 static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type)
 {
     PyObject *target = PyWeakref_NewRef(PyObject *_target, NULL);
+
+    if (target == NULL) {
+        return -1;
+    }
+
     Py_INCREF(args);
     SDL_Event event;
 
@@ -150,21 +155,24 @@ static int check_cvprocess(CVProcess process)
 }
 
 
-static int CVObject_fork(CVObject self, PyObject *callback, PyObject *data)
+static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data)
 {
-    PyGreenlet *g = PyGreenlet_New(callback, NULL);
     CVProcess process = CVProcess_new(self);
 
     if (process == NULL) {
-        Py_DECREF(g);
-        return NULL;
+        return -1;
+    }
+    PyGreenlet *g = PyGreenlet_New(callback, NULL);
+    
+    if (g == NULL) {
+        CVProcess_dealloc(process);
+        return -1;
     }
     else if (CVProcess_push_thread(process, g) < 0) {
-        CVProcess_dealloc(process);
         Py_DECREF(g);
-        return NULL;
+        CVProcess_dealloc(process);
+        return -1;
     }
-
     CVObject_push_process(self, process);
     return CV_join(self, data, DISPATCHED_EVENT);
 }
@@ -185,11 +193,9 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
             CVProcess_dealloc(new_process);
             return NULL;
         }
-
         CVObject_push_process(self, new_process);
         args = PyGreenlet_Switch(self->exec, args, NULL);
     }
-
     PyGreenlet *event = PyGreenlet_New(callback, NULL);
     SentinelObject *sentinel = PyObject_New(SentinelObject, &SentinelObjectType);
 
