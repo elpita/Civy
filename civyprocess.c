@@ -103,7 +103,7 @@ static int check_cvprocess(CVProcess process)
                 return -1;
         }
     }
-    return (i && PyGreenlet_ACTIVE(process->handler));
+    return (i && PyGreenlet_ACTIVE(process->handler->exec));
 }
 
 
