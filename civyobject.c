@@ -268,7 +268,7 @@ static PyObject* CVObject_exec(PyObject *self)
                                                 parent = process->parent;
                                                 CVObject_push_process(parent->handler, parent);
 
-                                                switch(CV_join(self, data, DISPATCHED_EVENT)) {
+                                                switch(CV_join(parent->handler, data, DISPATCHED_EVENT)) {
                                                     case -1:
                                                         return NULL;
                                                     default:
