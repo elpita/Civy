@@ -125,7 +125,7 @@ static int check_cvprocess(CVProcess process)
                 return -1;
         }
     }
-    PyGreenlet *exec = ((struct _cvobject *)process->handler)->exec
+    PyGreenlet *exec = ((struct _cvobject *)process)->handler->exec
     return (i && PyGreenlet_ACTIVE(exec));
 }
 
