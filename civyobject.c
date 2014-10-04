@@ -312,7 +312,6 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     if (self == NULL) {
         return NULL;
     }
-
     self->in_weakreflist = NULL;
     self->cvprocesses = Queue_new();
 
@@ -320,7 +319,6 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         Py_DECREF(self);
         return NULL;
     }
-
     PyGreenlet *process_loop = PyGreenlet_New(CVObject_exec, NULL);
 
     if (process_loop == NULL) {
@@ -328,9 +326,8 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         Py_DECREF(self);
         return NULL;
     }
-
-    PyGreenlet_Switch(process_loop, (PyObject *)self, NULL);
-    self->exec = process_loop; //proxy?
+    PyObject *_ = PyGreenlet_Switch(process_loop, (PyObject *)self, NULL);
+    self->exec = process_loop;
     return (PyObject *)self;
 }
 
