@@ -156,9 +156,12 @@ static int CVObject_fork(CVObject self, PyObject *callback, PyObject *data)
     CVProcess process = CVProcess_new(self);
 
     if (process == NULL) {
+        Py_DECREF(g);
         return NULL;
     }
     else if (CVProcess_push_thread(process, g) < 0) {
+        CVProcess_dealloc(process);
+        Py_DECREF(g);
         return NULL;
     }
 
@@ -169,7 +172,6 @@ static int CVObject_fork(CVObject self, PyObject *callback, PyObject *data)
 
 static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *args)
 {
-    PyGreenlet *event = PyGreenlet_New(callback, NULL);
     PyGreenlet *live_thread = PyGreenlet_GetCurrent();
 
     if (_current == NULL) { //i.e., a fresh process
@@ -180,6 +182,7 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
             return NULL;
         }
         else if (CVProcess_push_thread(new_process, live_thread) < 0) {
+            CVProcess_dealloc(new_process);
             return NULL;
         }
 
@@ -187,9 +190,11 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
         args = PyGreenlet_Switch(self->exec, args, NULL);
     }
 
+    PyGreenlet *event = PyGreenlet_New(callback, NULL);
     SentinelObject *sentinel = PyObject_New(SentinelObject, &SentinelObjectType);
 
     if (sentinel == NULL) {
+        Py_DECREF(event);
         return NULL;
     }
     sentinel->data = args;
@@ -199,13 +204,15 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
         CVProcess child_process = CVProcess_new(self);
 
         if (child_process == NULL) {
-            Py_DECREF(args);
+            Py_DECREF(sentinel);
+            Py_DECREF(event);
             return NULL;
         }
     }
     if ((CVProcess_push_thread(_current, live_thread) < 0) || (CVProcess_push_thread(child_process, event) < 0)) {
         CVProcess_dealloc(child_process);
-        Py_DECREF(args);
+        Py_DECREF(sentinel);
+        Py_DECREF(event);
         return NULL;
     }
     child_process->parent = _current;
@@ -244,9 +251,17 @@ static PyObject* CVObject_exec(PyObject *self)
                                 switch(Sentinel_Check(data)) {
                                     case 1:
                                         CVObject_push_process(self, process);
-                                        CV_join(self, data->data, DISPATCHED_EVENT);
-                                        Py_DECREF(data);
+
+                                        switch(CV_join(self, data->data, DISPATCHED_EVENT)) {
+                                            default:
+                                                Py_DECREF(data);
+                                            case -1:
+                                                return NULL;
+                                            case 0:
+                                                break;
+                                        }
                                         break;
+
                                     default:
                                         switch(process->parent == NULL) {
                                             case 0:
