@@ -119,7 +119,7 @@ static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type)
 }
 
 
-static int check_process(CVProcess process)
+static int check_cvprocess(CVProcess process)
 /* If the process chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the process */
 /* Returns 0 (fail), 1(pass), or -1(error) */
 {
@@ -132,7 +132,7 @@ static int check_process(CVProcess process)
     {
         switch(Py_EnterRecursiveCall(" in CVProcess checking.")) {
             case 0:
-                i = check_process(process->parent);
+                i = check_cvprocess(process->parent);
 
                 switch(i) {
                     case -1:
@@ -235,7 +235,7 @@ static PyObject* CVObject_exec(PyObject *self)
                 process = CVObject_pop_process(self);
                 _current = process;
 
-                switch(check_process(process)) {
+                switch(check_cvprocess(process)) {
                     case -1:
                         return NULL;
                     case 0:
