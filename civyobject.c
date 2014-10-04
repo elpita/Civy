@@ -98,6 +98,38 @@ static void Sentinel_dealloc(SentinelObject *self)
 }
 
 
+static int check_cvprocess(CVProcess process)
+/* If the process chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the process */
+/* Returns 0 (fail), 1(pass), or -1(error) */
+{
+    if (process == NULL) {
+        return 0;
+    }
+    int i = 1;
+
+    if (process->parent <> NULL) 
+    {
+        switch(Py_EnterRecursiveCall(" in CVProcess checking.")) {
+            case 0:
+                i = check_cvprocess(process->parent);
+
+                switch(i) {
+                    case -1:
+                        return -1;
+                    default:
+                        Py_LeaveRecursiveCall();
+                        break;
+                }
+                break;
+            default:
+                return -1;
+        }
+    }
+    PyGreenlet *exec = ((struct _cvobject *)process->handler)->exec
+    return (i && PyGreenlet_ACTIVE(exec));
+}
+
+
 static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type)
 {
     PyObject *target = PyWeakref_NewRef(PyObject *_target, NULL);
@@ -166,6 +198,10 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
         args = PyGreenlet_Switch(self->exec, args, NULL);
     }
     PyGreenlet *event = PyGreenlet_New(callback, NULL);
+
+    if ((event == NULL) || (CVProcess_push_thread(_current, live_thread) < 0)) {
+        return NULL;
+    }
     SentinelObject *sentinel = PyObject_New(SentinelObject, &SentinelObjectType);
 
     if (sentinel == NULL) {
@@ -183,15 +219,15 @@ static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *arg
             Py_DECREF(event);
             return NULL;
         }
+        child_process->parent = _current;
+        _current = child_process;
     }
-    if ((CVProcess_push_thread(_current, live_thread) < 0) || (CVProcess_push_thread(child_process, event) < 0)) {
+    if (CVProcess_push_thread(_current, event) < 0) {
         CVProcess_dealloc(child_process);
         Py_DECREF(sentinel);
         Py_DECREF(event);
         return NULL;
     }
-    child_process->parent = _current;
-    _current = child_process;
     return PyGreenlet_Switch(self->exec, (PyObject *)sentinel, NULL);
 }
 
