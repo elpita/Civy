@@ -85,6 +85,7 @@ static void kill_cvprocess(CVProcess)
     Py_CLEAR(p->loop);
     Queue_dealloc(p->pipeline);
     free(p);
+    p == NULL;
 }
 
 
