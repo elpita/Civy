@@ -85,7 +85,6 @@ static void kill_cvprocess(CVProcess)
     Py_CLEAR(p->loop);
     Queue_dealloc(p->pipeline);
     free(p);
-    p == NULL;
 }
 
 
@@ -103,6 +102,7 @@ static void CVProcess_dealloc(CVProcess self)
         }
     }
     kill_cvprocess(self);
+    self = NULL;
 }
 
 
