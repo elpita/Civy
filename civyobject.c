@@ -244,7 +244,6 @@ static PyObject* CVObject_exec(PyObject *self)
                 break;
             default:
                 process = CVObject_pop_process(self);
-                _current = process;
 
                 switch(check_cvprocess(process)) {
                     case -1:
@@ -253,6 +252,7 @@ static PyObject* CVObject_exec(PyObject *self)
                         CVProcess_dealloc(process);
                         break;
                     default:
+                        _current = process;
                         data = PyGreenlet_Switch(process->loop, data, NULL);
 
                         switch(data == NULL) {
