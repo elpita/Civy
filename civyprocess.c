@@ -102,7 +102,7 @@ static void CVProcess_dealloc(CVProcess self)
         }
     }
     kill_cvprocess(self);
-    self = NULL;
+    *self = NULL;
 }
 
 
