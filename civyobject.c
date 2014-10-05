@@ -100,33 +100,33 @@ static void Sentinel_dealloc(SentinelObject *self)
 
 static int check_cvprocess(CVProcess process)
 /* If the process chain is broken anywhere (i.e., through killing a `CVObject`), there's no reason to execute the process */
-/* Returns 0 (fail), 1(pass), or -1(error) */
+/* Returns 1(pass), 0(fail), or -1(error). */
 {
-    if (process == NULL) {
-        return 0;
+    switch((process == NULL) || !(PyGreenlet_ACTIVE(((struct _cvobject *)process)->handler->exec))) {
+        case 1:
+            return 0;
+        default:
+            switch(process->parent == NULL) {
+                case 1:
+                    return 1;
+                case 0:
+                    switch(Py_EnterRecursiveCall(" in CVProcess checking.")) {
+                        case 0:
+                            int i = check_cvprocess(process->parent);
+            
+                            switch(i) {
+                                case -1:
+                                    return -1;
+                                default:
+                                    Py_LeaveRecursiveCall();
+                                    break;
+                            }
+                            return i;
+                        default:
+                            return -1;
+                    }
+            }
     }
-    int i = 1;
-
-    if (process->parent <> NULL) 
-    {
-        switch(Py_EnterRecursiveCall(" in CVProcess checking.")) {
-            case 0:
-                i = check_cvprocess(process->parent);
-
-                switch(i) {
-                    case -1:
-                        return -1;
-                    default:
-                        Py_LeaveRecursiveCall();
-                        break;
-                }
-                break;
-            default:
-                return -1;
-        }
-    }
-    PyGreenlet *exec = ((struct _cvobject *)process)->handler->exec
-    return (i && PyGreenlet_ACTIVE(exec));
 }
 
 
