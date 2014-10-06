@@ -3,7 +3,6 @@
 #define CVObject_push_process(self, new_entry) Queue_push(self->cvprocesses, (struct _queueentry *)new_entry)
 #define CVObject_pop_process(self) (struct _cvprocess *)Queue_pop(self->cvprocesses)
 #define sentinel_doc "If you can read this, you're probably looking at the wrong object."
-static void Sentinel_dealloc(SentinelObject *self);
 
 CVProcess const _current = NULL;
 
@@ -67,7 +66,7 @@ static PyTypeObject SentinelObjectType = {
     "sentinel",                    /*tp_name*/
     sizeof(SentinelObject),        /*tp_basicsize*/
     0,                             /*tp_itemsize*/
-    (destructor)Sentinel_dealloc,  /*tp_dealloc*/
+    0,                             /*tp_dealloc*/
     0,                             /*tp_print*/
     0,                             /*tp_getattr*/
     0,                             /*tp_setattr*/
@@ -83,7 +82,7 @@ static PyTypeObject SentinelObjectType = {
     0,                             /*tp_setattro*/
     0,                             /*tp_as_buffer*/
     0,                             /*tp_flags*/
-    sentinel_doc,                  /* tp_doc */
+    sentinel_doc,                  /*tp_doc*/
     };
 
 
