@@ -6,7 +6,7 @@
 
 Uint32 DISPATCHED_EVENT = SDL_RegisterEvents(1);
 typedef struct _cvobject *CVObject;
-static PyGreenlet const *main_loop;
+static PyGreenlet *(const main_loop);
 
 static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type);
 static PyObject* CVObject_spawn(CVObject self, PyObject *callback, PyObject *args);
