@@ -5,7 +5,7 @@
 #define sentinel_doc "If you can read this, you're probably looking at the wrong object."
 static void Sentinel_dealloc(SentinelObject *self);
 
-CVObject const _current = NULL;
+CVProcess const _current = NULL;
 
 
 struct _cvobject {
