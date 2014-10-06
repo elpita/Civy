@@ -12,7 +12,6 @@ struct _cvobject {
     PyObject_HEAD
     Q cvprocesses;
     PyGreenlet *exec;
-    PyObject *app;
     PyObject *in_weakreflist;
     };
 static PyTypeObject CVObject_Type = {
