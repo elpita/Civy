@@ -299,7 +299,7 @@ static PyObject* CVObject_exec(PyObject *self)
         }
         //Py_XDECREF(data);
         _current = NULL;
-        data = PyGreenlet_Switch(self->main_loop, data, NULL);
+        data = PyGreenlet_Switch(main_loop, data, NULL);
     }
     return data;
 }
@@ -334,7 +334,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
 
 static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 {
-    if (self->app == NULL) { /* To be set when the main loop starts */
+    if (main_loop == NULL) { /* To be set when the main loop starts */
         PyErr_SetString(PyExc_TypeError, "The App Main Loop must be started first.");
         return -1;
     }
