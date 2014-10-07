@@ -19,22 +19,20 @@ typedef struct CVContext {
 static PyObject* CVProcess_loop(PyObject *capsule)
 {
     CVProcess self = (CVProcess)PyCapsule_GetPointer(capsule, NULL);
-    Py_DECREF(capsule);
-    {
-        PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
-        PyGreenlet *g;
-    
-        while (!Q_IS_EMPTY(self->pipeline)) {
-            g = CVThreads_pop(self);
-    
-            if (g == NULL) {
-                break;
-            }
-            args = PyGreenlet_Switch(g, args, NULL);
-            Py_XDECREF(g);
+    Py_DECREF(capsule); {
+    PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
+    PyGreenlet *g;
+
+    while (!Q_IS_EMPTY(self->pipeline)) {
+        g = CVThreads_pop(self);
+
+        if (g == NULL) {
+            break;
         }
-        return args;
+        args = PyGreenlet_Switch(g, args, NULL);
+        Py_XDECREF(g);
     }
+    return args; }
 }
 
 
@@ -61,21 +59,18 @@ static CVProcess CVProcess_new(PyObject *event_handler)
         free(process);
         PyErr_NoMemory();
         return NULL;
-    }
-    {
-        PyObject *capsule = PyCapsule_New((void *)process, NULL, NULL);
-        
-        if (capsule == NULL) {
-            Py_CLEAR(process->loop);
-            Queue_dealloc(process->pipeline);
-            free(process);
-            PyErr_NoMemory();
-            return NULL;
-        }
-        {
-            PyObject *_ = PyGreenlet_Switch(process->loop, capsule);
-        }
-    }
+    }{
+    PyObject *capsule = PyCapsule_New((void *)process, NULL, NULL);
+    
+    if (capsule == NULL) {
+        Py_CLEAR(process->loop);
+        Queue_dealloc(process->pipeline);
+        free(process);
+        PyErr_NoMemory();
+        return NULL;
+    }{
+    PyObject *_ = PyGreenlet_Switch(process->loop, capsule);
+    }}
     process->handler = event_handler;
     process->parent = NULL;
     return process;
@@ -135,11 +130,9 @@ static PyGreenlet* CVProcess_pop_thread(CVProcess self)
 
     if (entry == NULL) {
         return NULL;
-    }
-    {
-        PyGreenlet *result = entry->cvthread;
-        Py_DECREF(result);
-        free(entry);
-        return result;
-    }
+    }{
+    PyGreenlet *result = entry->cvthread;
+    Py_DECREF(result);
+    free(entry);
+    return result; }
 }
