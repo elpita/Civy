@@ -74,17 +74,19 @@ static QEntry Queue_pop(Q self)
     if (Q_IS_EMPTY(self)) {
         return NULL;
     }
-    QEntry entry = self->head;
-    self->head = entry->next;
-    entry->next = NULL;
-
-    switch(self->head == NULL) {
-        case 1:
-            self->tail = self->head;
-            break;
-        case 0:
-            self->head->previous = NULL;
-            break;
+    {
+        QEntry entry = self->head;
+        self->head = entry->next;
+        entry->next = NULL;
+    
+        switch(self->head == NULL) {
+            case 1:
+                self->tail = self->head;
+                break;
+            case 0:
+                self->head->previous = NULL;
+                break;
+        }
     }
     return entry;
 }
