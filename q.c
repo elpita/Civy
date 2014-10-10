@@ -28,15 +28,6 @@ static Q Queue_new(void)
 }
 
 
-static void Queue_dealloc(Q self)
-{
-    while (!Q_IS_EMPTY(self)) {
-        free( Queue_pop(self) );
-    }
-    free(self);
-}
-
-
 static void Queue_push(Q self, QEntry new_entry)
 {
     new_entry->previous = self->tail;
