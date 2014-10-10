@@ -24,7 +24,7 @@ static PyObject* CVProcess_loop(PyObject *capsule)
     PyGreenlet *g;
 
     while (!Q_IS_EMPTY(self->pipeline)) {
-        g = CVThreads_pop(self);
+        g = CVProcess_pop_thread(self->pipeline);
 
         if (g == NULL) {
             break;
@@ -79,7 +79,7 @@ static CVProcess CVProcess_new(PyObject *event_handler)
 static void kill_cvprocess(CVProcess)
 {
     while (!Q_IS_EMPTY(p->pipeline)) {
-        Py_CLEAR(CVThreads_pop(p->pipeline));
+        Py_CLEAR(CVProcess_pop_thread(p->pipeline));
     }
     self->handler == NULL;
     Py_CLEAR(p->loop);
@@ -121,10 +121,10 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
 }
 
 
-static PyGreenlet* CVProcess_pop_thread(CVProcess self)
+static PyGreenlet* CVProcess_pop_thread(Q pipeline)
 /* CVProcess method: Pop greenlets from mini-queue */
 {
-    _cvcontext *entry = (_cvcontext *)Queue_pop(self->pipeline);
+    _cvcontext *entry = (_cvcontext *)Queue_pop(pipeline);
 
     if (entry == NULL) {
         return NULL;
