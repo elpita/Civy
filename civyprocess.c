@@ -10,7 +10,7 @@ struct _cvprocess {
     };
 
 
-typedef struct CVContext {
+typedef struct _cvcontext {
     QEntry super;
     PyGreenlet *cvthread;
     };
@@ -108,7 +108,7 @@ static void CVProcess_dealloc(CVProcess self)
 static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
 /* CVProcess method: Push greenlets onto mini-queue */
 {
-    CVContext *new_entry = (CVContext *)malloc(sizeof(CVContext));
+    _cvcontext *new_entry = (_cvcontext *)malloc(sizeof(_cvcontext));
     
     if (new_entry == NULL) {
         PyErr_NoMemory();
@@ -124,7 +124,7 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
 static PyGreenlet* CVProcess_pop_thread(CVProcess self)
 /* CVProcess method: Pop greenlets from mini-queue */
 {
-    CVContext *entry = (CVContext *)Queue_pop(self->pipeline);
+    _cvcontext *entry = (_cvcontext *)Queue_pop(self->pipeline);
 
     if (entry == NULL) {
         return NULL;
