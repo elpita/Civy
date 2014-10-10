@@ -5,8 +5,8 @@ struct _cvprocess {
     QEntry super;
     PyGreenlet *loop;
     Q pipeline;
-    PyObject *handler;
     CVProcess parent;
+    PyObject *handler;
     };
 
 
@@ -18,19 +18,19 @@ typedef struct _cvcontext {
 
 static PyObject* CVProcess_loop(PyObject *capsule)
 {
-    CVProcess self = (CVProcess)PyCapsule_GetPointer(capsule, NULL);
+    Q pipeline = (struct _queue *)PyCapsule_GetPointer(capsule, NULL);
     Py_DECREF(capsule);
     PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     PyGreenlet *g;
 
-    while (!Q_IS_EMPTY(self->pipeline)) {
-        g = CVProcess_pop_thread(self->pipeline);
+    while (!Q_IS_EMPTY(pipeline)) {
+        g = CVProcess_pop_thread(pipeline);
 
         if (g == NULL) {
             break;
         }
         args = PyGreenlet_Switch(g, args, NULL);
-        Py_XDECREF(g);
+        Py_DECREF(g);
     }
     return args;
 }
@@ -60,7 +60,7 @@ static CVProcess CVProcess_new(PyObject *event_handler)
         PyErr_NoMemory();
         return NULL;
     }
-    PyObject *capsule = PyCapsule_New((void *)process, NULL, NULL);
+    PyObject *capsule = PyCapsule_New((void *)(process->pipeline), NULL, NULL);
     
     if (capsule == NULL) {
         Py_CLEAR(process->loop);
@@ -81,7 +81,6 @@ static void kill_cvprocess(CVProcess)
     while (!Q_IS_EMPTY(p->pipeline)) {
         Py_CLEAR(CVProcess_pop_thread(p->pipeline));
     }
-    self->handler == NULL;
     Py_CLEAR(p->loop);
     Queue_dealloc(p->pipeline);
     free(p);
