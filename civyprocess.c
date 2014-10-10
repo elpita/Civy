@@ -19,7 +19,7 @@ typedef struct CVContext {
 static PyObject* CVProcess_loop(PyObject *capsule)
 {
     CVProcess self = (CVProcess)PyCapsule_GetPointer(capsule, NULL);
-    Py_DECREF(capsule); {
+    Py_DECREF(capsule);
     PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     PyGreenlet *g;
 
@@ -32,7 +32,7 @@ static PyObject* CVProcess_loop(PyObject *capsule)
         args = PyGreenlet_Switch(g, args, NULL);
         Py_XDECREF(g);
     }
-    return args; }
+    return args;
 }
 
 
@@ -59,7 +59,7 @@ static CVProcess CVProcess_new(PyObject *event_handler)
         free(process);
         PyErr_NoMemory();
         return NULL;
-    }{
+    }
     PyObject *capsule = PyCapsule_New((void *)process, NULL, NULL);
     
     if (capsule == NULL) {
@@ -68,9 +68,8 @@ static CVProcess CVProcess_new(PyObject *event_handler)
         free(process);
         PyErr_NoMemory();
         return NULL;
-    }{
+    }
     PyObject *_ = PyGreenlet_Switch(process->loop, capsule);
-    }}
     process->handler = event_handler;
     process->parent = NULL;
     return process;
@@ -103,7 +102,6 @@ static void CVProcess_dealloc(CVProcess self)
         }
     }
     kill_cvprocess(self);
-    *self = NULL;
 }
 
 
@@ -130,9 +128,9 @@ static PyGreenlet* CVProcess_pop_thread(CVProcess self)
 
     if (entry == NULL) {
         return NULL;
-    }{
+    }
     PyGreenlet *result = entry->cvthread;
     Py_DECREF(result);
     free(entry);
-    return result; }
+    return result;
 }
