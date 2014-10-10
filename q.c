@@ -11,7 +11,7 @@ struct _queueentry {
 
 struct _queue {
     QEntry head;
-    QEntry next;
+    QEntry tail;
     };
 
 
