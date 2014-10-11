@@ -148,6 +148,7 @@ static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type)
     if (SDL_PushEvent(&event) < 0) {
         Py_DECREF(target);
         Py_DECREF(args);
+        PyErr_SetString(PyExc_TypeError, SDL_GetError());
         return -1;
     }
     return 0;
