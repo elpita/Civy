@@ -17,7 +17,7 @@ static PyTypeObject CVObject_Type = {
     PyObject_HEAD_INIT(NULL)
     0,                                          /*ob_size*/
     "CVObject",                                 /*tp_name*/
-    sizeof(_cvobject),                          /*tp_basicsize*/
+    sizeof(struct _cvobject),                          /*tp_basicsize*/
     0,                                          /*tp_itemsize*/
     (destructor)CVObject_dealloc,               /*tp_dealloc*/
     0,                                          /*tp_print*/
@@ -152,29 +152,6 @@ static int CV_join(PyObject *_target, PyObject *args, Uint32 event_type)
         return -1;
     }
     return 0;
-}
-
-
-static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data)
-{
-    CVProcess process = CVProcess_new(self);
-
-    if (process == NULL) {
-        return -1;
-    }
-    PyGreenlet *g = PyGreenlet_New(callback, NULL);
-    
-    if (g == NULL) {
-        CVProcess_dealloc(process);
-        return -1;
-    }
-    else if (CVProcess_push_thread(process, g) < 0) {
-        Py_DECREF(g);
-        CVProcess_dealloc(process);
-        return -1;
-    }
-    CVObject_push_process(self, process);
-    return CV_join(self, data, DISPATCHED_EVENT);
 }
 
 
