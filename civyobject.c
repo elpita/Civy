@@ -2,7 +2,7 @@
 #include <assert.h>
 #define CVObject_push_process(self, new_entry) Queue_push(self->cvprocesses, (struct _queueentry *)new_entry)
 #define CVObject_pop_process(self) (struct _cvprocess *)Queue_pop(self->cvprocesses)
-#define sentinel_doc "If you can read this, you're probably looking at the wrong object."
+#define sentinel_doc "(internal) If you can read this, you're probably looking at the wrong object."
 
 CVProcess const _current = NULL;
 
