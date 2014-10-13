@@ -1,4 +1,5 @@
-#define GET_PROPERTY_HANDLER(obj, self) PyDict_GetItemString( ((EventDispatcher)obj)->_properties, ((CVProperty)self)->name )
+#define _GET_PROPERTY_HANDLER(obj, str) PyDict_GetItemString( ((EventDispatcher)obj)->_properties, str )
+#define GET_PROPERTY_HANDLER(obj, self) _GET_PROPERTY_HANDLER(obj, ((CVProperty)self)->name )
 
 
 static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data)
@@ -154,14 +155,23 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *value)
 	if (value == NULL) {
 		return -1; //?
 	}
-	PyObject *args = create_tuple(obj, value); //fix
-	
+	PyObject *old_value, *callback;
+	CallbackHandler handler = GET_PROPERTY_HANDLER(obj, self);
+	old_value = handler->object;
+	PyObject *args = create_tuple(obj, value, old_value); //fix
+
 	if (args == NULL) {
 		return -1;
 	}
+	else if PyObject_HasAttr(obj, concat_string) {
+		callback = _GET_PROPERTY_HANDLER(obj, concat_string); //fix this and figure out `callback` situation
+		
+		if (CVObject_schedule(obj, callback, args) < 0) {
+			Py_DECREF(args);
+			return -1;
+		}
+	}
 	int i, len;
-	PyObject *callback;
-	CallbackHandler handler = GET_PROPERTY_HANDLER(obj, self);
 	PyObject *seq = PySequence_Fast(handler->observers, "expected a sequence of observers.");
 
 	if (seq == NULL) {
@@ -186,6 +196,8 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *value)
 	}
 	Py_DECREF(args);
 	Py_DECREF(seq);
+	handler->object = value;
+	Py_INCREF(value);
 	return 0;
 }
 
