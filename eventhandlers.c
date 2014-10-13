@@ -2,7 +2,7 @@
 #define GET_PROPERTY_HANDLER(obj, self) GET_HANDLER(obj, ((CVProperty)self)->name )
 
 
-static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data)
+static int CVObject_schedule(PyObject *self, PyObject *callback, PyObject *data)
 {
     CVProcess process = CVProcess_new(self);
 
@@ -20,7 +20,7 @@ static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data)
         CVProcess_dealloc(process);
         return -1;
     }
-    CVObject_push_process(self, process);
+    CVObject_push_process((CVObject)self, process);
     return CV_join(self, data, DISPATCHED_EVENT);
 }
 
