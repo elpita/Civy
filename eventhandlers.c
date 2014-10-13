@@ -158,7 +158,6 @@ static int CVProperty_dispatch(PyObject *observers, PyObject *obj, PyObject *arg
 	PyObject *seq = PySequence_Fast(observers, "expected a sequence of observers.");
 
 	if (seq == NULL) {
-		Py_DECREF(args);
 		return -1;
 	}
 	for (i = 0; i < len; i++) {
@@ -166,18 +165,15 @@ static int CVProperty_dispatch(PyObject *observers, PyObject *obj, PyObject *arg
 
 		if (callback == NULL) {
 			Py_DECREF(seq);
-			Py_DECREF(args);
 			return -1;
 		}
 		/* Must decide how to grab the function in `callback` */
 		/* g */
 		else if (CVObject_schedule(obj, callback, args) < 0) {
-			Py_DECREF(args);
 			Py_DECREF(seq);
 			return -1;
 		}
 	}
-	Py_DECREF(args);
 	Py_DECREF(seq);
 	return 0;
 }
@@ -212,6 +208,7 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *new_val
 			return -1;
 		}
 	}
+	Py_DECREF(args);
 	return CVProperty_dispatch(handler->observers, obj, args);
 }
 
