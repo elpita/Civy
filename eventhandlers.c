@@ -188,7 +188,7 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *new_val
 	if (value == NULL) {
 		return -1; //?
 	}
-	PyObject *old_value, *callback;
+	PyObject *old_value;
 	CallbackHandler handler = GET_PROPERTY_HANDLER(obj, self);
 	old_value = handler->object;
 	PyObject *args = PyTuple_Pack(3, obj, new_value, old_value);
