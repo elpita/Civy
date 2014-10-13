@@ -199,17 +199,17 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *new_val
 	if PyObject_HasAttr(obj, concat_string) {
 		CallbackHandler on_event_handler = GET_HANDLER(obj, concat_string); //fix this and figure out `callback` situation
 
-		if (CVObject_schedule(obj, on_event_handler->object, args) < 0) {
+		if (CVObject_schedule((PyObject *)on_event_handler, on_event_handler->object, args) < 0) {
 			Py_DECREF(args);
 			return -1;
 		}
-		else if (CVProperty_dispatch(on_event_handler->observers, obj, args) < 0) {
+		else if (CVProperty_dispatch(on_event_handler->observers, (PyObject *)on_event_handler, args) < 0) {
 			Py_DECREF(args);
 			return -1;
 		}
 	}
 	Py_DECREF(args);
-	return CVProperty_dispatch(handler->observers, obj, args);
+	return CVProperty_dispatch(handler->observers, (PyObject *)handler, args);
 }
 
 
