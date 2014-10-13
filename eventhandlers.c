@@ -1,3 +1,6 @@
+#define GET_PROPERTY_HANDLER(obj, self) PyDict_GetItemString( ((EventDispatcher)obj)->_properties, ((CVProperty)self)->name )
+
+
 static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data)
 {
     CVProcess process = CVProcess_new(self);
@@ -142,34 +145,48 @@ static PyObject * CVProperty_descr_get(PyObject *self, PyObject *obj, PyObject *
         Py_INCREF(self);
         return self;
     }
-    return PyDict_GetItemString( ((EventDispatcher)obj)->_properties, ((struct _cvproperty *)self)->name );
+    return GET_PROPERTY_HANDLER(obj, self);
 }
 
 
 static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *value)
 {
-    propertyobject *gs = (propertyobject *)self;
-    PyObject *func, *res;
+	if (value == NULL) {
+		return -1; //?
+	}
+	PyObject *args = create_tuple(obj, value); //fix
+	
+	if (args == NULL) {
+		return -1;
+	}
+	int i, len;
+	PyObject *callback;
+	CallbackHandler handler = GET_PROPERTY_HANDLER(obj, self);
+	PyObject *seq = PySequence_Fast(handler->observers, "expected a sequence of observers.");
 
-    if (value == NULL)
-        func = gs->prop_del;
-    else
-        func = gs->prop_set;
-    if (func == NULL) {
-        PyErr_SetString(PyExc_AttributeError,
-                        value == NULL ?
-                        "can't delete attribute" :
-                "can't set attribute");
-        return -1;
-    }
-    if (value == NULL)
-        res = PyObject_CallFunctionObjArgs(func, obj, NULL);
-    else
-        res = PyObject_CallFunctionObjArgs(func, obj, value, NULL);
-    if (res == NULL)
-        return -1;
-    Py_DECREF(res);
-    return 0;
+	if (seq == NULL) {
+		Py_DECREF(args);
+		return -1;
+	}
+	for (i = 0; i < len; i++) {
+		callback = PySequence_Fast_GET_ITEM(seq, i);
+
+		if (callback == NULL) {
+			Py_DECREF(seq);
+			Py_DECREF(args);
+			return -1;
+		}
+		/* Must decide how to grab the function in `callback` */
+		/* g */
+		else if (CVObject_schedule(obj, callback, args) < 0) {
+			Py_DECREF(args);
+			Py_DECREF(seq);
+			return -1;
+		}
+	}
+	Py_DECREF(args);
+	Py_DECREF(seq);
+	return 0;
 }
 
 
