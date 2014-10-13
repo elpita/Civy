@@ -145,7 +145,7 @@ static PyObject * CVProperty_descr_get(PyObject *self, PyObject *obj, PyObject *
         Py_INCREF(self);
         return self;
     }
-    return GET_PROPERTY_HANDLER(obj, self);
+    return GET_PROPERTY_HANDLER(obj, self)->object;
 }
 
 
