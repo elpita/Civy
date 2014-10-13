@@ -159,12 +159,13 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *value)
 	CallbackHandler handler = GET_PROPERTY_HANDLER(obj, self);
 	old_value = handler->object;
 	PyObject *args = PyTuple_Pack(3, obj, value, old_value);
-	Py_DECREF(old_value);
 
 	if (args == NULL) {
 		return -1;
 	}
-	else if PyObject_HasAttr(obj, concat_string) {
+	Py_DECREF(old_value);
+
+	if PyObject_HasAttr(obj, concat_string) {
 		callback = _GET_PROPERTY_HANDLER(obj, concat_string); //fix this and figure out `callback` situation
 		
 		if (CVObject_schedule(obj, callback, args) < 0) {
