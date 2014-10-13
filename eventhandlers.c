@@ -1,5 +1,5 @@
-#define _GET_PROPERTY_HANDLER(obj, str) PyDict_GetItemString( ((EventDispatcher)obj)->_properties, str )
-#define GET_PROPERTY_HANDLER(obj, self) _GET_PROPERTY_HANDLER(obj, ((CVProperty)self)->name )
+#define GET_HANDLER(obj, str) PyDict_GetItemString( ((EventDispatcher)obj)->_properties, str )
+#define GET_PROPERTY_HANDLER(obj, self) GET_HANDLER(obj, ((CVProperty)self)->name )
 
 
 static int CVObject_schedule(CVObject self, PyObject *callback, PyObject *data)
@@ -150,31 +150,12 @@ static PyObject * CVProperty_descr_get(PyObject *self, PyObject *obj, PyObject *
 }
 
 
-static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *value)
+static int CVProperty_dispatch(PyObject *observers, PyObject *obj, PyObject *args)
 {
-	if (value == NULL) {
-		return -1; //?
-	}
-	PyObject *old_value, *callback;
-	CallbackHandler handler = GET_PROPERTY_HANDLER(obj, self);
-	old_value = handler->object;
-	PyObject *args = PyTuple_Pack(3, obj, value, old_value);
-
-	if (args == NULL) {
-		return -1;
-	}
-	Py_DECREF(old_value);
-
-	if PyObject_HasAttr(obj, concat_string) {
-		callback = _GET_PROPERTY_HANDLER(obj, concat_string); //fix this and figure out `callback` situation
-		
-		if (CVObject_schedule(obj, callback, args) < 0) {
-			Py_DECREF(args);
-			return -1;
-		}
-	}
 	int i, len;
-	PyObject *seq = PySequence_Fast(handler->observers, "expected a sequence of observers.");
+	PyObject *callback;
+	len = PySequence_Size(observers);
+	PyObject *seq = PySequence_Fast(observers, "expected a sequence of observers.");
 
 	if (seq == NULL) {
 		Py_DECREF(args);
@@ -198,9 +179,40 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *value)
 	}
 	Py_DECREF(args);
 	Py_DECREF(seq);
-	handler->object = value;
-	Py_INCREF(value);
 	return 0;
+}
+
+
+static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *new_value)
+{
+	if (value == NULL) {
+		return -1; //?
+	}
+	PyObject *old_value, *callback;
+	CallbackHandler handler = GET_PROPERTY_HANDLER(obj, self);
+	old_value = handler->object;
+	PyObject *args = PyTuple_Pack(3, obj, new_value, old_value);
+
+	if (args == NULL) {
+		return -1;
+	}
+	Py_DECREF(old_value); //Since `PyTuple_Pack` doesn't steal the reference
+	handler->object = new_value;
+	Py_INCREF(new_value);
+
+	if PyObject_HasAttr(obj, concat_string) {
+		CallbackHandler on_event_handler = GET_HANDLER(obj, concat_string); //fix this and figure out `callback` situation
+
+		if (CVObject_schedule(obj, on_event_handler->object, args) < 0) {
+			Py_DECREF(args);
+			return -1;
+		}
+		else if (CVProperty_dispatch(on_event_handler->observers, obj, args) < 0) {
+			Py_DECREF(args);
+			return -1;
+		}
+	}
+	return CVProperty_dispatch(handler->observers, obj, args);
 }
 
 
