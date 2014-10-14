@@ -1,5 +1,4 @@
-#define GET_HANDLER(obj, str) PyDict_GetItemString( ((EventDispatcher)obj)->_properties, str )
-#define GET_PROPERTY_HANDLER(obj, self) GET_HANDLER(obj, ((CVProperty)self)->name )
+
 
 
 static int CVObject_schedule(PyObject *self, PyObject *callback, PyObject *data)
@@ -184,9 +183,9 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *new_val
 	if (value == NULL) {
 		return -1; //?
 	}
-	PyObject *old_value;
-	CallbackHandler handler = GET_PROPERTY_HANDLER(obj, self);
-	old_value = handler->object;
+	PyObject *dict = ((EventDispatcher)obj)->_properties; //...or whatever
+	CallbackHandler handler = PyDict_GetItemString(dict, ((CVProperty)self)->name);
+	PyObject *old_value = handler->object;
 	PyObject *args = PyTuple_Pack(3, obj, new_value, old_value);
 
 	if (args == NULL) {
@@ -196,8 +195,8 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *new_val
 	handler->object = new_value;
 	Py_INCREF(new_value);
 
-	if PyObject_HasAttr(obj, concat_string) {
-		CallbackHandler on_event_handler = GET_HANDLER(obj, concat_string); //fix this and figure out `callback` situation
+	if PyMapping_HasKeyString(dict, concat_string) {
+		CallbackHandler on_event_handler = PyDict_GetItemString(dict, concat_string); //fix this and figure out `callback` situation
 
 		if (CVObject_schedule((PyObject *)on_event_handler, on_event_handler->object, args) < 0) {
 			Py_DECREF(args);
@@ -213,52 +212,30 @@ static int CVProperty_descr_set(PyObject *self, PyObject *obj, PyObject *new_val
 }
 
 
-whatever
-{
-    const char *name;
-    name = PyString_AsString(key);
-    if (name[3] == "on_") && (PyString_Size(key) > 3) && (Py_TYPE(value) == PyFunction_Type) {
-        PyObject *new_value = EventProperty(value);
-        if (new_value == NULL) {
-            return -1;
-        }
-        else if (PyDict_SetItem(self->cv, key, new_value) < 0) {
-            Py_DECREF(new_value);
-            return -1;
-        }
-        Py_DECREF(new_value);
-    }
-
-    else if (Py_TYPE(value) == Property) {
-        if (PyDict_SetItem(self->cv, key, value) < 0) {
-            return -1;
-        }
-    }
-    
-
-
 static PyObject *
 EventDispatcherType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    const char *name;
-    Py_ssize_t pos = 0;
-    PyObject *key, *value;
+	const char *name;
+	Py_ssize_t pos = 0;
+	PyObject *key, *value;
 
-    while (PyDict_Next(kwds, &pos, &key, &value)) {
-	name = PyString_AsString(key);
-        if (name[3] == "on_") && (PyString_Size(key) > 3) && (Py_TYPE(value) == PyFunction_Type){
-            PyObject *new_value = EventProperty(value);
-            if (new_value == NULL)
-                return -1;
-            if (PyDict_SetItem(kwds, key, new_value) < 0) {
-                Py_DECREF(new_value);
-                return -1;
-            }
-            Py_DECREF(new_value);
-        }
-    }
+	while (PyDict_Next(kwds, &pos, &key, &value)) {
+		name = PyString_AsString(key);
 
-    return type->tp_base->tp_new(type, args, kwds);
+		if (name[3] == "on_") && (PyString_Size(key) > 3) && (Py_TYPE(value) == PyFunction_Type) {
+			PyObject *new_value = EventProperty(value);
+
+			if (new_value == NULL) {
+                return -1;
+			}
+			if (PyDict_SetItem(kwds, key, new_value) < 0) {
+				Py_DECREF(new_value);
+				return -1;
+			}
+			Py_DECREF(new_value);
+		}
+	}
+	return type->tp_base->tp_new(type, args, kwds);
 }
 
 
