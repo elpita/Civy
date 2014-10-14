@@ -183,7 +183,7 @@ static int CVProperty_descr_set(CVProperty self, EventDispatcher obj, PyObject *
 	if (value == NULL) {
 		return -1; //?
 	}
-	PyObject *dict = obj->_properties; //...or whatever
+	PyObject *dict = obj->_storage;
 	CallbackHandler handler = PyDict_GetItemString(dict, self->name);
 	PyObject *old_value = handler->object;
 	PyObject *args = PyTuple_Pack(3, (PyObject *)obj, new_value, old_value);
