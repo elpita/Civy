@@ -16,18 +16,6 @@ typedef struct _queue {
 
 
 /* Functions */
-static Q Queue_new(void)
-{
-    Q q = (_queue *)malloc(sizeof(_queue));
-
-    if (q == NULL) {
-        return NULL;
-    }
-    q->head = q->tail = NULL;
-    return q;
-}
-
-
 static void Queue_push(Q self, QEntry new_entry)
 {
     new_entry->previous = self->tail;
