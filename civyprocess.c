@@ -2,7 +2,7 @@
 
 
 struct _cvprocess {
-    QEntry super;
+    _queueentry super;
     PyGreenlet *loop;
     _queue pipeline;
     CVProcess parent;
@@ -11,7 +11,7 @@ struct _cvprocess {
 
 
 typedef struct _cvcontext {
-    QEntry super;
+    _queueentry super;
     PyGreenlet *cvthread;
     };
 
@@ -45,17 +45,10 @@ static CVProcess CVProcess_new(PyObject *event_handler)
         PyErr_NoMemory();
         return NULL;
     }
-    process->pipeline = Queue_new();
-    
-    if (process->pipeline == NULL) {
-        free(process);
-        PyErr_NoMemory();
-        return NULL;
-    }
+    Queue_init(process->pipeline);
     process->loop = PyGreenlet_New(CVProcess_loop, NULL);
-    
+
     if (process->loop == NULL) {
-        Queue_dealloc(process->pipeline);
         free(process);
         PyErr_NoMemory();
         return NULL;
@@ -64,7 +57,6 @@ static CVProcess CVProcess_new(PyObject *event_handler)
     
     if (capsule == NULL) {
         Py_CLEAR(process->loop);
-        Queue_dealloc(process->pipeline);
         free(process);
         PyErr_NoMemory();
         return NULL;
@@ -76,13 +68,12 @@ static CVProcess CVProcess_new(PyObject *event_handler)
 }
 
 
-static void kill_cvprocess(CVProcess)
+static void kill_cvprocess(CVProcess p)
 {
     while (!Q_IS_EMPTY(p->pipeline)) {
         Py_CLEAR(CVProcess_pop_thread(p->pipeline));
     }
     Py_CLEAR(p->loop);
-    Queue_dealloc(p->pipeline);
     free(p);
 }
 
@@ -115,7 +106,7 @@ static int CVProcess_push_thread(CVProcess self, PyGreenlet *cvthread)
     }
     new_entry->cvthread = cvthread;
     Py_INCREF(cvthread);
-    Queue_prepend(self->pipeline, (struct _queueentry *)new_entry);
+    Queue_prepend(self->pipeline, (_queueentry *)new_entry);
     return PyGreenlet_SetParent(cvthread, self->loop);
 }
 
