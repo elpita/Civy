@@ -4,7 +4,7 @@
 struct _cvprocess {
     QEntry super;
     PyGreenlet *loop;
-    Q pipeline;
+    _queue pipeline;
     CVProcess parent;
     PyObject *handler;
     };
@@ -18,7 +18,7 @@ typedef struct _cvcontext {
 
 static PyObject* CVProcess_loop(PyObject *capsule)
 {
-    Q pipeline = (struct _queue *)PyCapsule_GetPointer(capsule, NULL);
+    Q pipeline = (_queue *)PyCapsule_GetPointer(capsule, NULL);
     Py_DECREF(capsule);
     PyObject *args = PyGreenlet_Switch( (PyGreenlet_GetCurrent())->parent, NULL, NULL );
     PyGreenlet *g;
