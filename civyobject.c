@@ -281,6 +281,15 @@ static PyObject* CVObject_exec(PyObject *self)
 }
 
 
+static PyObject* init_exec(PyGreenlet *exec)
+{
+    Py_INCREF(main_loop);
+    exec->parent = main_loop;
+    exec->run_info = CVObject_exec; //This is BAD!
+    return PyObject_Init((PyObject *)exec, &PyGreenlet_Type);
+}
+
+
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     CVObject self = (struct _cvobject *)type->tp_alloc(type, 0);
@@ -290,7 +299,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     }
     self->in_weakreflist = NULL;
     Queue_init(self->cvprocesses);
-    PyGreenlet *process_loop = (PyGreenlet *)PyObject_Init((PyObject *)(self->exec), &PyGreenlet_Type);
+    PyGreenlet *process_loop = (PyGreenlet *)init_exec((PyObject *)(self->exec), &PyGreenlet_Type);
     PyObject *_ = PyGreenlet_Switch(process_loop, (PyObject *)self, NULL);
     return (PyObject *)self;
 }
