@@ -4,7 +4,7 @@
 #include "q.h"
 
 /* Structures */
-struct _queueentry {
+typedef struct _queueentry {
     QEntry previous;
     QEntry next;
     };
