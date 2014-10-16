@@ -139,16 +139,6 @@ PyTypeObject CVProperty_Type = {
 	};
 
 
-static PyObject * CVProperty_descr_get(PyObject *self, PyObject *obj, PyObject *type)
-{
-    if (obj == NULL || obj == Py_None) {
-        Py_INCREF(self);
-        return self;
-    }
-    return GET_PROPERTY_HANDLER(obj, self)->object;
-}
-
-
 static int CVProperty_dispatch(PyObject *observers, PyObject *obj, PyObject *args)
 {
 	int i, len;
@@ -175,6 +165,17 @@ static int CVProperty_dispatch(PyObject *observers, PyObject *obj, PyObject *arg
 	}
 	Py_DECREF(seq);
 	return 0;
+}
+
+
+static PyObject* CVProperty_descr_get(CVProperty self, PyObject *obj, PyObject *type)
+{
+    if (obj == NULL || obj == Py_None) {
+        Py_INCREF(self);
+        return self;
+    }
+    PyObject *dict = ((EventDispatcher)obj)->_storage;
+    return ( PyDict_GetItemString(dict, self->name) )->object;
 }
 
 
@@ -212,8 +213,7 @@ static int CVProperty_descr_set(CVProperty self, EventDispatcher obj, PyObject *
 }
 
 
-static PyObject *
-EventDispatcherType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+static PyObject* EventDispatcherType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	const char *name;
 	Py_ssize_t pos = 0;
