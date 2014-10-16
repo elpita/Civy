@@ -5,7 +5,7 @@ typedef struct _queueentry *QEntry;
 typedef struct _queue *Q;
 
 
-static Q Queue_new(void);
+static void Queue_init(Q q);
 static void Queue_push(Q self, QEntry new_entry);
 static void Queue_prepend(Q self, QEntry new_entry);
 static QEntry Queue_pop(Q self);
