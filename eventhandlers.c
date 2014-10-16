@@ -175,7 +175,9 @@ static PyObject* CVProperty_descr_get(CVProperty self, PyObject *obj, PyObject *
         return self;
     }
     PyObject *dict = ((EventDispatcher)obj)->_storage;
-    return ( PyDict_GetItemString(dict, self->name) )->object;
+    PyObject *result = ( PyDict_GetItemString(dict, self->name) )->object;
+    Py_INCREF(result);
+    return result;
 }
 
 
