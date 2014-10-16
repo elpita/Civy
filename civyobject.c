@@ -9,8 +9,8 @@ CVProcess const _current = NULL;
 
 struct _cvobject {
     PyObject_HEAD
-    Q cvprocesses;
-    PyGreenlet *exec;
+    _queue cvprocesses;
+    PyGreenlet exec;
     PyObject *in_weakreflist;
     };
 static PyTypeObject CVObject_Type = {
@@ -39,7 +39,7 @@ static PyTypeObject CVObject_Type = {
     0,                                          /* tp_traverse */
     0,                                          /* tp_clear */
     0,                                          /* tp_richcompare */
-    offsetof(_cvobject, in_weakreflist),        /* tp_weaklistoffset */
+    offsetof(struct _cvobject, in_weakreflist),        /* tp_weaklistoffset */
     0,                                          /* tp_iter */
     0,                                          /* tp_iternext */
     0,                                          /* tp_methods */
@@ -289,21 +289,9 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         return NULL;
     }
     self->in_weakreflist = NULL;
-    self->cvprocesses = Queue_new();
-
-    if (self->cvprocesses == NULL) {
-        Py_DECREF(self);
-        return NULL;
-    }
-    PyGreenlet *process_loop = PyGreenlet_New(CVObject_exec, NULL);
-
-    if (process_loop == NULL) {
-        Queue_dealloc(self->cvprocesses);
-        Py_DECREF(self);
-        return NULL;
-    }
+    Queue_init(self->cvprocesses);
+    PyGreenlet *process_loop = (PyGreenlet *)PyObject_Init((PyObject *)(self->exec), &PyGreenlet_Type);
     PyObject *_ = PyGreenlet_Switch(process_loop, (PyObject *)self, NULL);
-    self->exec = process_loop;
     return (PyObject *)self;
 }
 
