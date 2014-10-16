@@ -9,7 +9,7 @@ struct _queueentry {
     QEntry next;
     };
 
-struct _queue {
+typedef struct _queue {
     QEntry head;
     QEntry tail;
     };
@@ -18,7 +18,7 @@ struct _queue {
 /* Functions */
 static Q Queue_new(void)
 {
-    Q q = (struct _queue *)malloc(sizeof(struct _queue));
+    Q q = (_queue *)malloc(sizeof(_queue));
 
     if (q == NULL) {
         return NULL;
