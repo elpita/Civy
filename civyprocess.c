@@ -42,24 +42,21 @@ static CVProcess CVProcess_new(PyObject *event_handler)
     CVProcess process = (struct _cvprocess *)malloc(sizeof(struct _cvprocess));
 
     if (process == NULL) {
-        PyErr_NoMemory();
-        return NULL;
+        return PyErr_NoMemory();
     }
     Queue_init(process->pipeline);
     process->loop = PyGreenlet_New(CVProcess_loop, NULL);
 
     if (process->loop == NULL) {
         free(process);
-        PyErr_NoMemory();
-        return NULL;
+        return PyErr_NoMemory();
     }
     PyObject *capsule = PyCapsule_New((void *)(process->pipeline), NULL, NULL);
     
     if (capsule == NULL) {
         Py_CLEAR(process->loop);
         free(process);
-        PyErr_NoMemory();
-        return NULL;
+        return PyErr_NoMemory();
     }
     PyObject *_ = PyGreenlet_Switch(process->loop, capsule);
     process->handler = event_handler;
