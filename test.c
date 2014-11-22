@@ -1,5 +1,5 @@
-#define EVENT_LOOP_START case 0: while(1) {
-#define EVENT_LOOP_END case 1:;}
+#define CV_EVENT_LOOP_START case 0: while(1) {
+#define CV_EVENT_LOOP_END case 1:;}
 #if defined(_WIN32) || defined(_WIN64)
 #define sleep(dt) Sleep(1000*dt)
 #endif
@@ -15,7 +15,7 @@ static void cv_main_loop(void)
             /* Call final function(s) */
             break;
 
-        EVENT_LOOP_START
+        CV_EVENT_LOOP_START
             switch(SDL_PollEvent(&_event)) {
                 case 0:
                     Py_BEGIN_ALLOW_THREADS
@@ -33,6 +33,6 @@ static void cv_main_loop(void)
                     }
                     break;
             }
-        EVENT_LOOP_END
+        CV_EVENT_LOOP_END
     }
 }
