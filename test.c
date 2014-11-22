@@ -11,14 +11,14 @@ static void cv_main_loop(void)
             break;
 
         CV_EVENT_LOOP_START
-            switch(SDL_PollEvent(&_event)) {
+            switch(SDL_PollEvent(&main_event)) {
                 case 0:
                     Py_BEGIN_ALLOW_THREADS
                     sleep(0.02);
                     Py_END_ALLOW_THREADS
                     break;
                 default:
-                    switch(_event.type) {
+                    switch(main_event.type) {
                         case DISPATCHED_EVENT:
                             /* call some nonsense */
                             break;
