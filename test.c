@@ -1,56 +1,38 @@
-static enum { STARTED, ACTIVE, DEAD } state;
+#define EVENT_LOOP_START case 0: while(1) {
+#define EVENT_LOOP_END case 1:;}
+#if defined(_WIN32) || defined(_WIN64)
+#define sleep(dt) Sleep(1000*dt)
+#endif
 
 
-static int pop()
+static SDL_Event _event;
+
+
+static void cv_main_loop(void)
 {
-    _process = _pop(_current->pipeline);
-    if (_process == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
-
-static void process_routine(void)
-{
-    switch(setjmp(_process->jmp)) {
-        case 1:
-            roll(); //nullify currrent thread
-            push_routine();
+    switch(setjmp(main_jmp_buf)) {
+        case -1:
+            /* Call final function(s) */
             break;
-        default:
-            switch(_process->state) {
-                case STARTED:
-                    _process->state = ACTIVE;
-                    return;
-                    while(pop_routine()) {
-                        unroll(); //reinstate saved thread
-                        result = PyEval_CallObjectWithKeywords(_routine->func, args, kwargs);
-                        case ACTIVE:;
-                    }
-            }
-    }
-    longjmp(_main->jmp, 1);
-}
 
-
-static void actor_routine(void)
-{
-    switch(setjmp(_current->jmp)) {
-        case 1:
-            roll();
-            break;
-        default:
-            switch(_current->state) {
-                case STARTED:
-                    _current->state = ACTIVE;
-                    return;
-                    while(pop()) {
-                        unroll();
-                        process_routine();
-                        case ACTIVE:;
+        EVENT_LOOP_START
+            switch(SDL_PollEvent(&_event)) {
+                case 0:
+                    Py_BEGIN_ALLOW_THREADS
+                    sleep(0.02);
+                    Py_END_ALLOW_THREADS
+                    break;
+                default:
+                    switch(_event.type) {
+                        case DISPATCHED_EVENT:
+                            /* call some nonsense */
+                            break;
+                        default:
+                            /* call some other nonsense */
+                            break;
                     }
+                    break;
             }
+        EVENT_LOOP_END
     }
-    longjmp(_main->jmp, 1);
 }
