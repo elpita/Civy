@@ -1,15 +1,12 @@
 #include "test.h"
 #define CV_EVENT_LOOP_START case 0: while(1) {
-#define CV_EVENT_LOOP_END case 1:;}
+#define CV_EVENT_LOOP_END case 1:;}break;
 
 
 static void cv_main_loop(void)
 {
-    switch(setjmp(to_main_loop)) {
-        case -1:
-            /* Call final function(s) */
-            break;
-
+    switch(setjmp(to_main_loop))
+    {
         CV_EVENT_LOOP_START
         switch(SDL_PollEvent(&main_event)) {
             case 0:
@@ -30,5 +27,8 @@ static void cv_main_loop(void)
         }
         CV_EVENT_LOOP_END
 
+        case -1:
+            /* Call final function(s) */
+            break;
     }
 }
