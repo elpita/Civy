@@ -5,6 +5,6 @@
 #define sleep(dt) Sleep(1000*dt)
 #endif
 
-static SDL_Event main_event;
+static volatile SDL_Event main_event;
 static jmp_buf to_main_loop;
 #endif
