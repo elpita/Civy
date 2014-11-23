@@ -36,8 +36,9 @@ static void cv_main_loop(void)
 static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
     Uint32 mask;
-    Py_ssize_t len;
-    PyObject *obj, *seq;
+    char *string;
+    Py_ssize_t i, len;
+    PyObject *obj, *seq, *str_item;
     char *cv_a = "CV_AUDIO", *cv_gc = "CV_GAME_CONTROLLER", *cv_j = "CV_JOYSTICK", *cv_ff = "CV_FORCE_FEEDBACK";
 
     SDL_assert(!SDL_WasInit(SDL_INIT_EVERYTHING));
