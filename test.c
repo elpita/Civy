@@ -83,5 +83,6 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
         return -1;
     }
     tbd_global_app_pointer = self;
+    Py_DECREF(seq);
     return 0;
 }
