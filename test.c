@@ -36,48 +36,27 @@ static void cv_main_loop(void)
 static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
     Uint32 mask;
-    char *string;
-    Py_ssize_t i, len;
-    PyObject *obj, *seq, *str_item;
-    char *cv_a = "CV_AUDIO", *cv_gc = "CV_GAME_CONTROLLER", *cv_j = "CV_JOYSTICK", *cv_ff = "CV_FORCE_FEEDBACK";
+    int *cv_a, *cv_gc, *cv_j, *cv_ff;
+    static char *kwargs[] = {"CV_AUDIO", "CV_GAME_CONTROLLER", "CV_JOYSTICK", "CV_FORCE_FEEDBACK", NULL};
 
     SDL_assert(!SDL_WasInit(SDL_INIT_EVERYTHING));
     mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
 
-    if (!PyArg_ParseTuple(args, "O", &obj)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iiii", kwargs, &cv_a, &cv_gc, &cv_j, &cv_ff)) {
         return -1;
     }
-    seq = PySequence_Fast(obj, "expected a sequence of strings.");
-    
-    if (seq == NULL) {
-        return -1;
-    }
-    len = PySequence_Size(seq);
 
-    if (len  < 0) {
-        Py_DECREF(seq);
-        return -1;
+    if cv_a {
+        mask |= SDL_INIT_AUDIO;
     }
-    for (i = 0; i < len; i++) {
-        str_item = PySequence_Fast_GET_ITEM(seq, i);
-        string = PyString_AsString(str_object);
-
-        if (string == NULL) {
-            Py_DECREF(seq);
-            return -1;
-        }
-        else if (strcmp(string, cv_a) == 0) {
-            mask |= SDL_INIT_AUDIO;
-        }
-        else if (strcmp(string, cv_gc) == 0) {
-            mask |= SDL_INIT_GAMECONTROLLER;
-        }
-        else if (strcmp(string, cv_j) == 0) {
-            mask |= SDL_INIT_JOYSTICK;
-        }
-        else if (strcmp(string, cv_ff) == 0) {
-            mask |= SDL_INIT_HAPTIC;
-        }
+    if cv_gc {
+        mask |= SDL_INIT_GAMECONTROLLER;
+    }
+    if cv_j {
+        mask |= SDL_INIT_JOYSTICK;
+    }
+    if cv_ff {
+        mask |= SDL_INIT_HAPTIC;
     }
     if (SDL_Init(mask) < 0) {
         PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
