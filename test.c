@@ -39,6 +39,10 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
     int *cv_a, *cv_gc, *cv_j, *cv_ff;
     static char *kwargs[] = {"CV_AUDIO", "CV_GAME_CONTROLLER", "CV_JOYSTICK", "CV_FORCE_FEEDBACK", NULL};
 
+    if (args != NULL) {
+        PyErr_SetString(PyExc_TypeError, "init flags must be specified as keyword arguments.");
+        return -1;
+    }
     SDL_assert(!SDL_WasInit(SDL_INIT_EVERYTHING));
     mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
 
