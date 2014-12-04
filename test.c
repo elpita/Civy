@@ -69,3 +69,37 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
     tbd_global_app_pointer = self;
     return 0;
 }
+
+
+cv_call_coroutine()
+{
+    if Q_IS_EMPTY(self->cvprocesses) {
+        fail;
+    }
+    process = CVObject_pop_process(self);
+    check_value = check_process(process);
+    
+    if (check_value == -1) {
+        fail;
+    }
+    else if (check_value == 0) {
+        deallocate(process);
+        return;
+    }
+    
+    if setjmp(process->jb) {
+        deallocate(process);
+        do_as_infinity();
+        longjmp(to_main_loop, 1);
+    }
+    cv_call_continuation(process);
+}
+
+
+cv_call_continuation()
+{
+    while(!) {
+        result = PyEval_CallObjectWithKeywords(self->fun, args, kwargs);
+    }
+    longjmp(somthing, 1);
+}
