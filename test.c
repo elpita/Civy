@@ -96,16 +96,35 @@ cv_call_coroutine()
 }
 
 
+typedef _cvcontinuation *CVContinuation;
+
+struct _cvcontinuation_status {
+    PyObject *handler;
+    CVContinuation *parent;
+} ConStatus;
+
+
+struct _cvcontinuation {
+    ConStatus *status;
+    _queue pipeline;
+    jmp_buf to_con_loop;
+    PyFrameObject *frame;
+};
+
+
 cv_call_continuation()
 {
-    while(!) {
-        result = PyEval_CallObjectWithKeywords(self->fun, args, kwargs);
-    }
+    switch(setjmp(c->to_con_loop)) { 
+        case 0: 
+            while(!whatever) {
+                result = PyEval_CallObjectWithKeywords(self->fun, args, kwargs);
+            }
+        case 1:}
     longjmp(somthing, 1);
 }
 
 
-int check_continuation(continuation *c)
+int check_continuation(ConStatus *c)
 {
     if (c == NULL) {
         return 1;
