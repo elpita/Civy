@@ -103,3 +103,23 @@ cv_call_continuation()
     }
     longjmp(somthing, 1);
 }
+
+
+int check_continuation(continuation *c)
+{
+    if (c == NULL) {
+        return 1;
+    }
+    else {
+        PyObject *handler = PyWeakref_GetObject(c->handler);
+        SDL_assert(handler != NULL);
+
+        if (handler == Py_None) {
+            return 0;
+        }
+        else if (is_dead(handler)) {
+            return 0;
+        }
+    }
+    return check_continuation(c->parent);
+}
