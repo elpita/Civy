@@ -97,15 +97,16 @@ cv_call_coroutine()
 
 
 typedef _cvcontinuation *CVContinuation;
+typedef _cvcontinuation_status *ConStatus;
 
 struct _cvcontinuation_status {
     PyObject *handler;
-    CVContinuation *parent;
-} ConStatus;
+    ConStatus parent;
+};
 
 
 struct _cvcontinuation {
-    ConStatus *status;
+    ConStatus status;
     _queue pipeline;
     jmp_buf to_con_loop;
     PyFrameObject *frame;
@@ -124,7 +125,7 @@ cv_call_continuation()
 }
 
 
-int check_continuation(ConStatus *c)
+static int check_continuation(ConStatus c)
 {
     if (c == NULL) {
         return 1;
@@ -133,12 +134,20 @@ int check_continuation(ConStatus *c)
         PyObject *handler = PyWeakref_GetObject(c->handler);
         SDL_assert(handler != NULL);
 
-        if (handler == Py_None) {
+        if (handler == Py_None) || (is_dead(handler)) {
             return 0;
         }
-        else if (is_dead(handler)) {
-            return 0;
-        }
+        return check_continuation(c->parent);
     }
-    return check_continuation(c->parent);
+}
+
+
+static PyObject* something(argstruct *as)
+{
+    /* Py_EnterRecursiveCall() */
+    PyObject *func = as->func;
+    PyObject *args = as->args;
+    PyObject *kwargs = as->kwargs;
+    dereference(as);
+    return PyEval_CallObjectWithKeywords(func, args, kwargs);
 }
