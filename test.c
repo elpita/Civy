@@ -32,6 +32,25 @@ static void cv_main_loop(void)
                 case SDL_TEXTEDITING:
                     cv_handle_textedit_event(&main_event.edit);
                     break;
+
+                /* Not (yet?) supported */
+                case SDL_SYSWMEVENT:
+                    break;
+                case SDL_DOLLARGESTURE:
+                    break;
+                case SDL_DOLLARRECORD:
+                    break;
+                case SDL_CLIPBOARDUPDATE:
+                    break;
+                case SDL_RENDER_TARGETS_RESET:
+                    break;
+                case SDL_RENDER_DEVICE_RESET:
+                    break;
+                case SDL_FIRSTEVENT:
+                    break;
+                case SDL_LASTEVENT:
+                    break;
+
                 default:
                     cv_event_loop(&main_event);
                     break;
@@ -49,7 +68,7 @@ static void cv_main_loop(void)
 static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
     Uint32 mask;
-    int i, cv_m, cv_tch, cv_a, cv_gc, cv_j, cv_ff, cv_fd;
+    int i, cv_m, cv_tch, cv_a, cv_gc, cv_j, cv_ff, cv_df;
     
     if PyObject_TypeCheck(self, &CVAppType) {
         PyErr_Format(PyExc_NotImplementedError, "<%s> cannot be instantiated directly.", CVAppType.tp_name);
@@ -59,15 +78,15 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
         return -1;
     }
     else {
-        static char *kwargs[] = {"CV_MOUSE", "CV_TOUCH", "CV_AUDIO", "CV_GAME_CONTROLLER", "CV_JOYSTICK", "CV_FORCE_FEEDBACK", "CV_FILE_DROP", NULL};
+        static char *kwargs[] = {"CV_MOUSE", "CV_TOUCH", "CV_AUDIO", "CV_GAME_CONTROLLER", "CV_JOYSTICK", "CV_FORCE_FEEDBACK", "CV_DROP_FILE", NULL};
 
-        if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiiiiii", kwargs, &cv_m, &cv_tch, &cv_a, &cv_gc, &cv_j, &cv_ff, &cv_fd)) {
+        if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiiiiii", kwargs, &cv_m, &cv_tch, &cv_a, &cv_gc, &cv_j, &cv_ff, &cv_df)) {
             return -1;
         }
     }
     SDL_assert(!SDL_WasInit(SDL_INIT_EVERYTHING));
     mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
-    MAX_CV_INPUTS = i = 1 + (cv_m || cv_tch) + cv_gc + cv_j + cv_fd;
+    MAX_CV_INPUTS = i = 1 + (cv_m || cv_tch) + cv_gc + cv_j + cv_df;
     cv_event_handlers[i] = cv_handle_user_event;
     i--;
 
@@ -91,18 +110,32 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
         PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
         return -1;
     }
-    if cv_fd {
+    if cv_df {
         SDL_EventState(SDL_DROPFILE, 1);
         cv_event_handlers[i] = cv_handle_dropfile_event;
         i--;
     }
+
     if cv_tch {
         cv_event_handlers[i] = cv_handle_touch_event;
         i--;
     }
+    else {
+        SDL_EventState(SDL_FINGERMOTION, 0);
+        SDL_EventState(SDL_FINGERDOWN, 0);
+        SDL_EventState(SDL_FINGERUP, 0);
+        SDL_EventState(SDL_MULTIGESTURE, 0);
+    }
+
     if cv_m {
         cv_event_handlers[i] = cv_handle_mouse_event;
         i--;
+    }
+    else {
+        SDL_EventState(SDL_MOUSEMOTION, 0);
+        SDL_EventState(SDL_MOUSEBUTTONDOWN, 0);
+        SDL_EventState(SDL_MOUSEBUTTONUP, 0);
+        SDL_EventState(SDL_MOUSEWHEEL, 0);
     }
 
     tbd_global_app_pointer = self;
@@ -128,57 +161,132 @@ void cv_event_loop(SDL_Event *event)
 }
 
 
-cv_call_coroutine()
-{
-    if Q_IS_EMPTY(self->cvprocesses) {
-        fail;
+static void cv_handle_mouse_event(SDL_Event *event) {
+    switch(event.type) {
+        case SDL_MOUSEMOTION:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_MOUSEBUTTONUP:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_MOUSEWHEEL:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        default:
+            longjmp(to_event_loop, 1);
     }
-    process = CVObject_pop_process(self);
-    check_value = check_process(process);
-    
-    if (check_value == -1) {
-        fail;
-    }
-    else if (check_value == 0) {
-        deallocate(process);
-        return;
-    }
-    
-    if setjmp(process->jb) {
-        deallocate(process);
-        do_as_infinity();
-        longjmp(to_main_loop, 1);
-    }
-    cv_call_continuation(process);
 }
 
 
-typedef _cvcontinuation *CVContinuation;
-typedef _cvcontinuation_status *ConStatus;
-
-struct _cvcontinuation_status {
-    PyObject *handler;
-    ConStatus parent;
-};
-
-
-struct _cvcontinuation {
-    ConStatus status;
-    _queue pipeline;
-    jmp_buf to_con_loop;
-    PyFrameObject *frame;
-};
+static void cv_handle_touch_event(SDL_Event *event) {
+    if ((event.type == SDL_FINGERMOTION) || (event.type == SDL_FINGERDOWN) || (event.type == SDL_FINGERUP)) {
+        /* call function */
+        longjmp(to_event_loop, -1);
+    }
+    else if (event.type == SDL_MULTIGESTURE) {
+        /* call function */
+        longjmp(to_event_loop, -1);
+    }
+    else {
+        longjmp(to_event_loop, 1);
+    }
+}
 
 
-cv_call_continuation()
-{
-    switch(setjmp(c->to_con_loop)) { 
-        case 0: 
-            while(!whatever) {
-                result = PyEval_CallObjectWithKeywords(self->fun, args, kwargs);
-            }
-        case 1:}
-    longjmp(somthing, 1);
+static void cv_handle_dropfile_event(SDL_Event *event) {
+    if (event.type == SDL_DROPFILE) {
+        /* call function */
+        longjmp(to_event_loop, -1);
+    }
+    else {
+        longjmp(to_event_loop, 1);
+    }
+}
+
+
+static void cv_handle_controller_event(SDL_Event *event) {
+    switch(event.type) {
+        case SDL_CONTROLLERAXISMOTION:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_CONTROLLERBUTTONDOWN:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_CONTROLLERBUTTONUP:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_CONTROLLERDEVICEADDED:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_CONTROLLERDEVICEREMOVED:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_CONTROLLERDEVICEREMAPPED:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        default:
+            longjmp(to_event_loop, 1);
+    }
+}
+
+
+static void cv_handle_joystick_event(SDL_Event *event) {
+    switch(event.type) {
+        case SDL_JOYAXISMOTION:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_JOYBALLMOTION:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_JOYHATMOTION:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_JOYBUTTONDOWN:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_JOYBUTTONUP:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_JOYDEVICEADDED:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        case SDL_JOYDEVICEREMOVED:
+            /* call function */
+            longjmp(to_event_loop, -1);
+            break;
+        default:
+            longjmp(to_event_loop, 1);
+    }
+}
+
+
+void cv_handle_user_event(SDL_Event *event) {
+    if (event.type == SDL_QUIT) {
+        longjmp(to_main_loop, -1);
+    }
+    else {
+        /* call function */
+        longjmp(to_event_loop, 1);
+    }
 }
 
 
@@ -196,15 +304,4 @@ static int check_continuation(ConStatus c)
         }
         return check_continuation(c->parent);
     }
-}
-
-
-static PyObject* something(argstruct *as)
-{
-    /* Py_EnterRecursiveCall() */
-    PyObject *func = as->func;
-    PyObject *args = as->args;
-    PyObject *kwargs = as->kwargs;
-    dereference(as);
-    return PyEval_CallObjectWithKeywords(func, args, kwargs);
 }
