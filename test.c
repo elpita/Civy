@@ -33,7 +33,7 @@ static void cv_main_loop(void)
                     cv_handle_textedit_event(&main_event.edit);
                     break;
                 default:
-                    /* call some nonsense */
+                    cv_event_loop(&main_event);
                     break;
             }
             break;
