@@ -52,7 +52,7 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
     int i, cv_m, cv_tch, cv_a, cv_gc, cv_j, cv_ff, cv_fd;
     
     if PyObject_TypeCheck(self, &CVAppType) {
-        PyErr_Format(PyExc_TypeError, "<%s> cannot be instantiated directly.", CVAppType.tp_name);
+        PyErr_Format(PyExc_NotImplementedError, "<%s> cannot be instantiated directly.", CVAppType.tp_name);
     }
     else if (args && (args != Py_None)) {
         PyErr_SetString(PyExc_TypeError, "init flags must be specified as keyword arguments.");
