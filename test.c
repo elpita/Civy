@@ -9,7 +9,7 @@ static void (*cv_event_handlers[6]) (SDL_Event *);
 
 static void cv_main_loop(void)
 {
-    SDL_Event main_event;
+    volatile SDL_Event main_event;
 
     CV_MAIN_LOOP_START
 
@@ -163,7 +163,7 @@ void cv_event_loop(SDL_Event *event)
 
 
 static void cv_handle_mouse_event(SDL_Event *event) {
-    switch(event.type) {
+    switch(event->type) {
         case SDL_MOUSEMOTION:
             /* call function */
             longjmp(to_event_loop, -1);
@@ -187,11 +187,11 @@ static void cv_handle_mouse_event(SDL_Event *event) {
 
 
 static void cv_handle_touch_event(SDL_Event *event) {
-    if ((event.type == SDL_FINGERMOTION) || (event.type == SDL_FINGERDOWN) || (event.type == SDL_FINGERUP)) {
+    if ((event->type == SDL_FINGERMOTION) || (event->type == SDL_FINGERDOWN) || (event->type == SDL_FINGERUP)) {
         /* call function */
         longjmp(to_event_loop, -1);
     }
-    else if (event.type == SDL_MULTIGESTURE) {
+    else if (event->type == SDL_MULTIGESTURE) {
         /* call function */
         longjmp(to_event_loop, -1);
     }
@@ -202,7 +202,7 @@ static void cv_handle_touch_event(SDL_Event *event) {
 
 
 static void cv_handle_dropfile_event(SDL_Event *event) {
-    if (event.type == SDL_DROPFILE) {
+    if (event->type == SDL_DROPFILE) {
         /* call function */
         longjmp(to_event_loop, -1);
     }
@@ -213,7 +213,7 @@ static void cv_handle_dropfile_event(SDL_Event *event) {
 
 
 static void cv_handle_controller_event(SDL_Event *event) {
-    switch(event.type) {
+    switch(event->type) {
         case SDL_CONTROLLERAXISMOTION:
             /* call function */
             longjmp(to_event_loop, -1);
@@ -245,7 +245,7 @@ static void cv_handle_controller_event(SDL_Event *event) {
 
 
 static void cv_handle_joystick_event(SDL_Event *event) {
-    switch(event.type) {
+    switch(event->type) {
         case SDL_JOYAXISMOTION:
             /* call function */
             longjmp(to_event_loop, -1);
@@ -281,7 +281,7 @@ static void cv_handle_joystick_event(SDL_Event *event) {
 
 
 void cv_handle_clipboard_event(SDL_Event *event) {
-    if (event.type == SDL_CLIPBOARDUPDATE) {
+    if (event->type == SDL_CLIPBOARDUPDATE) {
         /* Looks like we just need to send a `True` */
         longjmp(to_event_loop, -1);
     }
@@ -292,7 +292,7 @@ void cv_handle_clipboard_event(SDL_Event *event) {
 
 
 void cv_handle_user_event(SDL_Event *event) {
-    if (event.type == SDL_QUIT) {
+    if (event->type == SDL_QUIT) {
         longjmp(to_main_loop, -1);
     }
     else {
