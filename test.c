@@ -1,12 +1,16 @@
 #include "test.h"
 #define CV_MAIN_LOOP_START switch(setjmp(to_main_loop)) { case 0: while(1) {
 #define CV_MAIN_LOOP_END case 1: ; } break; case -1:
+#define CV_EVENT_LOOP_START static int i; switch(setjmp(to_event_loop)) { case 0:
+#define CV_EVENT_LOOP_END case 1:;} break; case -1: i = 0; longjmp(to_main_loop, 1); break;}
 #define EXIT_CV break; }
-static void (*cv_event_handlers[5]) (SDL_Event *);
+static void (*cv_event_handlers[6]) (SDL_Event *);
 
 
 static void cv_main_loop(void)
 {
+    SDL_Event main_event;
+
     CV_MAIN_LOOP_START
 
     switch(SDL_PollEvent(&main_event)) {
@@ -40,8 +44,6 @@ static void cv_main_loop(void)
                     break;
                 case SDL_DOLLARRECORD:
                     break;
-                case SDL_CLIPBOARDUPDATE:
-                    break;
                 case SDL_RENDER_TARGETS_RESET:
                     break;
                 case SDL_RENDER_DEVICE_RESET:
@@ -68,25 +70,26 @@ static void cv_main_loop(void)
 static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
     Uint32 mask;
-    int i, cv_m, cv_tch, cv_a, cv_gc, cv_j, cv_ff, cv_df;
+    int i, cv_m, cv_tch, cv_a, cv_gc, cv_j, cv_ff, cv_df, cv_c;
     
     if PyObject_TypeCheck(self, &CVAppType) {
         PyErr_Format(PyExc_NotImplementedError, "<%s> cannot be instantiated directly.", CVAppType.tp_name);
+        return -1;
     }
     else if (args && (args != Py_None)) {
         PyErr_SetString(PyExc_TypeError, "init flags must be specified as keyword arguments.");
         return -1;
     }
     else {
-        static char *kwargs[] = {"CV_MOUSE", "CV_TOUCH", "CV_AUDIO", "CV_GAME_CONTROLLER", "CV_JOYSTICK", "CV_FORCE_FEEDBACK", "CV_DROP_FILE", NULL};
+        static char *kwargs[] = {"CV_MOUSE", "CV_TOUCH", "CV_AUDIO", "CV_GAME_CONTROLLER", "CV_JOYSTICK", "CV_FORCE_FEEDBACK", "CV_DROP_FILE", "CV_CLIPBOARD", NULL};
 
-        if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiiiiii", kwargs, &cv_m, &cv_tch, &cv_a, &cv_gc, &cv_j, &cv_ff, &cv_df)) {
+        if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiiiiiii", kwargs, &cv_m, &cv_tch, &cv_a, &cv_gc, &cv_j, &cv_ff, &cv_df, &cv_c)) {
             return -1;
         }
     }
     SDL_assert(!SDL_WasInit(SDL_INIT_EVERYTHING));
     mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
-    MAX_CV_INPUTS = i = 1 + (cv_m || cv_tch) + cv_gc + cv_j + cv_df;
+    MAX_CV_INPUTS = i = 1 + (cv_m || cv_tch) + cv_gc + cv_j + cv_df + cv_c;
     cv_event_handlers[i] = cv_handle_user_event;
     i--;
 
@@ -109,6 +112,11 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
     if (SDL_Init(mask) < 0) {
         PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
         return -1;
+    }
+    if cv_c {
+        SDL_EventState(SDL_CLIPBOARDUPDATE, 1);
+        cv_event_handlers[i] = cv_handle_clipboard_event;
+        i--;
     }
     if cv_df {
         SDL_EventState(SDL_DROPFILE, 1);
@@ -145,19 +153,12 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 
 void cv_event_loop(SDL_Event *event)
 {
-    static int i;
+    CV_EVENT_LOOP_START
+        for (i = 0; i <= MAX_CV_INPUTS; i++) {
+            cv_event_handlers[i](event);
+    CV_EVENT_LOOP_END
 
-    switch(setjmp(to_event_loop)) {
-        case 0:
-            for (i = 0; i <= MAX_CV_INPUTS; i++) {
-                cv_event_handlers[i](event);
-                case 1:;}
-        case -1:
-            i = 0;
-            longjmp(to_main_loop, 1);
-            break;
-            
-    }
+    //PyErr_Format(PyExc_RuntimeError, "Application received an unknown asynchronous event, %d.", event->type);
 }
 
 
@@ -275,6 +276,17 @@ static void cv_handle_joystick_event(SDL_Event *event) {
             break;
         default:
             longjmp(to_event_loop, 1);
+    }
+}
+
+
+void cv_handle_clipboard_event(SDL_Event *event) {
+    if (event.type == SDL_CLIPBOARDUPDATE) {
+        /* Looks like we just need to send a `True` */
+        longjmp(to_event_loop, -1);
+    }
+    else {
+        longjmp(to_event_loop, 1);
     }
 }
 
