@@ -49,7 +49,7 @@ static void cv_main_loop(void)
 static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
     Uint32 mask;
-    int i, cv_m, cv_t, cv_a, cv_gc, cv_j, cv_ff, cv_fd;
+    int i, cv_m, cv_tch, cv_a, cv_gc, cv_j, cv_ff, cv_fd;
     
     if PyObject_TypeCheck(self, &CVAppType) {
         PyErr_Format(PyExc_TypeError, "<%s> cannot be instantiated directly.", CVAppType.tp_name);
@@ -61,13 +61,13 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
     else {
         static char *kwargs[] = {"CV_MOUSE", "CV_TOUCH", "CV_AUDIO", "CV_GAME_CONTROLLER", "CV_JOYSTICK", "CV_FORCE_FEEDBACK", "CV_FILE_DROP", NULL};
 
-        if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiiiiii", kwargs, &cv_m, &cv_t, &cv_a, &cv_gc, &cv_j, &cv_ff, &cv_fd)) {
+        if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiiiiii", kwargs, &cv_m, &cv_tch, &cv_a, &cv_gc, &cv_j, &cv_ff, &cv_fd)) {
             return -1;
         }
     }
     SDL_assert(!SDL_WasInit(SDL_INIT_EVERYTHING));
     mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
-    MAX_CV_INPUTS = i = 1 + (cv_m || cv_t) + cv_gc + cv_j + cv_fd;
+    MAX_CV_INPUTS = i = 1 + (cv_m || cv_tch) + cv_gc + cv_j + cv_fd;
     cv_event_handlers[i] = cv_handle_user_event;
     i--;
 
@@ -96,7 +96,7 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
         cv_event_handlers[i] = cv_handle_dropfile_event;
         i--;
     }
-    if cv_t {
+    if cv_tch {
         cv_event_handlers[i] = cv_handle_touch_event;
         i--;
     }
