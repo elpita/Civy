@@ -171,6 +171,16 @@ void cv_handle_dispatched_event(SDL_UserEvent *event)
         cleanup(event);
         return;
     }
+    cv_continue(event->data1, event->data2);
+}
+
+
+void cv_continue(a, b)
+{
+    PyThreadState *ts = PyThreadState_GET();
+    ts->frame = continuation->frame;
+    ts->recursion_depth = continuation->recursion_depth;
+    continuation_poll(whatever);
 }
 
 
