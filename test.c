@@ -22,7 +22,7 @@ static void cv_main_loop(void)
         default:
             switch(main_event.type) {
                 case CV_DISPATCHED_EVENT:
-                    cv_handle_dispatched_event(&main_event.user);
+                    cv_handle_dispatched_event(main_event.user.data1, main_event.user.data2);
                     break;
                 case SDL_WINDOWEVENT:
                     cv_handle_window_event(&main_event.window);
@@ -165,13 +165,15 @@ void cv_event_loop(SDL_Event *event)
 }
 
 
-void cv_handle_dispatched_event(SDL_UserEvent *event)
+void cv_handle_dispatched_event(data1, data2)
 {
-    if (event->data1 == NULL) {
-        cleanup(event);
-        return;
+    if (data1 == NULL) {
+        cleanup(data2);
+        longjmp(to_main_loop, 1);
     }
-    cv_continue(event->data1, event->data2);
+    else {
+        cv_continue(event->data1, event->data2);
+    }
 }
 
 
