@@ -21,6 +21,9 @@ static void cv_main_loop(void)
             break;
         default:
             switch(main_event.type) {
+                case CV_DISPATCHED_EVENT:
+                    cv_handle_dispatched_event(&main_event.user);
+                    break;
                 case SDL_WINDOWEVENT:
                     cv_handle_window_event(&main_event.window);
                     break;
@@ -90,7 +93,7 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
     SDL_assert(!SDL_WasInit(SDL_INIT_EVERYTHING));
     mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
     MAX_CV_INPUTS = i = 1 + (cv_m || cv_tch) + cv_gc + cv_j + cv_df + cv_c;
-    cv_event_handlers[i] = cv_handle_user_event;
+    cv_event_handlers[i] = cv_handle_quit_event;
     i--;
 
     if cv_ff {
@@ -159,6 +162,15 @@ void cv_event_loop(SDL_Event *event)
     CV_EVENT_LOOP_END
 
     //PyErr_Format(PyExc_RuntimeError, "Application received an unknown asynchronous event, %d.", event->type);
+}
+
+
+void cv_handle_dispatched_event(SDL_UserEvent *event)
+{
+    if (event->data1 == NULL) {
+        cleanup(event);
+        return;
+    }
 }
 
 
@@ -291,12 +303,12 @@ void cv_handle_clipboard_event(SDL_Event *event) {
 }
 
 
-void cv_handle_user_event(SDL_Event *event) {
+void cv_handle_quit_event(SDL_Event *event) {
     if (event->type == SDL_QUIT) {
+        /* do stuff */
         longjmp(to_main_loop, -1);
     }
     else {
-        /* call function */
         longjmp(to_event_loop, 1);
     }
 }
