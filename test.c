@@ -22,7 +22,7 @@ static void cv_main_loop(void)
         default:
             switch(main_event.type) {
                 case CV_DISPATCHED_EVENT:
-                    cv_handle_dispatched_event(main_event.user.data1, main_event.user.data2);
+                    cv_dispatch_check(main_event.user.data1, main_event.user.data2);
                     break;
                 case SDL_WINDOWEVENT:
                     cv_handle_window_event(&main_event.window);
@@ -334,29 +334,66 @@ static int check_continuation(ConStatus c)
 }
 
 
-void func(co *something)
+void cv_dispatch_check(a, b)
 {
-    PyThreadState *ts = PyThreadState_GET();
-    switch(something->state) {
+    if (a == NULL) {
+        /* cleanup references */
+        return;
+    }
+    cv_continuation = pop(a);
+
+    if (!continuation_check(cv_continuation)) {
+        /* cleanup */
+        return;
+    }
+    callsomething(cv_continuation, b);
+}
+
+
+PyObject* func(co *something)
+{
+    volatile PyObject *result;
+
+    switch(setjmp(something->state)) {
         case 0:
-            ts->frame = continuation->frame;
-            ts->recursion_depth = continuation->recursion_depth;
-            result = PyEval_CallObjectWithKeywords (something->func, (PyObject *)(something->args), (PyObject *)(something->kwds));
+            /* set jmp_buf here */
+            /* Call callback in python */
+            result = PyEval_CallObjectWithKeywords(something->func, something->args, something->kwds);
         default:
             Py_XDECREF(something->func);
             Py_XDECREF(something->args);
             Py_XDECREF(something->kwds);
             deallocate(something);
         case 1:
-            return result;
+            longjmp(to_continuation, -1);
+            break;
     }
+    return result;
 }
 
 
-void cv_continue(a, b)
+void callsometing(continuation, b)
 {
-    
-    ts->frame = continuation->frame;
-    ts->recursion_depth = continuation->recursion_depth;
-    continuation_poll(whatever);
+    if setjmp(continuation->jb) {
+        PyThreadState *ts = PyThreadState_GET();
+        continuation->frame = ts->frame;
+        continuation->recursion_depth = ts->recursion_depth;
+    }
+    else {
+        result = b;
+        PyThreadState *ts = PyThreadState_GET();
+        ts->frame = continuation->frame;
+        ts->recursion_depth = continuation->recursion_depth;
+
+        for (c = something_pop(); c != NULL; c = something_pop()) {
+            result = c->call(result);
+        }
+        /* Go back to python */
+        Py_INCREF(result);
+        *(ts->frame->f_stacktop++) = result;
+        result = PyEval_EvalFrame(ts->frame);
+        Py_XDECREF(result);
+        deallocate(continuation);
+    }
+    longjmp(to_main_loop, 1);
 }
