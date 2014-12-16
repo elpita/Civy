@@ -377,15 +377,13 @@ void callsometing(continuation, b)
 }
 
 
-PyObject* func(co *something)
+void func(co *something, PyObject **result)
 {
-    volatile PyObject *result;
-
     switch(setjmp(something->state)) {
         case 0:
             /* set jmp_buf here */
             /* Call callback in python */
-            result = PyEval_CallObjectWithKeywords(something->func, something->args, something->kwds);
+            *result = PyEval_CallObjectWithKeywords(something->func, something->args, something->kwds);
         default:
             Py_XDECREF(something->func);
             Py_XDECREF(something->args);
@@ -395,5 +393,4 @@ PyObject* func(co *something)
             longjmp(to_continuation, -1);
             break;
     }
-    return result;
 }
