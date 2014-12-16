@@ -177,15 +177,6 @@ void cv_handle_dispatched_event(data1, data2)
 }
 
 
-void cv_continue(a, b)
-{
-    PyThreadState *ts = PyThreadState_GET();
-    ts->frame = continuation->frame;
-    ts->recursion_depth = continuation->recursion_depth;
-    continuation_poll(whatever);
-}
-
-
 static void cv_handle_mouse_event(SDL_Event *event) {
     switch(event->type) {
         case SDL_MOUSEMOTION:
@@ -340,4 +331,32 @@ static int check_continuation(ConStatus c)
         }
         return check_continuation(c->parent);
     }
+}
+
+
+void func(co *something)
+{
+    PyThreadState *ts = PyThreadState_GET();
+    switch(something->state) {
+        case 0:
+            ts->frame = continuation->frame;
+            ts->recursion_depth = continuation->recursion_depth;
+            result = PyEval_CallObjectWithKeywords (something->func, (PyObject *)(something->args), (PyObject *)(something->kwds));
+        default:
+            Py_XDECREF(something->func);
+            Py_XDECREF(something->args);
+            Py_XDECREF(something->kwds);
+            deallocate(something);
+        case 1:
+            return result;
+    }
+}
+
+
+void cv_continue(a, b)
+{
+    
+    ts->frame = continuation->frame;
+    ts->recursion_depth = continuation->recursion_depth;
+    continuation_poll(whatever);
 }
