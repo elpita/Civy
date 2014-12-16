@@ -358,19 +358,18 @@ void callsometing(continuation, b)
         continuation->recursion_depth = ts->recursion_depth;
     }
     else {
-        result = b;
         PyThreadState *ts = PyThreadState_GET();
         ts->frame = continuation->frame;
         ts->recursion_depth = continuation->recursion_depth;
 
         for (c = something_pop(); c != NULL; c = something_pop()) {
-            result = c->call(result);
+            c->call(&b);
         }
         /* Go back to python */
-        Py_INCREF(result);
-        *(ts->frame->f_stacktop++) = result;
-        result = PyEval_EvalFrame(ts->frame);
-        Py_XDECREF(result);
+        Py_INCREF(b);
+        *(ts->frame->f_stacktop++) = b;
+        b = PyEval_EvalFrame(ts->frame);
+        Py_XDECREF(b);
         deallocate(continuation);
     }
     longjmp(to_main_loop, 1);
