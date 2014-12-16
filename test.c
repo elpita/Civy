@@ -350,28 +350,6 @@ void cv_dispatch_check(a, b)
 }
 
 
-PyObject* func(co *something)
-{
-    volatile PyObject *result;
-
-    switch(setjmp(something->state)) {
-        case 0:
-            /* set jmp_buf here */
-            /* Call callback in python */
-            result = PyEval_CallObjectWithKeywords(something->func, something->args, something->kwds);
-        default:
-            Py_XDECREF(something->func);
-            Py_XDECREF(something->args);
-            Py_XDECREF(something->kwds);
-            deallocate(something);
-        case 1:
-            longjmp(to_continuation, -1);
-            break;
-    }
-    return result;
-}
-
-
 void callsometing(continuation, b)
 {
     if setjmp(continuation->jb) {
@@ -396,4 +374,26 @@ void callsometing(continuation, b)
         deallocate(continuation);
     }
     longjmp(to_main_loop, 1);
+}
+
+
+PyObject* func(co *something)
+{
+    volatile PyObject *result;
+
+    switch(setjmp(something->state)) {
+        case 0:
+            /* set jmp_buf here */
+            /* Call callback in python */
+            result = PyEval_CallObjectWithKeywords(something->func, something->args, something->kwds);
+        default:
+            Py_XDECREF(something->func);
+            Py_XDECREF(something->args);
+            Py_XDECREF(something->kwds);
+            deallocate(something);
+        case 1:
+            longjmp(to_continuation, -1);
+            break;
+    }
+    return result;
 }
