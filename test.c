@@ -322,13 +322,16 @@ static int check_continuation(ConStatus c)
     if (c == NULL) {
         return 1;
     }
+    else if is_empty(c) {
+        return 0;
+    }
     return check_continuation(c->parent);
 }
 
 
 void cv_dispatch_check(a, b)
 {
-    if (a == NULL) {
+    if (is_empty(a)) {
         /* cleanup references */
         return;
     }
