@@ -352,25 +352,30 @@ void cv_dispatch_check(a, b)
 
 void callsometing(continuation, b)
 {
-    if setjmp(continuation->jb) {
-        PyThreadState *ts = PyThreadState_GET();
-        continuation->frame = ts->frame;
-        continuation->recursion_depth = ts->recursion_depth;
-    }
-    else {
-        PyThreadState *ts = PyThreadState_GET();
-        ts->frame = continuation->frame;
-        ts->recursion_depth = continuation->recursion_depth;
+    volatile PyThreadState *ts;
 
-        for (c = something_pop(); c != NULL; c = something_pop()) {
-            c->call(&b);
-        }
-        /* Go back to python */
-        Py_INCREF(b);
-        *(ts->frame->f_stacktop++) = b;
-        b = PyEval_EvalFrame(ts->frame);
-        Py_XDECREF(b);
-        deallocate(continuation);
+    switch(setjmp(to_continuation_loop)) {
+        case -1:
+            ts = PyThreadState_GET();
+            continuation->frame = ts->frame;
+            continuation->recursion_depth = ts->recursion_depth;
+            break;
+        case 0:
+            ts = PyThreadState_GET();
+            ts->frame = continuation->frame;
+            ts->recursion_depth = continuation->recursion_depth;
+
+            for (c = something_pop(); c != NULL; c = something_pop()) {
+                c->call(&b);
+                case 1:;
+            }
+            /* Go back to python */
+            Py_INCREF(b);
+            *(ts->frame->f_stacktop++) = b;
+            b = PyEval_EvalFrame(ts->frame);
+            Py_XDECREF(b);
+            deallocate(continuation);
+            break;
     }
     longjmp(to_main_loop, 1);
 }
