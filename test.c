@@ -322,15 +322,7 @@ static int check_continuation(ConStatus c)
     if (c == NULL) {
         return 1;
     }
-    else {
-        PyObject *handler = PyWeakref_GetObject(c->handler);
-        SDL_assert(handler != NULL);
-
-        if (handler == Py_None) || (is_dead(handler)) {
-            return 0;
-        }
-        return check_continuation(c->parent);
-    }
+    return check_continuation(c->parent);
 }
 
 
