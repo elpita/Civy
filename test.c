@@ -394,7 +394,7 @@ void func(co *something, PyObject **result)
             Py_XDECREF(something->kwds);
             deallocate(something);
         case 1:
-            longjmp(to_continuation, -1);
+            longjmp(to_continuation_loop, -1);
             break;
     }
 }
