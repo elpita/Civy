@@ -322,7 +322,7 @@ static int check_continuation(ConStatus c)
     if (c == NULL) {
         return 1;
     }
-    else if is_empty(c) {
+    else if (*c == NULL) {
         return 0;
     }
     return check_continuation(c->parent);
