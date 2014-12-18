@@ -378,17 +378,17 @@ void callsometing(continuation, b)
 
 void func(co *something, PyObject **result)
 {
-    switch(setjmp(something->state)) {
-        case 0:
+    switch(something->state) {
+        case ALIVE:
             /* set jmp_buf here */
             /* Call callback in python */
             *result = PyEval_CallObjectWithKeywords(something->func, something->args, something->kwds);
-        default:
+        case DEAD:
             Py_XDECREF(something->func);
             Py_XDECREF(something->args);
             Py_XDECREF(something->kwds);
             deallocate(something);
-        case 1:
+        case YIELD:
             longjmp(to_continuation_loop, -1);
             break;
     }
