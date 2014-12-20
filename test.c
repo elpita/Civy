@@ -1,13 +1,29 @@
 #include "test.h"
-#define CV_MAIN_LOOP_START switch(setjmp(to_main_loop)) { case 0: while(1) {
+#define CV_MAIN_LOOP_START switch(setjmp(*to_main_loop)) { case 0: while(1) {
 #define CV_MAIN_LOOP_END case 1: ; } break; case -1:
-#define CV_EVENT_LOOP_START static int i; switch(setjmp(to_event_loop)) { case 0:
-#define CV_EVENT_LOOP_END case 1:;} break; case -1: i = 0; longjmp(to_main_loop, 1); break;}
+#define CV_EVENT_LOOP_START static int i; switch(setjmp(*to_event_loop)) { case 0:
+#define CV_EVENT_LOOP_END case 1:;} break; case -1: i = 0; longjmp(*(--to_event_loop), 1); break;}
 #define EXIT_CV break; }
 static void (*cv_event_handlers[6]) (SDL_Event *);
 
 
-static void cv_main_loop(void)
+static void cv_init_main_loop(void)
+{
+    jmp_buf env[4];
+    volatile PyFrameObject *main_frame = PyThreadState_GET()->frame;
+
+    if setjmp(env[0]) {
+        PyThreadState_GET()->frame = main_frame;
+        PyErr_Print();
+        SDL_Quit();
+    }
+    else {
+        cv_main_loop(&env[1]);
+    }
+}
+
+
+static void cv_main_loop(jmp_buf *to_main_loop)
 {
     volatile SDL_Event main_event;
 
@@ -22,7 +38,7 @@ static void cv_main_loop(void)
         default:
             switch(main_event.type) {
                 case CV_DISPATCHED_EVENT:
-                    cv_dispatch_check(main_event.user.data1, main_event.user.data2);
+                    cv_dispatch_check(main_event.user.data1, main_event.user.data2, *(to_main_loop++));
                     break;
                 case SDL_WINDOWEVENT:
                     cv_handle_window_event(&main_event.window);
