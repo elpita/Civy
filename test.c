@@ -13,7 +13,7 @@ static void cv_init_main_loop(void)
     volatile PyFrameObject *main_frame = PyThreadState_GET()->frame;
 
     //if setjmp(env[0]) {
-    if setjmp(to_cv_end) {
+    if setjmp(to_civy_end) {
         PyThreadState_GET()->frame = main_frame;
         PyErr_Print();
         //Py_Exit();
