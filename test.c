@@ -35,7 +35,7 @@ static void cv_main_loop(void)
     switch(SDL_PollEvent(&main_event)) {
         case 0:
             Py_BEGIN_ALLOW_THREADS
-            sleep(0.02);
+            SDL_Delay(0.02);
             Py_END_ALLOW_THREADS
             break;
         default:
