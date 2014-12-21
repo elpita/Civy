@@ -7,6 +7,25 @@
 static void (*cv_event_handlers[6]) (SDL_Event *);
 
 
+static void cv_init_main_loop(void)
+{
+    //jmp_buf env[4];
+    volatile PyFrameObject *main_frame = PyThreadState_GET()->frame;
+
+    //if setjmp(env[0]) {
+    if setjmp(to_cv_end) {
+        PyThreadState_GET()->frame = main_frame;
+        PyErr_Print();
+        //Py_Exit();
+    }
+    else {
+        //cv_main_loop(&env[1]);
+        //Py_AtExit(SDL_Quit);
+        cv_main_loop();
+    }
+}
+
+
 static void cv_main_loop(void)
 {
     volatile SDL_Event main_event;
