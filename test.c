@@ -412,3 +412,13 @@ void func(co *something, PyObject **result)
             break;
     }
 }
+
+
+typedef struct _cvframe *CVFrame;
+
+
+typedef struct _cvframe {
+    void *parameters;
+    CVFrame next;
+    void *locals;
+}
