@@ -395,22 +395,17 @@ void callsometing(continuation, b)
 }
 
 
-void func(co *something, PyObject **result)
+void func(PyObject *a, PyObject *args, PyObject *kwds)
 {
-    switch(something->state) {
-        case ALIVE:
-            /* set jmp_buf here */
-            /* Call callback in python */
-            *result = PyEval_CallObjectWithKeywords(something->func, something->args, something->kwds);
-        case DEAD:
-            Py_XDECREF(something->func);
-            Py_XDECREF(something->args);
-            Py_XDECREF(something->kwds);
-            deallocate(something);
-        case YIELD:
-            longjmp(to_continuation_loop, -1);
-            break;
-    }
+    PyObject *func, *result;
+    PyThreadState_GET()->frame = NULL;
+
+    CV_GetRoutineVars(func);
+
+    result = PyEval_CallObjectWithKeywords(func, args, kwds);
+    Py_XDECREF(args);
+    Py_XDECREF(kwds);
+    CV_ReturnRoutine(result);
 }
 
 
