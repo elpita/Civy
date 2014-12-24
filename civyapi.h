@@ -14,7 +14,7 @@ static CVFrameContext *context;
         longjmp(back, 1); \
         case __LINE__: \
             r = (*context)->passaround; \
-        } while (0)
+        } while(0)
 
 #define CV_END_ROUTINE }
 #define CV_ReturnRoutine(r) \
