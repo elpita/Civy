@@ -3,6 +3,7 @@
 
 typedef struct _cvframecontext *CVFrameContext;
 static CVFrameContext *context;
+void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
 
 #define CV_GetRoutineVars() (void *)((*context)->vars)
 #define CV_SetRoutineVars(_vars) (*context)->vars = (void *)_vars
