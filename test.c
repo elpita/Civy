@@ -1,8 +1,8 @@
 #include "test.h"
-#define CV_MAIN_LOOP_START switch(setjmp(to_main_loop)) { case 0: while(1) {
-#define CV_MAIN_LOOP_END case 1: ; } break; case -1:
-#define CV_EVENT_LOOP_START static int i; switch(setjmp(to_event_loop)) { case 0:
-#define CV_EVENT_LOOP_END case 1:;} break; case -1: i = 0; longjmp(to_main_loop, 1); break;}
+#define CV_ENTER_MAIN_LOOP_HERE switch(setjmp(to_main_loop)) { case 0: while(1) {
+#define CV_EXIT_MAIN_LOOP_HERE case 1: ; } break; case -1:
+#define CV_ENTER_EVENT_LOOP_HERE static int i; switch(setjmp(to_event_loop)) { case 0:
+#define CV_EXIT_EVENT_LOOP_HERE case 1:;} break; case -1: i = 0; longjmp(to_main_loop, 1); break;}
 #define EXIT_CV break; }
 static void (*cv_event_handlers[6]) (SDL_Event *);
 
@@ -30,7 +30,7 @@ static void cv_main_loop(void)
 {
     volatile SDL_Event main_event;
 
-    CV_MAIN_LOOP_START
+    CV_ENTER_MAIN_LOOP_HERE
 
     switch(SDL_PollEvent(&main_event)) {
         case 0:
@@ -82,7 +82,7 @@ static void cv_main_loop(void)
             break;
     }
 
-    CV_MAIN_LOOP_END
+    CV_EXIT_MAIN_LOOP_HERE
 
     /* Call final function(s) */
     EXIT_CV
@@ -175,10 +175,10 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 
 void cv_event_loop(SDL_Event *event)
 {
-    CV_EVENT_LOOP_START
+    CV_ENTER_EVENT_LOOP_HERE
         for (i = 0; i <= MAX_CV_INPUTS; i++) {
             cv_event_handlers[i](event);
-    CV_EVENT_LOOP_END
+    CV_EXIT_EVENT_LOOP_HERE
 
     //PyErr_Format(PyExc_RuntimeError, "Application received an unknown asynchronous event, %d.", event->type);
 }
