@@ -15,11 +15,13 @@ static CVFrameContext *context;
         longjmp(back, 1); \
         case __LINE__: \
             r = (*context)->passaround; \
-        } while(0)
+    } while(0)
 
 #define CV_EXIT_ROUTINE }
-#define CV_ReturnRoutine(r) \
-    (*context)->passaround = r; \
-    longjmp(back, 1);
+#define CV_CoReturn(r) \
+    do { \
+        (*context)->passaround = (PyObject *)r; \
+        longjmp(back, 1); \
+    } while(0)
 
 #endif /* CIVYAPI */
