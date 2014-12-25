@@ -6,7 +6,7 @@ static CVFrameContext *context;
 
 #define CV_GetRoutineVars() (void *)((*context)->vars)
 #define CV_SetRoutineVars(_vars) (*context)->vars = (void *)_vars
-#define CV_ENTER_ROUTINE switch((*context)->state) { case 0:
+#define CV_ENTER_ROUTINE_HERE switch((*context)->state) { case 0:
 #define CV_SwitchRoutine(r, a, b, c) \
     do { \
         sleep_the(context); \
@@ -17,7 +17,7 @@ static CVFrameContext *context;
             r = (*context)->passaround; \
     } while(0)
 
-#define CV_EXIT_ROUTINE }
+#define CV_EXIT_ROUTINE_HERE }
 #define CV_CoReturn(r) \
     do { \
         (*context)->passaround = (PyObject *)r; \
