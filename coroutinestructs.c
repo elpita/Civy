@@ -29,16 +29,31 @@ struct _cvstack {
     CVContinuation cvstackptr;
 }
 
-
+typedef struct _cvqueue *CVQ';
 typedef struct _cvcoroutine *CVCoroutine;
 struct _cvcoroutine {
     struct _cvstack stack;
     CVCoroutine parent;
-    /* actor queue ptr */
+    CVQ *actor_ptr;
+};
+
+
+/* Actor Object */
+typedef struct _cvqueueentry *CVQEntry;
+struct _cvqueueentry {
+    CVCoroutine routine;
+    CVQEntry previous;
+    CVQEntry next;
+};
+
+
+struct _cvqueue {
+    CVQEntry head;
+    CVQEntry tail;
 };
 
 
 typedef struct _cvactor *CVActor;
 struct _cvactor {
-    
+    CVQ coroutines;
 };
