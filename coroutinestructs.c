@@ -29,7 +29,7 @@ struct _cvstack {
     CVContinuation cvstackptr;
 }
 
-typedef struct _cvqueue *CVQ';
+typedef struct _cvqueue *CVQ;
 typedef struct _cvcoroutine *CVCoroutine;
 struct _cvcoroutine {
     struct _cvstack stack;
