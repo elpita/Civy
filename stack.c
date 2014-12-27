@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef CV_STACK_LENGTH
+#define CV_STACK_LENGTH 5
+#endif /* CV_STACK_LENGTH */
+
 typedef struct _cvstack *CVStack;
 struct _cvstack {
     CVContinuation cvstackptr;
@@ -8,30 +12,30 @@ struct _cvstack {
 }
 
 
-CVStack CV_NewStack(CVStack s)
+CVStack CV_NewStack(void)
 {
+    CVStack s = (struct _cvstack *)PyMem_Malloc(sizeof(struct _cvstack));
     s->next = s->items;
 }
 
 
 void push(CVStack s, CVContinuation val)
 {
-    if (s->next >= s->items + STACK_SIZE)
-       fprintf(stderr, "stack overflow\n");
-    else
-    {
-        *s->next++ = val;
-        printf("push %g\n", val);
+    if (s->cvstackptr >= (s->items + STACK_SIZE)) {
+       PyErr_SetString(PyExc_RuntimeError, "Continuation stack overflow.");
+       /* jump back */
     }
+    val->argsptr = NULL;
+    *s->cvstackptr++ = *val;
 }
 
 
-void pop(CVStack s)
+CVContinuation pop(CVStack s)
 {
-    if (s->next == s->items)
-       fprintf(stderr, "stack underflow\n");
-    else
-        printf("pop %g\n", *--s->next);
+    if (s->next == s->items) {
+       return NULL;
+    }
+    return --s->next;
 }
 
 
