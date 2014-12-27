@@ -15,7 +15,7 @@ struct _cvcontext {
 typedef struct _cvcontinuation *CVContinuation;
 struct _cvcontinuation {
     struct _cvcontext context;
-    struct _cvargsstruct argsptr;
+    PyObject *argsptr;
 };
 
 
@@ -25,8 +25,8 @@ struct _cvcontinuation {
 #endif /* CV_STACK_LENGTH */
 
 struct _cvstack {
-    struct _cvcontinuation items[CV_STACK_LENGTH];
     CVContinuation cvstackptr;
+    struct _cvcontinuation items[CV_STACK_LENGTH];
 }
 
 typedef struct _cvqueue *CVQ;
