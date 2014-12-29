@@ -1,10 +1,5 @@
 /* Continuation Object */
-struct _cvargsstruct {
-    PyObject *args;
-    PyObject *kwds;
-};
-
-
+typedef struct _cvcontext *CVContext;
 struct _cvcontext {
     int state;
     PyObject *passaround;
@@ -15,7 +10,7 @@ struct _cvcontext {
 typedef struct _cvcontinuation *CVContinuation;
 struct _cvcontinuation {
     struct _cvcontext context;
-    PyObject *argsptr;
+    PyObject *argsptr[3];
 };
 
 
