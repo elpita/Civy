@@ -1,19 +1,3 @@
-/* Continuation Object */
-typedef struct _cvcontext *CVContext;
-struct _cvcontext {
-    int state;
-    PyObject *passaround;
-    void *vars;
-};
-
-
-typedef struct _cvcontinuation *CVContinuation;
-struct _cvcontinuation {
-    struct _cvcontext context;
-    PyObject *argsptr[3];
-};
-
-
 /* Coroutine Object */
 #ifndef CV_STACK_LENGTH
 #define CV_STACK_LENGTH 64
