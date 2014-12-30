@@ -19,10 +19,12 @@ struct _cvcontinuation {
 #define CV_STACK_LENGTH 4
 #endif /* CV_STACK_LENGTH */
 
+
 struct _cvstack {
     CVContinuation cvstackptr;
     struct _cvcontinuation items[CV_STACK_LENGTH];
 }
+
 
 typedef struct _cvqueue *CVQ;
 typedef struct _cvcoroutine *CVCoroutine;
