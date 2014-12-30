@@ -16,7 +16,7 @@ struct _cvcontinuation {
 
 /* Coroutine Object */
 #ifndef CV_STACK_LENGTH
-#define CV_STACK_LENGTH 4
+#define CV_STACK_LENGTH 64
 #endif /* CV_STACK_LENGTH */
 
 
