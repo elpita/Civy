@@ -42,10 +42,10 @@ void push(CVStack s, CVContinuation val)
 
 CVContinuation pop(CVStack s)
 {
-    if (s->next == s->items) {
+    if (s->cvstackptr == s->items) {
        return NULL;
     }
-    return --s->next;
+    return --s->cvstackptr;
 }
 
 
