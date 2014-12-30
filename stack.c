@@ -12,10 +12,9 @@ struct _cvstack {
 }
 
 
-CVStack CV_NewStack(void)
+CVStack CV_InitStack(CVStack s)
 {
-    CVStack s = (struct _cvstack *)PyMem_Malloc(sizeof(struct _cvstack));
-    s->cvstackptr = s->items = NULL;
+    s->cvstackptr = s->items;
 }
 
 
@@ -26,15 +25,14 @@ void CV_DeallocStack(CVStack s)
     for(arg = s->cvstackptr->argsptr; s->cvstackptr != NULL; arg = pop(s)->argsptr) {
         CV_DeallocArgs(arg);
     }
-    PyMem_Free(s);
-    *s = NULL;
+    //*s = NULL;
 }
 
 
 void push(CVStack s, CVContinuation val)
 {
     if (s->cvstackptr >= (s->items + STACK_SIZE)) {
-       PyErr_SetString(PyExc_RuntimeError, "Continuation stack overflow.");
+       PyErr_SetString(PyExc_RuntimeError, "Overflow in coroutine stack.");
        /* jump back */
     }
     val->argsptr = NULL;
