@@ -26,12 +26,11 @@ struct _cvstack {
 }
 
 
-typedef struct _cvqueue *CVQ;
 typedef struct _cvcoroutine *CVCoroutine;
 struct _cvcoroutine {
     struct _cvstack stack;
     CVCoroutine parent;
-    CVQ *actor_ptr;
+    /* CVQ *actor_ptr; */
 };
 
 
@@ -43,7 +42,7 @@ struct _cvqueueentry {
     CVQEntry next;
 };
 
-
+typedef struct _cvqueue *CVQ;
 struct _cvqueue {
     CVQEntry head;
     CVQEntry tail;
@@ -52,5 +51,5 @@ struct _cvqueue {
 
 typedef struct _cvactor *CVActor;
 struct _cvactor {
-    CVQ coroutines;
+    struct _cvqueue coroutines;
 };
