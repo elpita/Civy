@@ -6,7 +6,7 @@ typedef struct _cvcostack *CVCoStack;
 
 static CVCoStack cv_init_stack(CVCoStack s);
 static void cv_dealloc_stack(CVCoStack s);
-static void cv_stack_push(CVCoStack s, CVContinuation val);
+static void cv_stack_push(CVCoStack s, CVContinuation c);
 static CVContinuation cv_stack_pop(CVCoStack s);
 
 #ifndef CV_STACK_LENGTH
