@@ -7,7 +7,7 @@
 struct _cvstack {
     CVContinuation cvstackptr;
     struct _cvcontinuation items[CV_STACK_LENGTH];
-}
+};
 
 
 typedef struct _cvcoroutine *CVCoroutine;
