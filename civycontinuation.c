@@ -13,7 +13,7 @@ struct _cvcontinuation {
 };
 
 
-static cv_dealloc_args(PyObject *args)
+static void cv_dealloc_args(PyObject *args)
 {
     Py_XDECREF(args[0]);
     Py_XDECREF(args[1]);
