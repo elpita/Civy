@@ -41,7 +41,7 @@ static void cv_main_loop(void)
         default:
             switch(main_event.type) {
                 case CV_DISPATCHED_EVENT:
-                    cv_dispatch_check(main_event.user.data1, main_event.user.data2);
+                    cv_dispatch_check(&main_event.user);
                     break;
                 case SDL_WINDOWEVENT:
                     cv_handle_window_event(&main_event.window);
@@ -181,18 +181,6 @@ void cv_event_loop(SDL_Event *event)
     CV_EXIT_EVENT_LOOP_HERE
 
     //PyErr_Format(PyExc_RuntimeError, "Application received an unknown asynchronous event, %d.", event->type);
-}
-
-
-void cv_handle_dispatched_event(data1, data2)
-{
-    if (data1 == NULL) {
-        cleanup(data2);
-        longjmp(to_main_loop, 1);
-    }
-    else {
-        cv_continue(event->data1, event->data2);
-    }
 }
 
 
@@ -348,7 +336,7 @@ static int check_continuation(ConStatus c)
 }
 
 
-void cv_dispatch_check(a, b)
+void cv_dispatch_check(SDL_UserEvent *event)
 {
     if (is_empty(a)) {
         /* cleanup references */
