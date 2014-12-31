@@ -2,7 +2,7 @@
 #define CIVYCOROUTINESTACK
 #include "civycontinuation.h"
 
-typedef struct _CVCoStack *CVCoStack;
+typedef struct _cvcostack *CVCoStack;
 
 static CVCoStack cv_init_stack(CVCoStack s);
 static void cv_dealloc_stack(CVCoStack s);
