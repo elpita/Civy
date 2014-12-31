@@ -15,7 +15,6 @@ static void cv_init_stack(CVCoStack s)
 
 static void cv_dealloc_stack(CVCoStack s)
 {
-    PyObject *arg;
     CVContinuation c;
 
     while ((c = cv_costack_pop(s)) != NULL) { //Not ANSI C, but i don't care.
