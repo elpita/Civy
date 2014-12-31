@@ -14,7 +14,7 @@ typedef struct _cvcoroutine *CVCoroutine;
 struct _cvcoroutine {
     struct _cvstack stack;
     CVCoroutine parent;
-    /* CVQ *actor_ptr; */
+    PyObject *actor_ptr;
 };
 
 
