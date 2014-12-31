@@ -2,12 +2,12 @@
 #define CIVYCOROUTINESTACK
 #include "civycontinuation.h"
 
-typedef struct _cvstack *CVStack;
+typedef struct _CVCoStack *CVCoStack;
 
-static CVStack cv_init_stack(CVStack s);
-static void cv_dealloc_stack(CVStack s);
-static void cv_stack_push(CVStack s, CVContinuation val);
-static CVContinuation cv_stack_pop(CVStack s);
+static CVCoStack cv_init_stack(CVCoStack s);
+static void cv_dealloc_stack(CVCoStack s);
+static void cv_stack_push(CVCoStack s, CVContinuation val);
+static CVContinuation cv_stack_pop(CVCoStack s);
 
 #ifndef CV_STACK_LENGTH
 #define CV_STACK_LENGTH 64
