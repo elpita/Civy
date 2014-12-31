@@ -9,6 +9,7 @@ struct _cvcontext {
 
 struct _cvcontinuation {
     struct _cvcontext context;
+    CVCallbackFunc cocall;
     PyObject *argsptr[3];
 };
 
