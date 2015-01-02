@@ -7,13 +7,13 @@ struct _cvcostack {
 }
 
 
-static void cv_init_stack(CVCoStack s)
+static void cv_init_costack(CVCoStack s)
 {
     s->s_ptr = s->items;
 }
 
 
-static void cv_dealloc_stack(CVCoStack s)
+static void cv_dealloc_costack(CVCoStack s)
 {
     CVContinuation c;
 
