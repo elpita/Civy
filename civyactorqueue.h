@@ -3,7 +3,6 @@
 #include "civycoroutine.h"
 
 typedef struct _cvactorqueue *CVActorQ;
-typedef struct _cvactorqueueentry *CVActorQEntry;
 
 static int cv_actor_queue_push(CVActorQ self, CVCoroutine coro);
 static CVCoroutine cv_actor_queue_pop(CVActorQ self);
