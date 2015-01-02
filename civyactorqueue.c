@@ -1,22 +1,22 @@
 #include "civyactorqueue.h"
+#define Q_IS_EMPTY(q) (q->head == NULL)
 
-
-struct _cvactorqueueentry {
+typedef struct _cvactorqueueentry {
     CVCoroutine routine;
-    CVActorQEntry previous;
-    CVActorQEntry next;
-};
+    CVActorQEntry *previous;
+    CVActorQEntry *next;
+} CVActorQEntry;
 
 struct _cvactorqueue {
-    CVActorQEntry head;
-    CVActorQEntry tail;
+    CVActorQEntry *head;
+    CVActorQEntry *tail;
 };
 
 
 static int cv_actor_queue_push(CVActorQ self, CVCoroutine coro)
 {
     /* We're gonna borrow some of python's internals for a little bit */
-    CVActorQEntry new_entry = (struct _cvactorqueueentry *)PyObject_Malloc(sizeof(struct_cvactorqueueentry));
+    CVActorQEntry *new_entry = (CVActorQEntry *)PyObject_Malloc(sizeof(struct_cvactorqueueentry));
 
     if (new_entry == NULL) {
         PyErr_NoMemory();
@@ -41,12 +41,12 @@ static int cv_actor_queue_push(CVActorQ self, CVCoroutine coro)
 static CVCoroutine cv_actor_queue_pop(CVActorQ self)
 {
     CVCoroutine coro;
-    CVActorQEntry entry;
+    CVActorQEntry *entry;
 
     if (Q_IS_EMPTY(self)) {
         return NULL;
     }
-    CVActorQEntry entry = self->head;
+    entry = self->head;
     coro = entry->routine;
     self->head = entry->next;
 
