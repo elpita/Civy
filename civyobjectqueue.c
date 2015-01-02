@@ -13,7 +13,7 @@ struct _cvobjectqueue {
 };
 
 
-static int cv_actor_queue_push(CVObjectQ self, CVCoroutine coro)
+static int cv_object_queue_push(CVObjectQ self, CVCoroutine coro)
 {
     /* We're gonna borrow some of python's internals for a little bit */
     CVObjectQEntry *new_entry = (CVObjectQEntry *)PyObject_Malloc(sizeof(struct _cvobjectqueueentry));
@@ -38,7 +38,7 @@ static int cv_actor_queue_push(CVObjectQ self, CVCoroutine coro)
 }
 
 
-static CVCoroutine cv_actor_queue_pop(CVObjectQ self)
+static CVCoroutine cv_object_queue_pop(CVObjectQ self)
 {
     CVCoroutine coro;
     CVObjectQEntry *entry;
