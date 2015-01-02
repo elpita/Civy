@@ -1,22 +1,22 @@
-#include "civyactorqueue.h"
+#include "civyobjectqueue.h"
 #define Q_IS_EMPTY(q) (q->head == NULL)
 
-typedef struct _cvactorqueueentry {
+typedef struct _cvobjectqueueentry {
     CVCoroutine routine;
-    CVActorQEntry *previous;
-    CVActorQEntry *next;
-} CVActorQEntry;
+    CVObjectQEntry *previous;
+    CVObjectQEntry *next;
+} CVObjectQEntry;
 
-struct _cvactorqueue {
-    CVActorQEntry *head;
-    CVActorQEntry *tail;
+struct _cvobjectqueue {
+    CVObjectQEntry *head;
+    CVObjectQEntry *tail;
 };
 
 
-static int cv_actor_queue_push(CVActorQ self, CVCoroutine coro)
+static int cv_actor_queue_push(CVObjectQ self, CVCoroutine coro)
 {
     /* We're gonna borrow some of python's internals for a little bit */
-    CVActorQEntry *new_entry = (CVActorQEntry *)PyObject_Malloc(sizeof(struct _cvactorqueueentry));
+    CVObjectQEntry *new_entry = (CVObjectQEntry *)PyObject_Malloc(sizeof(struct _cvobjectqueueentry));
 
     if (new_entry == NULL) {
         PyErr_NoMemory();
@@ -38,10 +38,10 @@ static int cv_actor_queue_push(CVActorQ self, CVCoroutine coro)
 }
 
 
-static CVCoroutine cv_actor_queue_pop(CVActorQ self)
+static CVCoroutine cv_actor_queue_pop(CVObjectQ self)
 {
     CVCoroutine coro;
-    CVActorQEntry *entry;
+    CVObjectQEntry *entry;
 
     if (Q_IS_EMPTY(self)) {
         return NULL;
