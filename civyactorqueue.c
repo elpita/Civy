@@ -16,7 +16,7 @@ struct _cvactorqueue {
 static int cv_actor_queue_push(CVActorQ self, CVCoroutine coro)
 {
     /* We're gonna borrow some of python's internals for a little bit */
-    CVActorQEntry *new_entry = (CVActorQEntry *)PyObject_Malloc(sizeof(struct_cvactorqueueentry));
+    CVActorQEntry *new_entry = (CVActorQEntry *)PyObject_Malloc(sizeof(struct _cvactorqueueentry));
 
     if (new_entry == NULL) {
         PyErr_NoMemory();
