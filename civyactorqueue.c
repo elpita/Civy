@@ -34,6 +34,7 @@ static int cv_actor_queue_push(CVActorQ self, CVCoroutine coro)
             self->head = self->tail = new_entry;
             break;
     }
+    return 0;
 }
 
 
