@@ -13,6 +13,12 @@ struct _cvobjectqueue {
 };
 
 
+static void cv_init_object_queue(CVObjectQ self)
+{
+    self->head = self->tail = NULL;
+}
+
+
 static int cv_object_queue_push(CVObjectQ self, CVCoroutine coro)
 {
     /* We're gonna borrow some of python's internals for a little bit */
@@ -60,4 +66,14 @@ static CVCoroutine cv_object_queue_pop(CVObjectQ self)
     }
     PyObject_Free(entry);
     return coro;
+}
+
+
+static void cv_dealloc_object_queue(CVObjectQ self)
+{
+    CVCoroutine c;
+
+    while ((c = cv_object_queue_pop(self)) != NULL) {
+        cv_dealloc_coroutine(c);
+    }
 }
