@@ -4,8 +4,9 @@
 
 typedef struct _cvobjectqueue *CVObjectQ;
 
+static void cv_init_object_queue(CVObjectQ self);
 static int cv_object_queue_push(CVObjectQ self, CVCoroutine coro);
 static CVCoroutine cv_object_queue_pop(CVObjectQ self);
-#define Queue_init(q) (q->head = q->tail = NULL)
+static void cv_dealloc_object_queue(CVObjectQ self);
 
 #endif /* CIVYOBJECTQUEUE_INCLUDED */
