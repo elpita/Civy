@@ -352,34 +352,20 @@ void cv_dispatch_check(SDL_UserEvent *event)
 }
 
 
-void callsometing(continuation, b)
+void callsometing(PyObject *, PyObject *args, PyObject *)
 {
-    volatile PyThreadState *ts;
+    PyObject *value;
+    PyThreadState *ts = PyThreadState_GET();
 
-    switch(setjmp(to_continuation_loop)) {
-        case -1:
-            ts = PyThreadState_GET();
-            continuation->frame = ts->frame;
-            continuation->recursion_depth = ts->recursion_depth;
-            break;
-        case 0:
-            ts = PyThreadState_GET();
-            ts->frame = continuation->frame;
-            ts->recursion_depth = continuation->recursion_depth;
+    ts->recursion_depth = CV_GetRoutineVars();
+    ts->frame = (PyFrameObject *)args;
+    value = CV_Get();
+    CV_CoExit();
 
-            for (c = something_pop(); c != NULL; c = something_pop()) {
-                c->call(&b);
-                case 1:;
-            }
-            /* Go back to python */
-            Py_INCREF(b);
-            *(ts->frame->f_stacktop++) = b;
-            b = PyEval_EvalFrame(ts->frame);
-            Py_XDECREF(b);
-            deallocate(continuation);
-            break;
-    }
-    longjmp(to_main_loop, 1);
+    Py_INCREF(value);
+    *(ts->frame->f_stacktop++) = value;
+    value = PyEval_EvalFrame(ts->frame);
+    CV_CoReturn(value);
 }
 
 
@@ -394,14 +380,4 @@ void func(PyObject *a, PyObject *args, PyObject *kwds)
     Py_XDECREF(args);
     Py_XDECREF(kwds);
     CV_ReturnRoutine(result);
-}
-
-
-typedef struct _cvframe *CVFrame;
-
-
-typedef struct _cvframe {
-    void *parameters;
-    CVFrame next;
-    void *locals;
 }
