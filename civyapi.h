@@ -19,7 +19,8 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
     } while(0)
 
 #define CV_EXIT_ROUTINE_HERE }
-#define CV_CoReturn(r) \
+#define CV_CoReturn(v) (PyObject *)v = (*context)->passaround
+#define CV_ReturnRoutine(r) \
     do { \
         (*context)->passaround = (PyObject *)r; \
         longjmp(back, 1); \
