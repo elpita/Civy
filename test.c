@@ -372,12 +372,17 @@ void callsometing(PyObject *, PyObject *args, PyObject *)
 void func(PyObject *a, PyObject *args, PyObject *kwds)
 {
     PyObject *func, *result;
-    PyThreadState_GET()->frame = NULL;
 
-    CV_GetRoutineVars(func);
-
-    result = PyEval_CallObjectWithKeywords(func, args, kwds);
-    Py_XDECREF(args);
-    Py_XDECREF(kwds);
+    switch((*global_ctx)->state) {
+        case 0:
+            /* set state to something else */
+            PyThreadState_GET()->frame = NULL;
+            func = get_function_from(a);
+            result = PyEval_CallObjectWithKeywords(func, args, kwds);
+            break;
+        default:
+            CV_CoReturn(result);
+            break;
+    }
     CV_ReturnRoutine(result);
 }
