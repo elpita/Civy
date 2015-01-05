@@ -2,7 +2,6 @@
 
 struct _cvcontext {
     int state;
-    PyObject *passaround;
     void *vars;
 };
 
