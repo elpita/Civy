@@ -15,14 +15,14 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
         (*context)->state = __LINE__; \
         longjmp(back, 1); \
         case __LINE__: \
-            r = (*context)->passaround; \
+            r = (*passaround); \
     } while(0)
 
 #define CV_EXIT_ROUTINE_HERE }
-#define CV_CoReturn(v) (PyObject *)v = (*context)->passaround
+#define CV_CoReturn(v) (PyObject *)v = (*passaround)
 #define CV_ReturnRoutine(r) \
     do { \
-        (*context)->passaround = (PyObject *)r; \
+        (*passaround) = (PyObject *)r; \
         longjmp(back, 1); \
     } while(0)
 
