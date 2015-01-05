@@ -10,7 +10,7 @@ static void cv_stack_push(CVCoStack s, CVContinuation c);
 static CVContinuation cv_stack_pop(CVCoStack s);
 
 #ifndef CV_STACK_LENGTH
-#define CV_STACK_LENGTH 64
+#define CV_STACK_LENGTH 128
 #endif /* CV_STACK_LENGTH */
 
 #endif /* CIVYCOROUTINESTACK */
