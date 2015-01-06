@@ -352,39 +352,42 @@ void cv_dispatch_check(SDL_UserEvent *event)
 }
 
 
-void callsometing(PyObject *, PyObject *args, PyObject *)
-{
-    PyObject *value;
+void cv_return_to_python(PyObject *, PyObject *args, PyObject *)
+{/* This is a special continuation for returning *back* to Python */
+    PyObject *result = cv_coresume();
     PyThreadState *ts = PyThreadState_GET();
 
-    ts->recursion_depth = CV_GetRoutineVars();
-    ts->frame = (PyFrameObject *)args;
-    value = CV_Get();
-    CV_CoExit();
+    /* steal the reference to the frame */
+    Py_INCREF(args);
+    Py_INCREF(result); //?
+    cv_kill_current();
 
-    Py_INCREF(value);
-    *(ts->frame->f_stacktop++) = value;
-    value = PyEval_EvalFrame(ts->frame);
-    CV_CoReturn(value);
+    //ts->recursion_depth = CV_GetRoutineVars();
+    ts->frame = (PyFrameObject *)args;
+    *(ts->frame->f_stacktop++) = result;
+    result = PyEval_EvalFrame(ts->frame);
+    CV_CoReturn(result);
 }
 
 
-void func(PyObject *a, PyObject *args, PyObject *kwds)
-{
+#define IF_RETURN_FROM_NESTED_DISPATCH break; default:
+#define cv_save_continuation() (*context)->state = __LINE__
+void cv_call_from_python(PyObject *a, PyObject *args, PyObject *kwds)
+{/* This is a special continuation called *from* Python */
     PyObject *func, *result;
 
-    switch((*global_ctx)->state) {
-        case 0:
-            /* set state to something else */
-            PyThreadState_GET()->frame = NULL;
-            func = get_function_from(a);
-            result = PyEval_CallObjectWithKeywords(func, args, kwds);
-            break;
-        default:
-            CV_CoReturn(result);
-            break;
-    }
-    CV_ReturnRoutine(result);
+    CV_ENTER_ROUTINE_HERE
+    cv_save_continuation();
+    PyThreadState_GET()->frame = NULL;
+    func = get_function_from(a);
+    result = PyEval_CallObjectWithKeywords(func, args, kwds);
+
+    IF_RETURNED_FROM_NESTED_DISPATCH
+        result = cv_coresume();
+
+    CV_EXIT_ROUTINE_HERE
+
+    CV_CoReturn(result);
 }
 
 
