@@ -19,7 +19,6 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
             r = cv_coresume(); \
     } while(0)
 
-#define CV_EXIT_ROUTINE_HERE break;}
 #define cv_kill_current() \
     do { \
         cv_dealloc_args( ((CVContinuation)(*context))->argsptr ); \
@@ -31,5 +30,7 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
         cv_kill_current(); \
         return; \
     } while(0)
+
+#define CV_EXIT_ROUTINE_HERE break;}
 
 #endif /* CIVYAPI */
