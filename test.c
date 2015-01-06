@@ -386,3 +386,17 @@ void func(PyObject *a, PyObject *args, PyObject *kwds)
     }
     CV_ReturnRoutine(result);
 }
+
+
+static void w(CVCoroutine C)
+{
+    CVContinuation c;
+
+    while (c = cv_stack_pop(C->stack)) {
+        something = &c;
+        c->cocall(c->argsptr[0], c->argsptr[1], c->argsptr[2]);
+    }
+    if (C->parent != NULL) {
+        call(C->parent);
+    }
+}
