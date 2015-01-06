@@ -372,11 +372,14 @@ void cv_return_to_python(PyObject *, PyObject *args, PyObject *)
 
 #define IF_RETURN_FROM_NESTED_DISPATCH break; default:
 #define cv_save_continuation() (*context)->state = __LINE__
+
+
 void cv_call_from_python(PyObject *a, PyObject *args, PyObject *kwds)
 {/* This is a special continuation called *from* Python */
     PyObject *func, *result;
 
     CV_ENTER_ROUTINE_HERE
+
     cv_save_continuation();
     PyThreadState_GET()->frame = NULL;
     func = get_function_from(a);
