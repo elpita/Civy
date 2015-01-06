@@ -348,6 +348,7 @@ void cv_dispatch_check(SDL_UserEvent *event)
         /* cleanup */
         return;
     }
+    PyThreadState_GET()->recursion_depth = event->code;
     callsomething(cv_continuation, b);
 }
 
