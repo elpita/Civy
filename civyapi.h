@@ -8,6 +8,7 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
 #define CV_GetRoutineVars() (void *)((*context)->vars)
 #define CV_SetRoutineVars(_vars) (*context)->vars = (void *)_vars
 #define CV_ENTER_ROUTINE_HERE switch((*context)->state) { case 0:
+#define cv_coresume() (*passaround)
 #define CV_SwitchRoutine(r, a, b, c) \
     do { \
         sleep_the(context); \
@@ -15,15 +16,20 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
         (*context)->state = __LINE__; \
         longjmp(back, 1); \
         case __LINE__: \
-            r = (*passaround); \
+            r = cv_coresume(); \
     } while(0)
 
-#define CV_EXIT_ROUTINE_HERE }
-#define CV_CoReturn(v) (PyObject *)v = (*passaround)
-#define CV_ReturnRoutine(r) \
+#define CV_EXIT_ROUTINE_HERE break;}
+#define cv_kill_current() \
+    do { \
+        cv_dealloc_args( ((CVContinuation)(*context))->argsptr ); \
+        context = NULL; \
+    } while(0)
+#define CV_CoReturn(r) \
     do { \
         (*passaround) = (PyObject *)r; \
-        longjmp(back, 1); \
+        cv_kill_current(); \
+        return; \
     } while(0)
 
 #endif /* CIVYAPI */
