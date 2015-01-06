@@ -404,6 +404,8 @@ static void w(CVCoroutine C)
         c->cocall(c->argsptr[0], c->argsptr[1], c->argsptr[2]);
     }
     if (C->parent != NULL) {
-        call(C->parent);
+        schedule(C->parent);
+        C->parent = NULL;
     }
+    cv_dealloc_coroutine(C);
 }
