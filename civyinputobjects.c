@@ -57,6 +57,7 @@ static void CVInputObject_dealloc(CVInputObject self)
     if (self->in_wrl != NULL) {
         PyObject_ClearWeakRefs((PyObject *)self);
     }
+    self->ob_type->tp_free( (PyObject *)self );
 }
 
 
