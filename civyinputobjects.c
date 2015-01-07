@@ -54,10 +54,13 @@ static PyGetSetDef CVInputObject_getseters[] = {
 
 static void CVInputObject_dealloc(CVInputObject self)
 {
-    if (self->in_wrl != NULL) {
-        PyObject_ClearWeakRefs((PyObject *)self);
+    switch(self->in_wrl != NULL) {
+        case 1:
+            PyObject_ClearWeakRefs((PyObject *)self);
+        default:
+            self->ob_type->tp_free( (PyObject *)self );
+            break;
     }
-    self->ob_type->tp_free( (PyObject *)self );
 }
 
 
