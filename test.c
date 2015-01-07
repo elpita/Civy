@@ -408,4 +408,5 @@ static void w(CVCoroutine C)
         C->parent = NULL;
     }
     cv_dealloc_coroutine(C);
+    longjmp(to_main_loop, 1);
 }
