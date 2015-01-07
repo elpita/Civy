@@ -410,3 +410,21 @@ static void w(CVCoroutine C)
     cv_dealloc_coroutine(C);
     longjmp(to_main_loop, 1);
 }
+
+
+static void s(a, b, c)
+{
+    static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, {NULL, NULL, NULL}};
+    static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, {NULL, NULL, NULL}};
+    
+    if (coroutine == NULL) {
+        fix_that();
+    }
+    else if (context != NULL) {
+        cv_stack_push(*coroutine, *context);
+    }
+    rtp.argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
+    cv_stack_push(*coroutine, &rtp);
+    cfp.argsptr = {a, b, c};
+    cv_stack_push(*coroutine, &cfp);
+}
