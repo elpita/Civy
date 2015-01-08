@@ -1,9 +1,14 @@
 #include "civycoroutine.h"
 
-struct _cvcoroutine {
-    struct _cvstack stack;
+
+typedef struct _cvcorostate {
     CVCoroutine parent;
     PyObject *actor_ptr;
+} CVCoroState;
+
+struct _cvcoroutine {
+    struct _cvstack stack;
+    struct _cvcorostate state;
 };
 
 
@@ -43,4 +48,18 @@ static void cv_dealloc_coroutine(CVCoroutine self)
         kill_cvcoroutine(p);
     }
     kill_cvcoroutine(self);
+}
+
+
+static int cv_check_continuation(CVCoroState c)
+{
+    if (c->parent == NULL) {
+        return 1;
+    }
+    else if is_dead(c->actor_ptr) {
+        return 0;
+    }
+    else {
+        return cv_check_continuation(&c->parent->state);
+    }
 }
