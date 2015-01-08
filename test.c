@@ -324,32 +324,36 @@ void cv_handle_quit_event(SDL_Event *event) {
 }
 
 
-static int check_continuation(ConStatus c)
-{
-    if (c == NULL) {
-        return 1;
-    }
-    else if (*c == NULL) {
-        return 0;
-    }
-    return check_continuation(c->parent);
-}
-
-
 void cv_dispatch_check(SDL_UserEvent *event)
 {
-    if (is_empty(a)) {
-        /* cleanup references */
-        return;
-    }
-    cv_continuation = pop(a);
+    PyObject *a = PyWeakref_GetObject(event->data);
 
-    if (!continuation_check(cv_continuation)) {
-        /* cleanup */
+    if is_dead(a) {
+        Py_DECREF(event->data);
         return;
     }
     PyThreadState_GET()->recursion_depth = event->code;
-    callsomething(cv_continuation, b);
+    cv_continuation_check(cv_object_queue_pop(a->cvprocesses));
+}
+
+
+void cv_continuation_check(CVContinuation C)
+{
+    CVCoroState state = &C->state;
+    CVCoStack stack = &C->stack;
+
+    if (!cv_check_continuation(state)) {
+        cv_dealloc_coroutine(C);
+        return;
+    }
+    cv_user_loop(stack);
+
+    if (state->parent != NULL) {
+        schedule(state->parent);
+        state->parent = NULL;
+    }
+    cv_dealloc_coroutine(C);
+    longjmp(to_main_loop, 1);
 }
 
 
@@ -395,20 +399,14 @@ void cv_call_from_python(PyObject *a, PyObject *args, PyObject *kwds)
 }
 
 
-static void w(CVCoroutine C)
+static void cv_user_loop(CVCoStack stack)
 {
     CVContinuation c;
 
-    while (c = cv_stack_pop(C->stack)) {
+    while (c = cv_stack_pop(stack)) {
         something = &c;
         c->cocall(c->argsptr[0], c->argsptr[1], c->argsptr[2]);
     }
-    if (C->parent != NULL) {
-        schedule(C->parent);
-        C->parent = NULL;
-    }
-    cv_dealloc_coroutine(C);
-    longjmp(to_main_loop, 1);
 }
 
 
