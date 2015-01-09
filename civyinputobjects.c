@@ -67,6 +67,11 @@ static int CVInputObject_settimestamp(CVInputObject self, PyObject *, void *)
     }
     else {
         char *c_str = PyString_AsString(str);
+        
+        if (c_str == NULL) {
+            Py_DECREF(str);
+            return -1;
+        }
         PyErr_Format(PyExc_TypeError, "%s.timestamp is read-only", c_str);
         Py_DECREF(str);
         return -1;
