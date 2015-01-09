@@ -10,9 +10,7 @@ struct _cvinputobject {
 
 static PyObject* CVInputObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    CVInputObject self;
-
-    self = (CVInputObject)type->tp_alloc(type, 0);
+    CVInputObject self = (CVInputObject)type->tp_alloc(type, 0);
 
     if (self == NULL) {
         return NULL;
