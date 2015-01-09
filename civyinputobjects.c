@@ -53,8 +53,8 @@ static PyObject* CVInputObject_gettimestamp(CVInputObject self, void *)
             int s = PyDateTime_DATE_GET_SECOND(pdt);
             int u = PyDateTime_DATE_GET_MICROSECOND(pdt);
 
-            Py_DECREF(value);
-            PY_DECREF(pdt);
+            Py_DECREF(pdt);
+            PY_DECREF(value);
             return PyTime_FromTime(h, m, s, u);
         }
     }
