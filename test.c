@@ -340,20 +340,21 @@ void cv_dispatch_check(SDL_UserEvent *event)
 void cv_continuation_check(CVContinuation C)
 {
     CVCoroState state = &C->state;
-    CVCoStack stack = &C->stack;
 
     if (!cv_check_continuation(state)) {
         cv_dealloc_coroutine(C);
         return;
     }
-    cv_user_loop(stack);
+    else {
+        cv_user_loop(&C->stack);
 
-    if (state->parent != NULL) {
-        schedule(state->parent);
-        state->parent = NULL;
+        if (state->parent != NULL) {
+            schedule(state->parent);
+            state->parent = NULL;
+        }
+        cv_dealloc_coroutine(C);
+        longjmp(to_main_loop, 1);
     }
-    cv_dealloc_coroutine(C);
-    longjmp(to_main_loop, 1);
 }
 
 
