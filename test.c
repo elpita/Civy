@@ -1,7 +1,7 @@
 #include "test.h"
 #define CV_ENTER_MAIN_LOOP_HERE switch(setjmp(to_main_loop)) { case 0: while(1) {
 #define CV_EXIT_MAIN_LOOP_HERE case 1: ; } break; case -1:
-#define CV_ENTER_EVENT_LOOP_HERE static int i; switch(setjmp(to_event_loop)) { case 0:
+#define CV_ENTER_EVENT_LOOP_HERE volatile int i; switch(setjmp(to_event_loop)) { case 0:
 #define CV_EXIT_EVENT_LOOP_HERE case 1:;} break; case -1: i = 0; longjmp(to_main_loop, 1); break;}
 #define EXIT_CV break; }
 static void (*cv_event_handlers[6]) (SDL_Event *);
