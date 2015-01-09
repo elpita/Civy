@@ -35,7 +35,7 @@ static int CVInputObject_init(CVInputObject self, Pyobject *args, PyObject *kwds
 
 static PyObject* CVInputObject_gettimestamp(CVInputObject self, void *)
 {
-    PyObject *ts PyDateTime_FromTimestamp(Py_BuildValue("(I)", self->timestamp));
+    PyObject *ts = PyDateTime_FromTimestamp(Py_BuildValue("(I)", self->timestamp));
 
     if (ts == NULL) {
         return NULL;
