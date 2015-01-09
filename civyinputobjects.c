@@ -42,9 +42,9 @@ static PyObject* CVInputObject_gettimestamp(CVInputObject self, void *)
     }
     else {
         PyObject *pdt = PyDateTime_FromTimestamp(value);
+        Py_DECREF(value);
     
         if (pdt == NULL) {
-            Py_DECREF(value);
             return NULL;
         }
         else {
@@ -54,7 +54,6 @@ static PyObject* CVInputObject_gettimestamp(CVInputObject self, void *)
             int u = PyDateTime_DATE_GET_MICROSECOND(pdt);
 
             Py_DECREF(pdt);
-            PY_DECREF(value);
             return PyTime_FromTime(h, m, s, u);
         }
     }
@@ -63,8 +62,17 @@ static PyObject* CVInputObject_gettimestamp(CVInputObject self, void *)
 
 static int CVInputObject_settimestamp(CVInputObject self, PyObject *, void *)
 {
-    PyErr_Format(PyExc_TypeError, "%s.timestamp is read-only", PyString_AsString( PyObject_Str( (PyObject *)self ) ) );
-    return -1;
+    PyObject *str = PyObject_Str((PyObject *)self);
+
+    if (str == NULL) {
+        return -1;
+    }
+    else {
+        char *c_str = PyString_AsString(str);
+        PyErr_Format(PyExc_TypeError, "%s.timestamp is read-only", c_str);
+        Py_DECREF(str);
+        return -1;
+    }
 }
 
 
