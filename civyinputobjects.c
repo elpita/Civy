@@ -35,16 +35,16 @@ static int CVInputObject_init(CVInputObject self, Pyobject *args, PyObject *kwds
 
 static PyObject* CVInputObject_gettimestamp(CVInputObject self, void *)
 {
-    PyObject *ts = PyDateTime_FromTimestamp(Py_BuildValue("(I)", self->timestamp));
+    PyObject *pdt = PyDateTime_FromTimestamp(Py_BuildValue("(I)", self->timestamp));
 
-    if (ts == NULL) {
+    if (pdt == NULL) {
         return NULL;
     }
     else {
-        int h = PyDateTime_DATE_GET_HOUR(ts);
-        int m = PyDateTime_DATE_GET_MINUTE(ts);
-        int s = PyDateTime_DATE_GET_SECOND(ts);
-        int u = PyDateTime_DATE_GET_MICROSECOND(ts);
+        int h = PyDateTime_DATE_GET_HOUR(pdt);
+        int m = PyDateTime_DATE_GET_MINUTE(pdt);
+        int s = PyDateTime_DATE_GET_SECOND(pdt);
+        int u = PyDateTime_DATE_GET_MICROSECOND(pdt);
 
         return PyTime_FromTime(h, m, s, u);
     }
