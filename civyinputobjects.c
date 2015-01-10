@@ -24,7 +24,7 @@ static int CVInputObject_init(CVInputObject self, Pyobject *args, PyObject *kwds
 {
     static char *kwargs[] = {"timestamp", NULL};
     
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "I|", kwargs, &self->timestamp) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "I|", kwargs, &self->timestamp)) {
         return -1;
     }
     return 0;
@@ -145,8 +145,7 @@ static PyTypeObject CVInputObject_Type = {
 
 struct _cvdropfile {
     struct _cvinputobject super;
-    PyFileObject *file;
-    const char *path;
+    PyObject *path;
 }
 
 
@@ -165,7 +164,7 @@ static CVDropFile cv_create_dropfile_notifier(const char *str)
 
 static PyObject* CVDropFile_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    CVDropFile self = (CVDropFile)type->tp_alloc(type, 0);
+    CVDropFile self = (CVDropFile)type->tp_base->tp_new(type, args, kwds);
 
     if (self == NULL) {
         return NULL;
@@ -176,61 +175,19 @@ static PyObject* CVDropFile_new(PyTypeObject *type, PyObject *args, PyObject *kw
 
 static int CVDropFile_init(CVDropFile self, Pyobject *args, PyObject *kwds)
 {
-    char *str;
+    PyObject *str;
     static char *kwargs[] = {"path", NULL};
     
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|", kwargs, &str) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|", kwargs, &str)) {
         return -1;
     }
+    else if (!PyString_Check(str)) {
+        PyErr_Format(PyExc_TypeError, "must be string, not %s", str->ob_type->tp_name);
+        return -1;
+    }
+    Py_INCREF(str);
+    self->path = str;
     return 0;
-}
-
-
-static PyObject* CVDropFile_gettimestamp(CVDropFile self, void *)
-{
-    PyObject *value = Py_BuildValue("(I)", self->timestamp);
-    
-    if (value = NULL) {
-        return NULL;
-    }
-    else {
-        PyObject *pdt = PyDateTime_FromTimestamp(value);
-        Py_DECREF(value);
-    
-        if (pdt == NULL) {
-            return NULL;
-        }
-        else {
-            int h = PyDateTime_DATE_GET_HOUR(pdt);
-            int m = PyDateTime_DATE_GET_MINUTE(pdt);
-            int s = PyDateTime_DATE_GET_SECOND(pdt);
-            int u = PyDateTime_DATE_GET_MICROSECOND(pdt);
-
-            Py_DECREF(pdt);
-            return PyTime_FromTime(h, m, s, u);
-        }
-    }
-}
-
-
-static int CVDropFile_settimestamp(CVDropFile self, PyObject *, void *)
-{
-    PyObject *str = PyObject_Str((PyObject *)self);
-
-    if (str == NULL) {
-        return -1;
-    }
-    else {
-        char *c_str = PyString_AsString(str);
-        
-        if (c_str == NULL) {
-            Py_DECREF(str);
-            return -1;
-        }
-        PyErr_Format(PyExc_TypeError, "%s.timestamp is read-only", c_str);
-        Py_DECREF(str);
-        return -1;
-    }
 }
 
 
@@ -241,13 +198,8 @@ static PyGetSetDef CVDropFile_getseters[] = {
 
 static void CVDropFile_dealloc(CVDropFile self)
 {
-    switch(self->in_wrl != NULL) {
-        case 1:
-            PyObject_ClearWeakRefs((PyObject *)self);
-        default:
-            self->ob_type->tp_free((PyObject *)self);
-            break;
-    }
+    Py_DECREF(self->path);
+    self->ob_type->tp_base->tp_dealloc(self);
 }
 
 
