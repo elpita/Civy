@@ -145,7 +145,7 @@ static PyTypeObject CVInputObject_Type = {
 
 struct _cvdropfile {
     struct _cvinputobject super;
-    PyObject *path;
+    PyObject *filename;
 }
 
 
@@ -158,13 +158,13 @@ static CVDropFile cv_create_dropfile_notifier(const char *str)
         return PyErr_NoMemory();
     }
     self->file = PyFile_FromString(str, );
-    self->path = str;
+    self->filename = str;
 }
 
 
 static PyObject* CVDropFile_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    CVDropFile self = (CVDropFile)type->tp_base->tp_new(type, args, kwds);
+    CVDropFile self = (CVDropFile)CVInputObject_new(type, args, kwds);
 
     if (self == NULL) {
         return NULL;
@@ -176,7 +176,7 @@ static PyObject* CVDropFile_new(PyTypeObject *type, PyObject *args, PyObject *kw
 static int CVDropFile_init(CVDropFile self, Pyobject *args, PyObject *kwds)
 {
     PyObject *str;
-    static char *kwargs[] = {"path", NULL};
+    static char *kwargs[] = {"filename", NULL};
     
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|", kwargs, &str)) {
         return -1;
@@ -186,20 +186,20 @@ static int CVDropFile_init(CVDropFile self, Pyobject *args, PyObject *kwds)
         return -1;
     }
     Py_INCREF(str);
-    self->path = str;
+    self->filename = str;
     return 0;
 }
 
 
-static PyGetSetDef CVDropFile_getseters[] = {
-    {"timestamp", (getter)CVDropFile_gettimestamp, (setter)CVDropFile_settimestamp, "time stamp", NULL}, {NULL}
+static PyMemberDef CVDropFile_members[] = {
+    {"filename", T_OBJECT_EX, offsetof(struct _cvdropfile, filename), READONLY, NULL}, {NULL}
 };
 
 
 static void CVDropFile_dealloc(CVDropFile self)
 {
-    Py_DECREF(self->path);
-    self->ob_type->tp_base->tp_dealloc(self);
+    Py_DECREF(self->filename);
+    CVInputObject_dealloc((CVInputObject)self);
 }
 
 
@@ -233,8 +233,8 @@ static PyTypeObject CVInputObject_Type = {
     0,                                          /* tp_iter */
     0,                                          /* tp_iternext */
     0,                                          /* tp_methods */
-    0,                                          /* tp_members */
-    CVInputObject_getseters,                    /* tp_getset */
+    CVDropFile_members,                         /* tp_members */
+    0,                                          /* tp_getset */
     0,                                          /* tp_base */
     0,                                          /* tp_dict */
     0,                                          /* tp_descr_get */
