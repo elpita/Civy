@@ -356,6 +356,42 @@ void cv_continuation_check(CVContinuation C)
 }
 
 
+#define IF_RETURN_FROM_NESTED_DISPATCH break; default:
+#define cv_save_continuation() (*context)->state = __LINE__
+
+
+static void switch_out_actor(PyObject *args)
+{/* Switch out the weak ref with the real actor (assume it's still alive) */
+    PyObject *obj, *actor;
+
+    obj = PyTuple_GET_ITEM(args, 0);
+    actor = PyWeakref_GetObject(obj);
+    Py_INCREF(actor);
+    PyTuple_SET_ITEM(args, 0, actor);
+    Py_DECREF(obj);
+}
+
+
+static void cv_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
+{/* This is the special continuation called *from* Python */
+    PyObject *result;
+
+    CV_ENTER_ROUTINE_HERE
+
+    cv_save_continuation();
+    PyThreadState_GET()->frame = NULL;
+    switch_out_actor(args);
+    result = PyObject_Call(func, args, kwds); // cheating
+
+    IF_RETURNED_FROM_NESTED_DISPATCH
+        result = cv_coresume();
+
+    CV_EXIT_ROUTINE_HERE
+
+    CV_CoReturn(result);
+}
+
+
 void cv_return_to_python(PyObject *, PyObject *args, PyObject *)
 {/* This is a special continuation for returning *back* to Python */
     PyObject *result = cv_coresume();
@@ -370,30 +406,6 @@ void cv_return_to_python(PyObject *, PyObject *args, PyObject *)
     ts->frame = (PyFrameObject *)args;
     *(ts->frame->f_stacktop++) = result;
     result = PyEval_EvalFrame(ts->frame);
-    CV_CoReturn(result);
-}
-
-
-#define IF_RETURN_FROM_NESTED_DISPATCH break; default:
-#define cv_save_continuation() (*context)->state = __LINE__
-
-
-void cv_call_from_python(PyObject *a, PyObject *args, PyObject *kwds)
-{/* This is a special continuation called *from* Python */
-    PyObject *func, *result;
-
-    CV_ENTER_ROUTINE_HERE
-
-    cv_save_continuation();
-    PyThreadState_GET()->frame = NULL;
-    func = get_function_from(a);
-    result = PyEval_CallObjectWithKeywords(func, args, kwds);
-
-    IF_RETURNED_FROM_NESTED_DISPATCH
-        result = cv_coresume();
-
-    CV_EXIT_ROUTINE_HERE
-
     CV_CoReturn(result);
 }
 
