@@ -360,7 +360,7 @@ void cv_continuation_check(CVContinuation C)
 #define cv_save_continuation() (*context)->state = __LINE__
 
 
-static void switch_out_actor(PyObject *args)
+static void reset_arguments(PyObject *args)
 {/* Switch out the weak ref with the real actor (assume it's still alive) */
     PyObject *obj, *actor;
 
@@ -380,7 +380,7 @@ static void cv_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
 
     cv_save_continuation();
     PyThreadState_GET()->frame = NULL;
-    switch_out_actor(args);
+    reset_arguments(args);
     result = PyObject_Call(func, args, kwds); // cheating
 
     IF_RETURNED_FROM_NESTED_DISPATCH
