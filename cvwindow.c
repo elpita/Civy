@@ -22,8 +22,8 @@ static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     else {
         char buffer[33];
         static char *kwargs[] = {"name", "size", "pos", NULL};
-        
-        sprintf(buffer, "Window %d", 1 + PyList_GET_SIZE(app_chldrn));
+
+        sprintf(buffer, "Window %d", 1 + PyDict_Size(app_chldrn));
         name = &buffer;
 
         if (!PyArg_ParseTupleAndKeywords(args, kwds, "|s(i,i)(i,i)", kwargs, &name, &x, &y, &w, &h)) {
@@ -57,7 +57,18 @@ static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwar
 
 static int CVWindow_init(CVWindow self, PyObject *args, PyObject *kwargs)
 {
-    /* set name, size, and position */
+    PyObject *win_id = Py_BuildValue("I", SDL_GetWindowID(self->window));
+
+    if (win_id == NULL) {
+        return -1;
+    }
+    if (PyDict_SetItem(app_chldrn, self, win_id) < 0) {
+        PyDECREF(win_id);
+        return -1;
+    }
+    Py_DECREF(win_id);
+    /* Set name, size, and position */
+    return 0;
 }
 
 
