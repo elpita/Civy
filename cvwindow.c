@@ -45,9 +45,25 @@ static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwar
 
     if (gl_context = NULL) {
         PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
+        SDL_DestroyWindow(window);
         Py_DECREF(self);
         return NULL;
     }
     self->window = window;
     self->gl_context = gl_context;
+    return (PyObject *)self;
+}
+
+
+static int CVWindow_init(CVWindow self, PyObject *args, PyObject *kwargs)
+{
+    /* set name, size, and position */
+}
+
+
+static void CVWindow_dealloc(CVWindow self)
+{
+    SDL_GL_DeleteContext(self->gl_context);
+    SDL_DestroyWindow(self->cwindow);
+    CVObject_dealloc((CVObject)self);
 }
