@@ -65,17 +65,15 @@ static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwar
 
 static int CVWindow_init(CVWindow self, PyObject *args, PyObject *kwargs)
 {
+    int i;
     PyObject *win_id = Py_BuildValue("I", SDL_GetWindowID(self->window));
 
     if (win_id == NULL) {
         return -1;
     }
-    if (PyDict_SetItem(app_chldrn, (PyObject *)self, win_id) < 0) {
-        PyDECREF(win_id);
-        return -1;
-    }
+    i = PyDict_SetItem(app_chldrn, (PyObject *)self, win_id);
     Py_DECREF(win_id);
-    return 0;
+    return i;
 }
 
 
