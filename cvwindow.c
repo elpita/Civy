@@ -135,14 +135,6 @@ static PyObject* CVWindow_on_close(CVWindow self)
 }
 
 
-static void CVWindow_dealloc(CVWindow self)
-{
-    SDL_GL_DeleteContext(self->gl_context);
-    SDL_DestroyWindow(self->cwindow);
-    CVObject_dealloc((CVObject)self);
-}
-
-
 static PyMethodDef CVWindow_methods[] = {
     {"on_pos", (PyCFunction)CVWindow_on_pos, METH_VARARGS,
      "Callback for when the Window changes position"
@@ -172,4 +164,55 @@ static PyMethodDef CVWindow_methods[] = {
      "Callback when the Window closes"
     },
     {NULL}  /* Sentinel */
+};
+
+
+static void CVWindow_dealloc(CVWindow self)
+{
+    SDL_GL_DeleteContext(self->gl_context);
+    SDL_DestroyWindow(self->cwindow);
+    CVObject_dealloc((CVObject)self);
+}
+
+
+static PyTypeObject CVWindowType = {
+    PyObject_HEAD_INIT(NULL)
+    0,                                          /* ob_size */
+    "civy.Window",                              /* tp_name */
+    sizeof(struct _cvwindow),                   /* tp_basicsize */
+    0,                                          /* tp_itemsize */
+    (destructor)CVWindow_dealloc,               /* tp_dealloc */
+    0,                                          /* tp_print */
+    0,                                          /* tp_getattr */
+    0,                                          /* tp_setattr */
+    0,                                          /* tp_compare */
+    0,                                          /* tp_repr */
+    0,                                          /* tp_as_number */
+    0,                                          /* tp_as_sequence */
+    0,                                          /* tp_as_mapping */
+    0,                                          /* tp_hash */
+    0,                                          /* tp_call */
+    0,                                          /* tp_str */
+    0,                                          /* tp_getattro */
+    0,                                          /* tp_setattro */
+    0,                                          /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+    "Window objects",                           /* tp_doc */
+    0,                                          /* tp_traverse */
+    0,                                          /* tp_clear */
+    0,                                          /* tp_richcompare */
+    0,                                          /* tp_weaklistoffset */
+    0,                                          /* tp_iter */
+    0,                                          /* tp_iternext */
+    CVWindow_methods,                           /* tp_methods */
+    0,                                          /* tp_members */
+    0,                                          /* tp_getset */
+    &CVObject_Type,                             /* tp_base */
+    0,                                          /* tp_dict */
+    0,                                          /* tp_descr_get */
+    0,                                          /* tp_descr_set */
+    0,                                          /* tp_dictoffset */
+    (initproc)CVWindow_init,                    /* tp_init */
+    0,                                          /* tp_alloc */
+    CVWindow_new,                               /* tp_new */
 };
