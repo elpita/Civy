@@ -12,13 +12,13 @@ struct _cvwindow {
 }
 
 
-static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     char *name;
     SDL_Window *window;
     SDL_GLContext gl_context;
     int x=SDL_WINDOWPOS_UNDEFINED, y=SDL_WINDOWPOS_UNDEFINED, w=800, h=600;
-    CVWindow self = (struct _cvwindow *)CVObject_new(type, args, kwargs);
+    CVWindow self = (struct _cvwindow *)CVObject_new(type, args, kwds);
 
     if (self == NULL) {
         return NULL;
