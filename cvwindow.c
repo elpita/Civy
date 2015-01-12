@@ -3,6 +3,10 @@
 typedef struct _cvwindow *CVWindow;
 struct _cvwindow {
     struct _cvobject super;
+    int x;
+    int y;
+    int w;
+    int h;
     SDL_Window *cwindow;
     SDL_GLContext gl_context;
 }
@@ -51,6 +55,10 @@ static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     }
     self->window = window;
     self->gl_context = gl_context;
+    self->x = 0.5*(x + w);
+    self->y = 0.5*(y + h);
+    self->w = w;
+    self->h = h;
     return (PyObject *)self;
 }
 
@@ -67,7 +75,6 @@ static int CVWindow_init(CVWindow self, PyObject *args, PyObject *kwargs)
         return -1;
     }
     Py_DECREF(win_id);
-    /* Set name, size, and position */
     return 0;
 }
 
