@@ -70,7 +70,7 @@ static int CVWindow_init(CVWindow self, PyObject *args, PyObject *kwargs)
     if (win_id == NULL) {
         return -1;
     }
-    if (PyDict_SetItem(app_chldrn, self, win_id) < 0) {
+    if (PyDict_SetItem(app_chldrn, (PyObject *)self, win_id) < 0) {
         PyDECREF(win_id);
         return -1;
     }
