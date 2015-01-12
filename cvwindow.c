@@ -72,9 +72,104 @@ static int CVWindow_init(CVWindow self, PyObject *args, PyObject *kwargs)
 }
 
 
+static PyObject* CVWindow_on_pos(CVWindow self, PyObject *, PyObject *)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject* CVWindow_on_size(CVWindow self, PyObject *, PyObject *)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject* CVWindow_on_visible(CVWindow self, PyObject *, PyObject *)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject* CVWindow_on_minimized(CVWindow self)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject* CVWindow_on_restored(CVWindow self)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject* CVWindow_on_maximized(CVWindow self)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject* CVWindow_on_mouse_focus(CVWindow self, PyObject *, PyObject *)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject* CVWindow_on_keyboard_focus(CVWindow self, PyObject *, PyObject *)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static PyObject* CVWindow_on_close(CVWindow self)
+{
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
 static void CVWindow_dealloc(CVWindow self)
 {
     SDL_GL_DeleteContext(self->gl_context);
     SDL_DestroyWindow(self->cwindow);
     CVObject_dealloc((CVObject)self);
 }
+
+
+static PyMethodDef CVWindow_methods[] = {
+    {"on_pos", (PyCFunction)CVWindow_on_pos, METH_VARARGS,
+     "Callback for when the Window changes position"
+    },
+    {"on_size", (PyCFunction)CVWindow_on_size, METH_VARARGS,
+     "Callback for when the Window changes size"
+    },
+    {"on_visible", (PyCFunction)CVWindow_on_visible, METH_VARARGS,
+     "Callback for when the Window's visibility changes"
+    },
+    {"on_minimized", (PyCFunction)CVWindow_on_minimized, METH_NOARGS,
+     "Callback for when the Window is minimized"
+    },
+    {"on_restored", (PyCFunction)CVWindow_on_restored, METH_NOARGS,
+     "Callback for when the Window is restored to normal size and position"
+    },
+    {"on_maximized", (PyCFunction)CVWindow_on_maximized, METH_NOARGS,
+     "Callback when the Window is maximized"
+    },
+    {"on_mouse_focus", (PyCFunction)CVWindow_on_mouse_focus, METH_VARARGS,
+     "Callback when the Wwindow has gained, or lost, the mouse's focus"
+    },
+    {"on_keyboard_focus", (PyCFunction)CVWindow_on_keyboard_focus, METH_VARARGS,
+     "Callback when the Wwindow has gained, or lost, the keyboard's focus"
+    },
+    {"on_close", (PyCFunction)CVWindow_on_close, METH_NOARGS,
+     "Callback when the Window closes"
+    },
+    {NULL}  /* Sentinel */
+};
