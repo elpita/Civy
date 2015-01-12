@@ -149,7 +149,7 @@ static PyMethodDef CVWindow_methods[] = {
     },
     {"on_size", (PyCFunction)CVWindow_on_size, METH_VARARGS,
      "Callback for when the Window changes size"
-    },
+    },//Don't forget SDL_WINDOWEVENT_SIZE_CHANGED!
     {"on_visible", (PyCFunction)CVWindow_on_visible, METH_VARARGS,
      "Callback for when the Window's visibility changes"
     },
