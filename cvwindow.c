@@ -63,7 +63,7 @@ static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwds
 }
 
 
-static int CVWindow_init(CVWindow self, PyObject *args, PyObject *kwargs)
+static int CVWindow_init(CVWindow self, PyObject *args, PyObject *kwds)
 {
     int i;
     PyObject *win_id = Py_BuildValue("I", SDL_GetWindowID(self->window));
