@@ -21,7 +21,7 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
     
     name = PyTuple_GET_ITEM(args);
     if (!str_endswith(name, "_event")) {
-        PyErr_SetString(PyExc_TypeError, "dispatch takes a string argument"); //fix
+        PyErr_SetString(PyExc_TypeError, "dispatch takes a string argument ending with '_event'"); //fix
         return NULL;
     }
     else if (!PyObject_HasAttr((PyObject *)self, name)) {
