@@ -4,7 +4,7 @@
 
 struct _cvobject {
     PyObject_HEAD
-    int alive;
+    char alive;
     struct _cvobjectqueue cvprocesses;
     PyObject *in_weakreflist;
 };
