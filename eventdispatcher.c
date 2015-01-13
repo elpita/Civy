@@ -15,6 +15,46 @@ static int str_endswith(PyObject *key, const char *suffix)
     return (strncmp(str + (len - 6), suffix, 6) == 0);
 
 
+static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args, PyObject *kwds)
+{
+    PyObject *name;
+    
+    name = PyTuple_GET_ITEM(args);
+    if (!str_endswith(name, "_event")) {
+        PyErr_SetString(PyExc_TypeError, "dispatch takes a string argument"); //fix
+        return NULL;
+    }
+    else if (!PyObject_HasAttr((PyObject *)self, name)) {
+        PyErr_SetString(PyExc_TypeError, "No event found"); //fix
+        return NULL;
+    }
+    else {
+        PyObject *func, *weak_value, *weak_self, *ret;
+        PyObject *meth = PyObject_GetAttr((PyObject *)self, name);
+
+        if (meth == NULL) {
+            return NULL;
+        }
+        func = PyMethod_GET_FUNCTION(meth);
+        weak_value = PyWeakref_NewProxy(func, NULL);
+
+        if (weak_value == NULL) {
+            return NULL;
+        }
+        weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
+
+        if (weak_self == NULL) {
+            Py_DECREF(weak_value);
+            return NULL;
+        }
+        PyTuple_SET_ITEM(args, 0, weak_self);
+        schedule(ret,...);
+        return ret;
+
+}
+
+
+/*
 static PyObject* EventDispatcherType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     char *name;
@@ -36,3 +76,4 @@ static PyObject* EventDispatcherType_new(PyTypeObject *type, PyObject *args, PyO
         }
     }
     return type->tp_base->tp_new(type, args, kwds);
+*/
