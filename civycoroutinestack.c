@@ -18,7 +18,7 @@ static void cv_dealloc_costack(CVCoStack s)
     CVContinuation c;
 
     while ((c = cv_costack_pop(s)) != NULL) { //Not ANSI C, but i don't care.
-        cv_dealloc_args(c->argsptr);
+        cv_dealloc_continuation(c);
     }
     //*s = NULL;
 }
