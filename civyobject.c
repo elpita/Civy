@@ -54,7 +54,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     CVObject self = (struct _cvobject *)type->tp_alloc(type, 0);
 
     if (self == NULL) {
-        return PyErr_NoMemory();
+        return NULL;
     }
     self->in_weakreflist = NULL;
     cv_init_object_queue(&self->cvprocesses);
