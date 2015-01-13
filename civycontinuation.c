@@ -8,8 +8,8 @@ struct _cvcontext {
 
 struct _cvcontinuation {
     struct _cvcontext context;
-    CVCallbackFunc cocall;
-    CVCleanupFunc coclean;
+    CVCallbackFunc *cocall;
+    CVCleanupFunc *coclean;
     PyObject *argsptr[3];
 };
 
