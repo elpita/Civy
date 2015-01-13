@@ -1,7 +1,10 @@
 #include "civyobject.h"
+#define cv_object_is_dead(o) !o->alive
+
 
 struct _cvobject {
     PyObject_HEAD
+    int alive;
     struct _cvobjectqueue cvprocesses;
     PyObject *in_weakreflist;
 };
@@ -58,6 +61,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     }
     self->in_weakreflist = NULL;
     cv_init_object_queue(&self->cvprocesses);
+    self->alive = 1;
     return (PyObject *)self;
 }
 
@@ -78,6 +82,7 @@ static void CVObject_dealloc(CVObject self)
         case 1:
             PyObject_ClearWeakRefs((PyObject *)self);
         default:
+            self->alive = 0;
             cv_dealloc_object_queue(&self->cvprocesses);
             self->ob_type->tp_free( (PyObject *)self );
             break;
