@@ -15,11 +15,32 @@ static int str_endswith(PyObject *key, const char *suffix)
     return (strncmp(str + (len - 6), suffix, 6) == 0);
 
 
+static void schedule(PyObject *a, PyObject *args, PyObject *kwds, CVCallbackFunc *func)
+{
+    static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
+    static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
+
+    if (coroutine == NULL) {
+        fix_that();
+    }
+    else if (context != NULL) {
+        cv_stack_push(*coroutine, *context);
+    }
+    rtp->argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
+    cv_stack_push(*coroutine, &rtp);
+    cfp->argsptr[0] = a;
+    cfp->argsptr[1] = args;
+    cfp->argsptr[2] = kwds;
+    cv_stack_push(*coroutine, &cfp);
+    sdl_schedule(PyTuple_GET_ITEM(args, 0));
+}
+
+
 static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args, PyObject *kwds)
 {
     PyObject *name;
     
-    name = PyTuple_GET_ITEM(args);
+    name = PyTuple_GET_ITEM(args, 0);
     if (!str_endswith(name, "_event")) {
         PyErr_SetString(PyExc_TypeError, "dispatch takes a string argument ending with '_event'"); //fix
         return NULL;
@@ -50,7 +71,7 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
         PyTuple_SET_ITEM(args, 0, weak_self);
         schedule(ret,...);
         return ret;
-
+    }
 }
 
 
