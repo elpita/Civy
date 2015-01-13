@@ -61,7 +61,6 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
     }
     self->in_weakreflist = NULL;
     cv_init_object_queue(&self->cvprocesses);
-    self->alive = 1;
     return (PyObject *)self;
 }
 
@@ -72,6 +71,7 @@ static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
         PyErr_SetString(PyExc_TypeError, "The App's Main Loop must be started first.");
         return -1;
     }
+    self->alive = 1;
     return 0;
 }
 
