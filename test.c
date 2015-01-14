@@ -522,13 +522,13 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
         /* Jump */
     }
     else {
-        struct _cvcontinuation c = {{0, NULL}, cocall, coclean, {actor, args, kwds}};
         CVCoroutine C = get_current_coroutine(actor);
 
         if (C == NULL) {
             /* Jump */
         }
         else {
+            struct _cvcontinuation c = {{0, NULL}, cocall, coclean, {actor, args, kwds}};
             PyObject *weak_actor = PyWeakref_NewRef(actor, NULL);
 
             if (weak_actor == NULL) {
