@@ -16,25 +16,6 @@ static int str_endswith(PyObject *key, const char *suffix)
 }
 
 
-static void sdl_schedule(PyObject *target, Uint32 event_type)
-{
-    SDL_Event event;
-
-    SDL_zero(event);
-    event.type = event_type;
-    event.user.code = PyThreadState_GET()->recursion_depth;
-    event.user.data1 = target;
-    Py_INCREF(target);
-    
-    if (SDL_PushEvent(&event) < 0) {
-        Py_DECREF(target);
-        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
-        return -1;
-    }
-    return 0;
-}
-
-
 static CVCoroutine get_current_coroutine(PyObject *actor)
 {
     CVCoroutine coro, parent=NULL;
