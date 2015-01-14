@@ -504,8 +504,6 @@ static void async_dispatch(CVObject actor, PyObject *a, PyObject *b, PyObject *c
 
 static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCallbackFunc *cocall, CVCleanupFunc *coclean, int from_python, int line)
 {
-    PyObject *weak_actor;
-
     if (!CVEventDispatcher_Check(actor) {
         PyErr_SetString("Only EventDispatchers may be scheduled blahblah"); //fix
         /* Jump */
