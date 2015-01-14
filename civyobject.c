@@ -52,6 +52,9 @@ static PyTypeObject CVObject_Type = {
 };
 
 
+#define CVObject_Check(op) PyObject_TypeCheck(op, &CVObject_Type)
+
+
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     CVObject self = (struct _cvobject *)type->tp_alloc(type, 0);
