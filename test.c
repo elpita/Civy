@@ -557,7 +557,7 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
                 /* Jump */
             }
             else {
-                struct _cvcontinuation c = {{0, NULL}, cocall, coclean, {actor, args, kwds}};
+                struct _cvcontinuation c = {{0, NULL}, cocall, coclean, {weak_actor, args, kwds}};
 
                 if (cv_costack_push(C, &c) < 0) {
                     cv_dealloc_coroutine(C);
