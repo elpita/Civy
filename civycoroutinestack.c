@@ -24,13 +24,14 @@ static void cv_dealloc_costack(CVCoStack s)
 }
 
 
-static void cv_costack_push(CVCoStack s, CVContinuation c)
+static int cv_costack_push(CVCoStack s, CVContinuation c)
 {
-    if (s->s_ptr >= (s->items + STACK_SIZE)) {
-       PyErr_SetString(PyExc_RuntimeError, "Overflow in coroutine stack.");
-       /* jump back */
+    if (s->s_ptr >= (s->items + CV_STACK_LENGTH)) {
+       PyErr_SetString(PyExc_RuntimeError, "Overflow in coroutine's stack.");
+       return -1;
     }
     *s->s_ptr++ = *c;
+    return 0;
 }
 
 
