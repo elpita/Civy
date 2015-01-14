@@ -2,7 +2,7 @@
 
 struct _cvcontext {
     int state;
-    void *vars;
+    void *covars;
 };
 
 
