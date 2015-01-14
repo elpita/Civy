@@ -419,7 +419,7 @@ static void cv_user_loop(CVCoStack stack)
 
     while (c = cv_stack_pop(stack)) {
         something = &c;
-        c->cocall(c->argsptr[0], c->argsptr[1], c->argsptr[2]);
+        c->cocall(c->coargs[0], c->coargs[1], c->coargs[2]);
     }
 }
 
@@ -450,9 +450,9 @@ static void async_schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *arg
     /*if (context != NULL) {
         cv_stack_push(coroutine, *context);
     }*/
-    cfp->argsptr[0] = a;
-    cfp->argsptr[1] = args;
-    cfp->argsptr[2] = kwds;
+    cfp.coargs[0] = a;
+    cfp.coargs[1] = args;
+    cfp.coargs[2] = kwds;
     cv_stack_push(coroutine, &cfp);
 }
 
@@ -468,11 +468,11 @@ static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *b, PyObjec
 }
 
 
-static async_schedule_rtp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
+static async_schedule_rtp(CVCoroutine coroutine)
 {
     static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
 
-    rtp->argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
+    rtp.coargs[1] = (PyObject *)(PyThreadState_GET()->frame);
     cv_stack_push(coroutine, &rtp);
 }
 
@@ -482,7 +482,7 @@ static int schedule_rtp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyOb
     /*if (context != NULL) {
         cv_stack_push(coroutine, *context);
     }*/
-    async_schedule_rtp(coroutine, a, b, c);
+    async_schedule_rtp(coroutine);
     return schedule_cfp(coroutine, a, b, c);
 }
 
@@ -496,7 +496,54 @@ static void async_dispatch(CVObject actor, PyObject *a, PyObject *b, PyObject *c
     }
     async_schedule_cfp(actor, a, b, c);
 
-    if (cv_object_queue_push(actor, coro) < 0) {
+    if (cv_object_queue_push(actor->cvprocesses, coro) < 0) {
         /* Jump */
+    }
+}
+
+
+static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCallbackFunc *cocall, CVCleanupFunc *coclean, int from_python, int line)
+{
+    PyObject *weak_actor;
+
+    if (!CVEventDispatcher_Check(actor) {
+        PyErr_SetString("Only EventDispatchers may be scheduled blahblah"); //fix
+        /* Jump */
+    }
+    else {
+        struct _cvcontinuation c = {{0, NULL}, cocall, coclean, {actor, args, kwds}};
+        CVCoroutine C = get_current_coroutine(actor);
+
+        if (C == NULL) {
+            /* Jump */
+        }
+        else {
+            PyObject *weak_actor;
+            {
+                struct _cvcontext *current_c = *context; //Should not be NULL
+                current_c->state = line;
+                cv_stack_push(C, (CVContinuation)current_c);
+            }
+        }
+
+        if (from_python) {
+            async_schedule_rtp(C);
+        }
+        cv_stack_push(C, &c);
+        weak_actor = PyWeakref_NewRef(actor, NULL);
+    
+        if (weak_actor == NULL) {
+            /* Jump */
+        }
+        else if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT) < 0) {
+            Py_DECREF(weak_actor);
+            /* Jump */
+        }
+        Py_DECREF(weak_actor);
+
+        if (cv_object_queue_push(actor->cvprocesses, C) < 0) {
+            /* Jump */
+        }
+        longjmp(back, 1);
     }
 }
