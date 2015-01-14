@@ -515,6 +515,18 @@ static int async_dispatch(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
 }
 
 
+static int reschedule_current_continuation(CVCoroutine C, int line)
+{
+    struct _cvcontext *current_c = *context; //Should not be NULL
+    current_c->state = line;
+
+    if (cv_costack_push(C, (CVContinuation)current_c) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+
 static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCallbackFunc *cocall, CVCleanupFunc *coclean, int from_python, int line)
 {
     if (!CVEventDispatcher_Check(actor) {
@@ -528,35 +540,32 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
             /* Jump */
         }
         else {
-            struct _cvcontinuation c = {{0, NULL}, cocall, coclean, {actor, args, kwds}};
             PyObject *weak_actor = PyWeakref_NewRef(actor, NULL);
 
             if (weak_actor == NULL) {
                 cv_dealloc_coroutine(C); //hmmm...this might be a problem
                 /* Jump */
             }
-            else {
-                struct _cvcontext *current_c = *context; //Should not be NULL
-                current_c->state = line;
-
-                if (cv_costack_push(C, (CVContinuation)current_c) < 0) {
-                    cv_dealloc_coroutine(C);
-                    Py_DECREF(weak_actor);
-                    /* Jump */
-                }
-                else if (from_python && (async_schedule_rtp(C) < 0)) {
-                    cv_dealloc_coroutine(C);
-                    Py_DECREF(weak_actor);
-                    /* Jump */
-                }
-            }
-
-            if (cv_costack_push(C, &c) < 0) {
-                cv_dealloc_coroutine(C);
+            else if (reschedule_current_continuation(C, line) < 0) {
                 Py_DECREF(weak_actor);
+                cv_dealloc_coroutine(C);
                 /* Jump */
             }
-            else if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT) < 0) {
+            else if (from_python && (async_schedule_rtp(C) < 0)) {
+                Py_DECREF(weak_actor);
+                cv_dealloc_coroutine(C);
+                /* Jump */
+            }
+            else {
+                struct _cvcontinuation c = {{0, NULL}, cocall, coclean, {actor, args, kwds}};
+
+                if (cv_costack_push(C, &c) < 0) {
+                    cv_dealloc_coroutine(C);
+                    Py_DECREF(weak_actor);
+                    /* Jump */
+                }
+            }
+            if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT) < 0) {
                 cv_dealloc_coroutine(C);
                 Py_DECREF(weak_actor);
                 /* Jump */
