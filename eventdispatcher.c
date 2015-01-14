@@ -16,16 +16,13 @@ static int str_endswith(PyObject *key, const char *suffix)
 }
 
 
-static void schedule(PyObject *a, PyObject *args, PyObject *kwds)
+static void schedule(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
     static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
     static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
 
-    if (coroutine == NULL) {
-        fix_that();
-    }
-    else if (context != NULL) {
-        cv_stack_push(*coroutine, *context);
+    if (context != NULL) {
+        cv_stack_push(coroutine, *context);
     }
     rtp->argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
     cv_stack_push(*coroutine, &rtp);
