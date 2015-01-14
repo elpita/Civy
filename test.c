@@ -424,19 +424,48 @@ static void cv_user_loop(CVCoStack stack)
 }
 
 
-static void s(a, b, c)
+static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
-    static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, {NULL, NULL, NULL}};
-    static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, {NULL, NULL, NULL}};
-    
-    if (coroutine == NULL) {
-        fix_that();
+    static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
+
+    /*if (context != NULL) {
+        cv_stack_push(coroutine, *context);
+    }*/
+    cfp->argsptr[0] = a;
+    cfp->argsptr[1] = args;
+    cfp->argsptr[2] = kwds;
+    cv_stack_push(coroutine, &cfp);
+    if (sdl_schedule(PyTuple_GET_ITEM(args, 0), CV_DISPATCHED_EVENT) < 0) {
+        return -1;
     }
-    else if (context != NULL) {
-        cv_stack_push(*coroutine, *context);
+    return 0;
+}
+
+
+static int schedule_rtp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
+{
+    static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
+
+    /*if (context != NULL) {
+        cv_stack_push(coroutine, *context);
+    }*/
+    rtp->argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
+    cv_stack_push(coroutine, &rtp);
+    return schedule_cfp(coroutine, a, args, kwds);
+}
+
+
+static void async_dispatch(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
+{
+    CVCoroutine coro = cv_create_coroutine((PyObject *)actor);
+
+    if (coro == NULL) {
+        /* Jump */
     }
-    rtp.argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
-    cv_stack_push(*coroutine, &rtp);
-    cfp.argsptr = {a, b, c};
-    cv_stack_push(*coroutine, &cfp);
+    else if (schedule_cfp(actor, a, b, c) < 0) {
+        /* Jump */
+    }
+    else if (cv_object_queue_push(actor, coro) < 0) {
+        /* Jump */
+    }
 }
