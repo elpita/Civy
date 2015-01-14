@@ -424,7 +424,26 @@ static void cv_user_loop(CVCoStack stack)
 }
 
 
-static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
+static void sdl_schedule(PyObject *target, Uint32 event_type)
+{
+    SDL_Event event;
+
+    SDL_zero(event);
+    event.type = event_type;
+    event.user.code = PyThreadState_GET()->recursion_depth;
+    event.user.data1 = target;
+    Py_INCREF(target);
+    
+    if (SDL_PushEvent(&event) < 0) {
+        Py_DECREF(target);
+        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
+        return -1;
+    }
+    return 0;
+}
+
+
+static void async_schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
     static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
 
@@ -435,23 +454,36 @@ static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyOb
     cfp->argsptr[1] = args;
     cfp->argsptr[2] = kwds;
     cv_stack_push(coroutine, &cfp);
-    if (sdl_schedule(PyTuple_GET_ITEM(args, 0), CV_DISPATCHED_EVENT) < 0) {
+}
+
+
+static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *b, PyObject *c)
+{
+    async_schedule_cfp(coroutine, a, b, c);
+
+    if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT) < 0) {
         return -1;
     }
     return 0;
 }
 
 
-static int schedule_rtp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
+static async_schedule_rtp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
     static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
 
+    rtp->argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
+    cv_stack_push(coroutine, &rtp);
+}
+
+
+static int schedule_rtp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
+{
     /*if (context != NULL) {
         cv_stack_push(coroutine, *context);
     }*/
-    rtp->argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
-    cv_stack_push(coroutine, &rtp);
-    return schedule_cfp(coroutine, a, args, kwds);
+    async_schedule_rtp(coroutine, a, b, c);
+    return schedule_cfp(coroutine, a, b, c);
 }
 
 
@@ -462,10 +494,9 @@ static void async_dispatch(CVObject actor, PyObject *a, PyObject *b, PyObject *c
     if (coro == NULL) {
         /* Jump */
     }
-    else if (schedule_cfp(actor, a, b, c) < 0) {
-        /* Jump */
-    }
-    else if (cv_object_queue_push(actor, coro) < 0) {
+    async_schedule_cfp(actor, a, b, c);
+
+    if (cv_object_queue_push(actor, coro) < 0) {
         /* Jump */
     }
 }
