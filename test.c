@@ -518,29 +518,28 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
             /* Jump */
         }
         else {
-            PyObject *weak_actor;
-            {
+            PyObject *weak_actor = PyWeakref_NewRef(actor, NULL);
+
+            if (weak_actor == NULL) {
+                cv_dealloc_coroutine(C); //hmmm...this might be a problem
+                /* Jump */
+            }
+            else {
                 struct _cvcontext *current_c = *context; //Should not be NULL
                 current_c->state = line;
                 cv_stack_push(C, (CVContinuation)current_c);
             }
-        }
+            if (from_python) {
+                async_schedule_rtp(C);
+            }
+            cv_stack_push(C, &c);
 
-        if (from_python) {
-            async_schedule_rtp(C);
-        }
-        cv_stack_push(C, &c);
-        weak_actor = PyWeakref_NewRef(actor, NULL);
-    
-        if (weak_actor == NULL) {
-            /* Jump */
-        }
-        else if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT) < 0) {
+            if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT) < 0) {
+                Py_DECREF(weak_actor);
+                /* Jump */
+            }
             Py_DECREF(weak_actor);
-            /* Jump */
         }
-        Py_DECREF(weak_actor);
-
         if (cv_object_queue_push(actor->cvprocesses, C) < 0) {
             /* Jump */
         }
