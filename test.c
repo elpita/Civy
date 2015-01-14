@@ -443,62 +443,75 @@ static void sdl_schedule(PyObject *target, Uint32 event_type)
 }
 
 
-static void async_schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
+static int async_schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
     static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
 
     /*if (context != NULL) {
-        cv_stack_push(coroutine, *context);
+        cv_costack_push(coroutine, *context);
     }*/
     cfp.coargs[0] = a;
     cfp.coargs[1] = args;
     cfp.coargs[2] = kwds;
-    cv_stack_push(coroutine, &cfp);
-}
 
-
-static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *b, PyObject *c)
-{
-    async_schedule_cfp(coroutine, a, b, c);
-
-    if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT) < 0) {
+    if (cv_costack_push(coroutine, &cfp) < 0) {
         return -1;
     }
     return 0;
 }
 
 
-static async_schedule_rtp(CVCoroutine coroutine)
+static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *b, PyObject *c)
+{
+    if (async_schedule_cfp(coroutine, a, b, c) < 0) {
+        return -1;
+    }
+    else if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+
+static int async_schedule_rtp(CVCoroutine coroutine)
 {
     static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
 
     rtp.coargs[1] = (PyObject *)(PyThreadState_GET()->frame);
-    cv_stack_push(coroutine, &rtp);
+
+    if (cv_costack_push(coroutine, &rtp) < 0) {
+        return -1;
+    }
+    return 0;
 }
 
 
 static int schedule_rtp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
     /*if (context != NULL) {
-        cv_stack_push(coroutine, *context);
+        cv_costack_push(coroutine, *context);
     }*/
-    async_schedule_rtp(coroutine);
+    if (async_schedule_rtp(coroutine) < 0) {
+        return -1;
+    }
     return schedule_cfp(coroutine, a, b, c);
 }
 
 
-static void async_dispatch(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
+static int async_dispatch(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
 {
     CVCoroutine coro = cv_create_coroutine((PyObject *)actor);
 
     if (coro == NULL) {
-        /* Jump */
+        return -1;
     }
-    async_schedule_cfp(actor, a, b, c);
-
-    if (cv_object_queue_push(actor->cvprocesses, coro) < 0) {
-        /* Jump */
+    else if (async_schedule_cfp(actor, a, b, c) < 0) {
+        return -1;
     }
+    else if (cv_object_queue_push(actor->cvprocesses, coro) < 0) {
+        return -1;
+    }
+    return 0;
 }
 
 
@@ -525,20 +538,33 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
             else {
                 struct _cvcontext *current_c = *context; //Should not be NULL
                 current_c->state = line;
-                cv_stack_push(C, (CVContinuation)current_c);
-            }
-            if (from_python) {
-                async_schedule_rtp(C);
-            }
-            cv_stack_push(C, &c);
 
-            if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT) < 0) {
+                if (cv_costack_push(C, (CVContinuation)current_c) < 0) {
+                    cv_dealloc_coroutine(C);
+                    Py_DECREF(weak_actor);
+                    /* Jump */
+                }
+                else if (from_python && (async_schedule_rtp(C) < 0)) {
+                    cv_dealloc_coroutine(C);
+                    Py_DECREF(weak_actor);
+                    /* Jump */
+                }
+            }
+
+            if (cv_costack_push(C, &c) < 0) {
+                cv_dealloc_coroutine(C);
+                Py_DECREF(weak_actor);
+                /* Jump */
+            }
+            else if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT) < 0) {
+                cv_dealloc_coroutine(C);
                 Py_DECREF(weak_actor);
                 /* Jump */
             }
             Py_DECREF(weak_actor);
         }
         if (cv_object_queue_push(actor->cvprocesses, C) < 0) {
+             cv_dealloc_coroutine(C);
             /* Jump */
         }
         longjmp(back, 1);
