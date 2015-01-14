@@ -16,59 +16,94 @@ static int str_endswith(PyObject *key, const char *suffix)
 }
 
 
-static void schedule(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
+static void sdl_schedule(PyObject *target, Uint32 event_type)
 {
-    static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
-    static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
+    SDL_Event event;
 
-    if (context != NULL) {
-        cv_stack_push(coroutine, *context);
+    SDL_zero(event);
+    event.type = event_type;
+    event.user.code = PyThreadState_GET()->recursion_depth;
+    event.user.data1 = target;
+    Py_INCREF(target);
+    
+    if (SDL_PushEvent(&event) < 0) {
+        Py_DECREF(target);
+        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
+        return -1;
     }
-    rtp->argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
-    cv_stack_push(coroutine, &rtp);
-    cfp->argsptr[0] = a;
-    cfp->argsptr[1] = args;
-    cfp->argsptr[2] = kwds;
-    cv_stack_push(coroutine, &cfp);
-    sdl_schedule(PyTuple_GET_ITEM(args, 0));
+    return 0;
+}
+
+
+static CVCoroutine get_current_coroutine(PyObject *actor)
+{
+    CVCoroutine coro, parent=NULL;
+
+    if (global_coroutine != NULL) {
+        parent = *global_coroutine;
+
+        if (PyObject_RichCompareBool(actor, (PyObject *)(parent->state->actor_ptr), Py_EQ)) {
+            return parent;
+        }
+    }
+    coro = cv_create_coroutine(actor);
+
+    if (coro == NULL) {
+        return NULL;
+    }
+    coro->state->parent = parent;
+    return coro;
 }
 
 
 static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args, PyObject *kwds)
 {
-    PyObject *name;
-    
-    name = PyTuple_GET_ITEM(args, 0);
-    if (!str_endswith(name, "_event")) {
-        PyErr_SetString(PyExc_TypeError, "dispatch takes a string argument ending with '_event'"); //fix
-        return NULL;
-    }
-    else if (!PyObject_HasAttr((PyObject *)self, name)) {
-        PyErr_SetString(PyExc_TypeError, "No event found"); //fix
+    CVCoroutine coro = get_current_coroutine((PyObject *)self);
+
+    if (coro == NULL) {
         return NULL;
     }
     else {
-        PyObject *func, *weak_value, *weak_self, *ret;
-        PyObject *meth = PyObject_GetAttr((PyObject *)self, name);
-
-        if (meth == NULL) {
+        PyObject *name = PyTuple_GET_ITEM(args, 0);
+    
+        if (!str_endswith(name, "_event")) {
+            PyErr_SetString(PyExc_TypeError, "dispatch takes a string argument ending with '_event'"); //fix
             return NULL;
         }
-        func = PyMethod_GET_FUNCTION(meth);
-        weak_value = PyWeakref_NewProxy(func, NULL);
-
-        if (weak_value == NULL) {
+        else if (!PyObject_HasAttr((PyObject *)self, name)) {
+            PyErr_SetString(PyExc_TypeError, "No event found"); //fix
             return NULL;
         }
-        weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
-
-        if (weak_self == NULL) {
-            Py_DECREF(weak_value);
-            return NULL;
+        else {
+            PyObject *func, *weak_value, *weak_self;
+            {
+                PyObject *meth = PyObject_GetAttr((PyObject *)self, name);
+        
+                if (meth == NULL) {
+                    return NULL;
+                }
+                func = PyMethod_GET_FUNCTION(meth);
+            }
+            weak_value = PyWeakref_NewProxy(func, NULL);
+    
+            if (weak_value == NULL) {
+                return NULL;
+            }
+            weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
+    
+            if (weak_self == NULL) {
+                Py_DECREF(weak_value);
+                return NULL;
+            }
+            PyTuple_SET_ITEM(args, 0, weak_self);
+    
+            if (schedule_rtp(coro, func, args, kwds) < 0) {
+                Py_DECREF(weak_self);
+                Py_DECREF(weak_value);
+                return NULL;
+            }
+            longjmp(back, 1);
         }
-        PyTuple_SET_ITEM(args, 0, weak_self);
-        schedule(ret,...);
-        return ret;
     }
 }
 
