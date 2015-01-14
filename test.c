@@ -527,7 +527,7 @@ static int reschedule_current_continuation(CVCoroutine C, int line)
 }
 
 
-static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCallbackFunc *cocall, CVCleanupFunc *coclean, int from_python, int line)
+static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCallbackFunc *cocall, CVCleanupFunc *coclean, int from_python, int to_python, int line)
 {
     if (!CVEventDispatcher_Check(actor) {
         PyErr_SetString("Only EventDispatchers may be scheduled blahblah"); //fix
@@ -546,12 +546,17 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
                 cv_dealloc_coroutine(C); //hmmm...this might be a problem
                 /* Jump */
             }
+            else if (from_python && (async_schedule_rtp(C) < 0)) {
+                Py_DECREF(weak_actor);
+                cv_dealloc_coroutine(C);
+                /* Jump */
+            }
             else if (reschedule_current_continuation(C, line) < 0) {
                 Py_DECREF(weak_actor);
                 cv_dealloc_coroutine(C);
                 /* Jump */
             }
-            else if (from_python && (async_schedule_rtp(C) < 0)) {
+            else if (to_python && (async_schedule_rtp(C) < 0)) {
                 Py_DECREF(weak_actor);
                 cv_dealloc_coroutine(C);
                 /* Jump */
