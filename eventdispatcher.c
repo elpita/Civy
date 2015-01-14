@@ -13,6 +13,7 @@ static int str_endswith(PyObject *key, const char *suffix)
     }
     str = PyString_AS_STRING(key);
     return (strncmp(str + (len - 6), suffix, 6) == 0);
+}
 
 
 static void schedule(PyObject *a, PyObject *args, PyObject *kwds, CVCallbackFunc *func)
