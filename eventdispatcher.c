@@ -25,11 +25,11 @@ static void schedule(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObjec
         cv_stack_push(coroutine, *context);
     }
     rtp->argsptr[1] = (PyObject *)(PyThreadState_GET()->frame);
-    cv_stack_push(*coroutine, &rtp);
+    cv_stack_push(coroutine, &rtp);
     cfp->argsptr[0] = a;
     cfp->argsptr[1] = args;
     cfp->argsptr[2] = kwds;
-    cv_stack_push(*coroutine, &cfp);
+    cv_stack_push(coroutine, &cfp);
     sdl_schedule(PyTuple_GET_ITEM(args, 0));
 }
 
