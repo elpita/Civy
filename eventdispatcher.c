@@ -16,7 +16,7 @@ static int str_endswith(PyObject *key, const char *suffix)
 }
 
 
-static void schedule(PyObject *a, PyObject *args, PyObject *kwds, CVCallbackFunc *func)
+static void schedule(PyObject *a, PyObject *args, PyObject *kwds)
 {
     static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
     static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
