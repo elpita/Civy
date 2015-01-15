@@ -65,6 +65,7 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
                     return NULL;
                 }
                 func = PyMethod_GET_FUNCTION(meth);
+                Py_DECREF(meth);
             }
             weak_value = PyWeakref_NewProxy(func, NULL);
     
