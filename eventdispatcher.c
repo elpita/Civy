@@ -57,35 +57,37 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
             return NULL;
         }
         else {
-            PyObject *func, *weak_value, *weak_self;
+            PyObject *weak_func;
             {
+                PyObject *func;
                 PyObject *meth = PyObject_GetAttr((PyObject *)self, name);
-        
+
                 if (meth == NULL) {
                     return NULL;
                 }
                 func = PyMethod_GET_FUNCTION(meth);
                 Py_DECREF(meth);
+                weak_func = PyWeakref_NewProxy(func, NULL);
             }
-            weak_value = PyWeakref_NewProxy(func, NULL);
-    
-            if (weak_value == NULL) {
+            if (weak_func == NULL) {
                 return NULL;
             }
-            weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
-    
-            if (weak_self == NULL) {
-                Py_DECREF(weak_value);
-                return NULL;
+            else {
+                PyObject *weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
+        
+                if (weak_self == NULL) {
+                    Py_DECREF(weak_func);
+                    return NULL;
+                }
+                PyTuple_SET_ITEM(args, 0, weak_self);
+
+                if (schedule_rtp(coro, weak_func, args, kwds) < 0) {
+                    Py_DECREF(weak_self);
+                    Py_DECREF(weak_func);
+                    return NULL;
+                }
+                longjmp(back, 1);
             }
-            PyTuple_SET_ITEM(args, 0, weak_self);
-    
-            if (schedule_rtp(coro, func, args, kwds) < 0) {
-                Py_DECREF(weak_self);
-                Py_DECREF(weak_value);
-                return NULL;
-            }
-            longjmp(back, 1);
         }
     }
 }
