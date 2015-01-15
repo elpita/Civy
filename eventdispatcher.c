@@ -1,18 +1,19 @@
 static int str_endswith(PyObject *key, const char *suffix)
 {
-    Py_ssize_t len;
-    const char *str;
-
     if (!PyString_Check(key)) {
         return 0;
     }
-    len = PyString_GET_SIZE(key);
-    
-    if (len <= 6) {
-        return 0;
+    else {
+        Py_ssize_t len = PyString_GET_SIZE(key);
+        
+        if (len <= 6) {
+            return 0;
+        }
+        else {
+            const char *str = PyString_AS_STRING(key);
+            return (strncmp(str + (len - 6), suffix, 6) == 0);
+        }
     }
-    str = PyString_AS_STRING(key);
-    return (strncmp(str + (len - 6), suffix, 6) == 0);
 }
 
 
