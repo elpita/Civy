@@ -74,7 +74,7 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
             }
             else {
                 PyObject *weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
-        
+
                 if (weak_self == NULL) {
                     Py_DECREF(weak_func);
                     return NULL;
@@ -89,6 +89,29 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
                 longjmp(back, 1);
             }
         }
+    }
+}
+
+
+static PyObject* EventDispatcher_schedule_interval(CVEventDispatcher self, PyObject *args, PyObject *kwds)
+{
+    Uint32 delay;
+    SDL_TimerID my_timer_id;
+    PyObject *callable, *timer_ids=self->timer_ids;
+    static char *kwargs[] = {"callback", "interval", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OI", kwargs, &callable, &interval)) {
+        return -1;
+    }
+    else if (!PyCallable_Check(callable)) {
+        PyErr_Format(PyExc_TypeError, "%s is not callable.", ???); //fix this
+        return NULL;
+    }
+    my_timer_id = SDL_AddTimer(delay, my_callbackfunc, my_callback_param);
+
+    if (!my_timer_id) {
+        PyErr_SetString(PyExc_TypeError, SDL_GetError());
+        return NULL;
     }
 }
 
