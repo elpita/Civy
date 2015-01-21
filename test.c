@@ -427,13 +427,13 @@ static void cv_user_loop(CVCoStack stack)
 }
 
 
-static void sdl_schedule(PyObject *target, Uint32 event_type)
+static void sdl_schedule(PyObject *target, Uint32 event_type, int depth)
 {
     SDL_Event event;
 
     SDL_zero(event);
     event.type = event_type;
-    event.user.code = PyThreadState_GET()->recursion_depth;
+    event.user.code = depth;
     event.user.data1 = target;
     Py_INCREF(target);
     
@@ -466,10 +466,12 @@ static int async_schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args
 
 static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *b, PyObject *c)
 {
+    int depth = PyThreadState_GET()->recursion_depth;
+
     if (async_schedule_cfp(coroutine, a, b, c) < 0) {
         return -1;
     }
-    else if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT) < 0) {
+    else if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT, depth) < 0) {
         return -1;
     }
     return 0;
@@ -543,6 +545,7 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
             /* Jump */
         }
         else {
+            int depth = PyThreadState_GET()->recursion_depth;
             PyObject *weak_actor = PyWeakref_NewRef(actor, NULL);
 
             if (weak_actor == NULL) {
@@ -568,7 +571,7 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
                     /* Jump */
                 }
             }
-            if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT) < 0) {
+            if (sdl_schedule(weak_actor, CV_DISPATCHED_EVENT, depth) < 0) {
                 cv_dealloc_coroutine(C);
                 Py_DECREF(weak_actor);
                 /* Jump */
