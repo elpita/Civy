@@ -371,7 +371,7 @@ static void reset_arguments(PyObject *args)
     actor = PyWeakref_GetObject(obj);
     Py_INCREF(actor);
     PyTuple_SET_ITEM(args, 0, actor);
-    Py_DECREF(obj);
+    //Py_DECREF(obj);
 }
 
 
@@ -391,6 +391,7 @@ static void cv_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
 
     CV_EXIT_ROUTINE_HERE
 
+    cv_kill_current();
     CV_CoReturn(result);
 }
 
