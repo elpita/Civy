@@ -3,13 +3,15 @@ struct _cvtimerstruct {
     PyObject_HEAD
     PyObject *func;
     PyObject *weak_actor;
+    //PyObject *frame;
+    //int recursion_depth;
     SDL_TimerID timer_id;
 }
 
 
 static void cvtimerstruct_dealloc(struct _cvtimerstruct *self)
 {
-    Py_XDECREF(self->weak_actor);
+    Py_DECREF(self->weak_actor);
     PyObject_Del( (PyObject *)self );
 }
 
