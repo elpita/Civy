@@ -1,3 +1,45 @@
+/* timer struct ************************************************************************************************************ */
+struct _cvtimerstruct {
+    PyObject_HEAD
+    int timer_id;
+    PyObject *weak_actor;
+}
+
+
+static void cvtimerstruct_dealloc(struct _cvtimerstruct *self)
+{
+    Py_XDECREF(self->weak_actor);
+    PyObject_Del( (PyObject *)self );
+}
+
+
+static PyTypeObject CVTimerStructType = {
+    PyObject_HEAD_INIT(NULL)
+    0,                                  /* ob_size */
+    "timerstruct",                      /* tp_name */
+    sizeof(struct _cvtimerstruct),      /* tp_basicsize */
+    0,                                  /* tp_itemsize */
+    (destructor)cvtimerstruct_dealloc,  /* tp_dealloc */
+    0,                                  /* tp_print */
+    0,                                  /* tp_getattr */
+    0,                                  /* tp_setattr */
+    0,                                  /* tp_compare */
+    0,                                  /* tp_repr */
+    0,                                  /* tp_as_number */
+    0,                                  /* tp_as_sequence */
+    0,                                  /* tp_as_mapping */
+    0,                                  /* tp_hash */
+    0,                                  /* tp_call */
+    0,                                  /* tp_str */
+    0,                                  /* tp_getattro */
+    0,                                  /* tp_setattro */
+    0,                                  /* tp_as_buffer */
+    0,                                  /* tp_flags */
+    "CV timer data",                    /* tp_doc */
+};
+
+
+/* EventDispatcher ********************************************************************************************************* */
 static int str_endswith(PyObject *key, const char *suffix)
 {
     if (!PyString_Check(key)) {
