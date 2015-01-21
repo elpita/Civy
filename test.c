@@ -376,7 +376,7 @@ static void reset_arguments(PyObject *args)
 
 
 static void cv_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
-{/* This is the special continuation called *from* Python */
+{/* This is the special continuation for synchronous events called *from* Python */
     PyObject *result;
 
     CV_ENTER_ROUTINE_HERE
@@ -390,8 +390,10 @@ static void cv_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
         result = cv_coresume();
 
     CV_EXIT_ROUTINE_HERE
-
-    cv_kill_current();
+    
+    /* Cleanup resources and return */
+    Py_DECREF(args);
+    Py_XDECREF(kwds);
     CV_CoReturn(result);
 }
 
