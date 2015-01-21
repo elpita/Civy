@@ -1,9 +1,9 @@
 /* timer struct ************************************************************************************************************ */
 struct _cvtimerstruct {
     PyObject_HEAD
-    SDL_TimerID timer_id;
-    PyObject *weak_actor;
     PyObject *func;
+    PyObject *weak_actor;
+    SDL_TimerID timer_id;
 }
 
 
