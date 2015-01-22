@@ -5,7 +5,7 @@ typedef struct _cvframecontext *CVFrameContext;
 static CVFrameContext *context;
 void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
 
-#define CV_GetRoutineVars() (void *)((*context)->vars)
+#define CV_GetRoutineVars() (PyObject *)((*context)->vars)
 #define CV_SetRoutineVars(largs) (*context)->vars = (void *)largs
 #define CV_ENTER_ROUTINE_HERE switch((*context)->state) { case 0:
 #define cv_coresume() (*passaround)
