@@ -24,8 +24,8 @@ static void cv_dealloc_continuation(CVContinuation c)
 
 static void cv_dealloc_args(PyObject *args)
 {
-    Py_XDECREF(args[0]);
-    Py_XDECREF(args[1]);
-    Py_XDECREF(args[2]);
+    Py_CLEAR(args[0]);
+    Py_CLEAR(args[1]);
+    Py_CLEAR(args[2]);
     
 }
