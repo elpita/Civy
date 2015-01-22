@@ -375,6 +375,50 @@ static void reset_arguments(PyObject *args)
 }
 
 
+static void cv_async_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
+{/* This is the special continuation for asynchronous events called *from* Python */
+    PyObject *result, *largs;
+
+    CV_ENTER_ROUTINE_HERE
+
+    /* Create a dummy PyFrameObject, incase the coroutine is killed prematurely */
+    {
+        PyFrameObject *dummy_frame;
+        PyThreadState *tstate = PyThreadState_GET();
+        {
+            PyObject *globals = PyDict_New();
+            PyObject *code = PyCode_NewEmpty(__FILE__, "NULL", __LINE__);
+
+            dummy_frame = PyFrame_New(tstate, code, globals, NULL);
+            Py_XDECREF(code);
+            Py_XDECREF(globals);
+        }
+
+        if (dummy_frame == NULL) {
+            /* Problem */
+        }
+        tstate->frame = dummy_frame;
+        CV_SetRoutineVars(dummy_frame);
+    }
+    /* Now resume normal activity */
+    cv_save_continuation();
+    reset_arguments(args);
+    result = PyObject_Call(func, args, kwds); // cheating
+
+    IF_RETURNED_FROM_NESTED_DISPATCH
+        result = cv_coresume();
+
+    CV_EXIT_ROUTINE_HERE
+
+    /* Cleanup resources and return */
+    largs = (PyObject *)CV_GetRoutineVars();
+    Py_DECREF(args);
+    Py_XDECREF(kwds);
+    Py_XDECREF(largs);
+    CV_CoReturn(result);
+}
+
+
 static void cv_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
 {/* This is the special continuation for synchronous events called *from* Python */
     PyObject *result;
