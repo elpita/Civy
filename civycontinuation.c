@@ -18,7 +18,7 @@ static void cv_dealloc_continuation(CVContinuation c)
 {
     CVCleanupFunc cleanup = c->coclean;
     cv_dealloc_args(c->coargs);
-    cleanup((CVContext)->vars);
+    cleanup(((CVContext)c)->vars);
 }
 
 
