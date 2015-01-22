@@ -375,6 +375,12 @@ static void reset_arguments(PyObject *args)
 }
 
 
+static void clean_cv_async_call(void *dummy_frame)
+{
+    Py_XDECREF((PyObject *)dummy_frame);
+}
+
+
 static void cv_async_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
 {/* This is the special continuation for asynchronous events called *from* Python */
     PyObject *result, *largs;
