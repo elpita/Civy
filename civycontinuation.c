@@ -22,7 +22,7 @@ static void cv_dealloc_continuation(CVContinuation c)
 }
 
 
-static void cv_dealloc_args(PyObject *args)
+static void cv_dealloc_args(PyObject **args)
 {
     Py_CLEAR(args[0]);
     Py_CLEAR(args[1]);
