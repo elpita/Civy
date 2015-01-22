@@ -377,7 +377,7 @@ static void reset_arguments(PyObject *args)
 
 static void clean_cv_async_call(void *dummy_frame)
 {
-    Py_XDECREF((PyObject *)dummy_frame);
+    Py_CLEAR((PyObject *)dummy_frame);
 }
 
 
