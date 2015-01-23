@@ -496,13 +496,28 @@ static void sdl_schedule(PyObject *target, Uint32 event_type, int depth)
 }
 
 
-static int async_schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
+static int cv_spawn_sync_event(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
     static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
+    static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
+    PyObject *frame;
+    int depth;
+
+    {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        frame = (PyObject *)(tstate->frame);
+        depth = tstate->recursion_depth;
+    }
 
     /*if (context != NULL) {
         cv_costack_push(coroutine, *context);
     }*/
+    rtp.coargs[1] = frame;
+
+    if (cv_costack_push(coroutine, &rtp) < 0) {
+        return -1;
+    }
     cfp.coargs[0] = a;
     cfp.coargs[1] = args;
     cfp.coargs[2] = kwds;
@@ -510,60 +525,27 @@ static int async_schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *args
     if (cv_costack_push(coroutine, &cfp) < 0) {
         return -1;
     }
-    return 0;
-}
 
-
-static int schedule_cfp(CVCoroutine coroutine, PyObject *a, PyObject *b, PyObject *c)
-{
-    int depth = PyThreadState_GET()->recursion_depth;
-
-    if (async_schedule_cfp(coroutine, a, b, c) < 0) {
-        return -1;
-    }
-    else if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT, depth) < 0) {
+    if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT, depth) < 0) {
         return -1;
     }
     return 0;
 }
 
 
-static int async_schedule_rtp(CVCoroutine coroutine)
-{
-    static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
-
-    rtp.coargs[1] = (PyObject *)(PyThreadState_GET()->frame);
-
-    if (cv_costack_push(coroutine, &rtp) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-
-static int schedule_rtp(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
-{
-    /*if (context != NULL) {
-        cv_costack_push(coroutine, *context);
-    }*/
-    if (async_schedule_rtp(coroutine) < 0) {
-        return -1;
-    }
-    return schedule_cfp(coroutine, a, b, c);
-}
-
-
-static int async_dispatch(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
+static int dispatch_sync_event(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
 {
     CVCoroutine coro = cv_create_coroutine((PyObject *)actor);
 
     if (coro == NULL) {
         return -1;
     }
-    else if (async_schedule_cfp(actor, a, b, c) < 0) {
+    else if (cv_spawn_sync_event(coro, a, b, c) < 0) {
+        cv_dealloc_coroutine(coro);
         return -1;
     }
     else if (cv_object_queue_push(actor->cvprocesses, coro) < 0) {
+        cv_dealloc_coroutine(coro);
         return -1;
     }
     return 0;
