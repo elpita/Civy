@@ -496,6 +496,23 @@ static void sdl_schedule(PyObject *target, Uint32 event_type, int depth)
 }
 
 
+static int cv_spawn_async_event(CVCoroutine coroutine, PyObject *a, PyObject *args)
+{
+    static struct _cvcontinuation acfp = {{0, NULL}, cv_async_call_from_python, clean_cv_async_call, {NULL, NULL, NULL}};
+
+    cfp.coargs[0] = a;
+    cfp.coargs[1] = args;
+
+    if (cv_costack_push(coroutine, &acfp) < 0) {
+        return -1;
+    }
+    else if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT, PyThreadState_GET()->recursion_depth) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+
 static int cv_spawn_sync_event(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
     static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
