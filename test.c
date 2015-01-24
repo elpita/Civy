@@ -381,51 +381,41 @@ static void clean_cv_async_call(void *dummy_frame)
 }
 
 
-static void cv_async_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
+static PyObject* cv_create_py_frame(PyObject *args)
+{
+    PyObject *func, *args, *kwds=NULL;
+    
+    if (!PyArg_ParseTuple(args, "OO|O", &func, &args, &kwds)) {
+        return NULL;
+    }
+    else {
+        PyObject *frame = (PyObject *)(PyThreadState_GET()->frame);
+        CV_SetCoVars(frame);
+    }
+    reset_arguments(args);
+    return PyObject_Call(func, args, kwds); // cheating
+}
+
+
+static void cv_call_async_event(PyObject *args, PyObject *, PyObject *)
 {/* This is the special continuation for asynchronous events called *from* Python */
-    PyObject *result, *largs;
+    PyObject *result;
 
     CV_ENTER_ROUTINE_HERE
-
-    /* Create a dummy PyFrameObject, incase the coroutine is killed prematurely */
-    {
-        PyFrameObject *dummy_frame;
-        PyThreadState *tstate = PyThreadState_GET();
-        {
-            PyObject *globals = PyDict_New();
-            PyObject *code = PyCode_NewEmpty(__FILE__, "NULL", __LINE__);
-
-            dummy_frame = PyFrame_New(tstate, code, globals, NULL);
-            Py_XDECREF(code);
-            Py_XDECREF(globals);
-        }
-
-        if (dummy_frame == NULL) {
-            /* Problem */
-        }
-        tstate->frame = dummy_frame;
-        CV_SetRoutineVars(dummy_frame);
-    }
-    /* Now resume normal activity */
     cv_save_continuation();
-    reset_arguments(args);
-    result = PyObject_Call(func, args, kwds); // cheating
+
+    /* Call python_function(args) */
 
     IF_RETURNED_FROM_NESTED_DISPATCH
         result = cv_coresume();
 
     CV_EXIT_ROUTINE_HERE
 
-    /* Cleanup resources and return */
-    largs = (PyObject *)CV_GetRoutineVars();
-    Py_DECREF(args);
-    Py_XDECREF(kwds);
-    Py_XDECREF(largs);
     CV_CoReturn(result);
 }
 
 
-static void cv_call_from_python(PyObject *func, PyObject *args, PyObject *kwds)
+static void cv_call_sync_event(PyObject *func, PyObject *args, PyObject *kwds)
 {/* This is the special continuation for synchronous events called *from* Python */
     PyObject *result;
 
@@ -498,7 +488,7 @@ static void sdl_schedule(PyObject *target, Uint32 event_type, int depth)
 
 static int cv_spawn_async_event(CVCoroutine coroutine, PyObject *a, PyObject *args)
 {
-    static struct _cvcontinuation acfp = {{0, NULL}, cv_async_call_from_python, clean_cv_async_call, {NULL, NULL, NULL}};
+    static struct _cvcontinuation acfp = {{0, NULL}, cv_call_async_event, clean_cv_async_call, {NULL, NULL, NULL}};
 
     cfp.coargs[0] = a;
     cfp.coargs[1] = args;
@@ -515,7 +505,7 @@ static int cv_spawn_async_event(CVCoroutine coroutine, PyObject *a, PyObject *ar
 
 static int cv_spawn_sync_event(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
 {
-    static struct _cvcontinuation cfp = {{0, NULL}, cv_call_from_python, NULL, {NULL, NULL, NULL}};
+    static struct _cvcontinuation cfp = {{0, NULL}, cv_call_sync_event, NULL, {NULL, NULL, NULL}};
     static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
     PyObject *frame;
     int depth;
