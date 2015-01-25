@@ -107,6 +107,7 @@ static int cv_wait(CVCoroutine coroutine)
 
 static int cv_fork(CVCoroutine coro, PyObject *func, PyObject *args, PyObject *kwds)
 {/* Used for creating a synchronous python event */
+
     if (cv_wait(coro) < 0) {
         return -1;
     }
@@ -136,4 +137,33 @@ static int dispatch_sync_event(CVObject actor, PyObject *a, PyObject *b, PyObjec
         return -1;
     }
     return 0;
+}
+
+
+static CVCoroutine get_current_coroutine(PyObject *actor)
+{
+    CVCoroutine coro, parent=NULL;
+
+    if (cv_current_coro != NULL) {
+        parent = *cv_current_coro;
+
+        if (cv_current_continuation != NULL) {
+            CVContinuation contin = *cv_current_continuation;
+
+            if (cv_costack_push(parent, contin) < 0) {
+                return NULL;
+            }
+        }
+
+        if (PyObject_RichCompareBool(actor, (PyObject *)(parent->state->actor_ptr), Py_EQ)) {
+            return parent;
+        }
+    }
+    coro = cv_create_coroutine(actor);
+
+    if (coro == NULL) {
+        return NULL;
+    }
+    coro->state->parent = parent;
+    return coro;
 }
