@@ -175,8 +175,8 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
                 return NULL;
             }
             func = PyMethod_GET_FUNCTION(meth);
-            Py_DECREF(meth);
             Py_INCREF(func);
+            Py_DECREF(meth);
         }
     }
 
