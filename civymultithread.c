@@ -61,7 +61,7 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
     /* steal the reference to the frame */
     Py_INCREF(args);
     Py_INCREF(result); //?
-    cv_kill_current();
+    cv_kill_current(); //args should be set to NULL
 
     //ts->recursion_depth = CV_GetRoutineVars();
     ts->frame = (PyFrameObject *)args;
@@ -107,13 +107,32 @@ static int cv_wait(CVCoroutine coroutine)
 
 static int cv_fork(CVCoroutine coro, PyObject *func, PyObject *args, PyObject *kwds)
 {
-    if (cv_spawn(coro, func, args, kwds) < 0) {
+    if (cv_wait(coro) < 0) {
         return -1;
     }
-    else if (cv_wait(coro) < 0) {
+    else if (cv_spawn(coro, func, args, kwds) < 0) {
         return -1;
     }
     else if (cv_push_event(PyTuple_GET_ITEM(args, 0), CV_DISPATCHED_EVENT, PyThreadState_GET()->recursion_depth) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+
+static int dispatch_sync_event(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
+{
+    CVCoroutine coro = cv_create_coroutine((PyObject *)actor);
+
+    if (coro == NULL) {
+        return -1;
+    }
+    else if (cv_spawn_sync_event(coro, a, b, c) < 0) {
+        //cv_dealloc_coroutine(coro);
+        return -1;
+    }
+    else if (cv_object_queue_push(actor->cvprocesses, coro) < 0) {
+        //cv_dealloc_coroutine(coro);
         return -1;
     }
     return 0;
