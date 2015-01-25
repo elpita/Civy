@@ -124,27 +124,6 @@ static int str_endswith(PyObject *key, const char *suffix)
 }
 
 
-static CVCoroutine get_current_coroutine(PyObject *actor)
-{
-    CVCoroutine coro, parent=NULL;
-
-    if (global_coroutine != NULL) {
-        parent = *global_coroutine;
-
-        if (PyObject_RichCompareBool(actor, (PyObject *)(parent->state->actor_ptr), Py_EQ)) {
-            return parent;
-        }
-    }
-    coro = cv_create_coroutine(actor);
-
-    if (coro == NULL) {
-        return NULL;
-    }
-    coro->state->parent = parent;
-    return coro;
-}
-
-
 static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args, PyObject *kwds)
 {
     CVCoroutine coro;
