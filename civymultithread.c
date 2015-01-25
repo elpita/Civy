@@ -72,7 +72,7 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
 
 
 static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObject *kwds)
-{
+{/* Used for creating a new coroutine called from python */
     static struct _cvcontinuation cfp = {{0, NULL}, cv_exec, NULL, {NULL, NULL, NULL}};
 
     cfp.coargs[0] = func;
@@ -87,7 +87,7 @@ static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObj
 
 
 static int cv_wait(CVCoroutine coroutine)
-{
+{/* Used for creating the coroutine that returns to python */
     static struct _cvcontinuation rtp = {{0, NULL}, cv_join, NULL, {NULL, NULL, NULL}};
     PyThreadState *tstate;
     PyObject *frame;
@@ -106,7 +106,7 @@ static int cv_wait(CVCoroutine coroutine)
 
 
 static int cv_fork(CVCoroutine coro, PyObject *func, PyObject *args, PyObject *kwds)
-{
+{/* Used for creating a synchronous python event */
     if (cv_wait(coro) < 0) {
         return -1;
     }
