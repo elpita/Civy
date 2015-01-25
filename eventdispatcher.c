@@ -168,7 +168,6 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
             return NULL;
         }
         else {
-            PyObject *func;
             PyObject *meth = PyObject_GetAttr((PyObject *)self, name);
 
             if (meth == NULL) {
