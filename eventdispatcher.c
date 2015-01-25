@@ -147,16 +147,20 @@ static CVCoroutine get_current_coroutine(PyObject *actor)
 
 static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args, PyObject *kwds)
 {
-    CVCoroutine coro = get_current_coroutine((PyObject *)self);
+    CVCoroutine coro;
+    PyObject *func, *positional_args;
+    Py_ssize_t s_size = PyTuple_GET_SIZE(args);
 
-    if (coro == NULL) {
+    /* First, check if function call is legal */
+    if (s_size < 1) {
+        PyErr_SetString(PyExc_TypeError, "'dispatch' takes a string argument ending with '_event'"); //fix
         return NULL;
     }
     else {
         PyObject *name = PyTuple_GET_ITEM(args, 0);
-    
+
         if (!str_endswith(name, "_event")) {
-            PyErr_SetString(PyExc_TypeError, "dispatch takes a string argument ending with '_event'"); //fix
+            PyErr_SetString(PyExc_TypeError, "'dispatch' takes a string argument ending with '_event'"); //fix
             return NULL;
         }
         else if (!PyObject_HasAttr((PyObject *)self, name)) {
@@ -164,39 +168,69 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
             return NULL;
         }
         else {
-            PyObject *weak_func;
-            {
-                PyObject *func;
-                PyObject *meth = PyObject_GetAttr((PyObject *)self, name);
+            PyObject *func;
+            PyObject *meth = PyObject_GetAttr((PyObject *)self, name);
 
-                if (meth == NULL) {
-                    return NULL;
-                }
-                func = PyMethod_GET_FUNCTION(meth);
-                Py_DECREF(meth);
-                weak_func = PyWeakref_NewProxy(func, NULL);
-            }
-            if (weak_func == NULL) {
+            if (meth == NULL) {
                 return NULL;
             }
-            else {
-                PyObject *weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
-
-                if (weak_self == NULL) {
-                    Py_DECREF(weak_func);
-                    return NULL;
-                }
-                PyTuple_SET_ITEM(args, 0, weak_self);
-
-                if (schedule_rtp(coro, weak_func, args, kwds) < 0) {
-                    Py_DECREF(weak_self);
-                    Py_DECREF(weak_func);
-                    return NULL;
-                }
-                longjmp(back, 1);
-            }
+            func = PyMethod_GET_FUNCTION(meth);
+            Py_DECREF(meth);
+            Py_INCREF(func);
         }
     }
+
+    /* Next, create the passaround positional arguments */
+    {
+        /* Make `self` argument a weak-reference to avoid unintentionally keeping it alive */
+        PyObject *self_arg;
+        PyObject *weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
+
+        if (weak_self == NULL) {
+            Py_DECREF(func);
+            return NULL;
+        }
+        self_arg = PyTuple_Pack(1, weak_self);
+
+        if (self_arg == NULL) {
+            Py_DECREF(weak_self);
+            Py_DECREF(func);
+            return NULL;
+        }
+
+        if (s_size > 1) {
+            PyObject *tup = PyTuple_GetSlice(args, 1, s_size);
+
+            if (tup == NULL) {
+                Py_DECREF(self_arg);
+                Py_DECREF(weak_self);
+                Py_DECREF(func);
+                return NULL;
+            }
+            positional_args = PySequence_Concat(self_arg, tup);
+            Py_DECREF(tup);
+            Py_DECREF(self_arg);
+        }
+        else {
+            positional_args = self_arg;
+        }
+        Py_DECREF(weak_self);
+    }
+
+    /* Finally, create the coroutine and fork the 'thread' */
+    coro = get_current_coroutine((PyObject *)self);
+
+    if (coro == NULL) {
+        Py_DECREF(positional_args);
+        Py_DECREF(func);
+        return NULL;
+    }
+    else if (cv_fork(coro, func, positional_args, kwds) < 0) {
+        Py_DECREF(positional_args);
+        Py_DECREF(func);
+        return NULL;
+    }
+    longjmp(back, 1);
 }
 
 
