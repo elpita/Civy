@@ -359,103 +359,6 @@ void cv_continuation_check(CVContinuation C)
 }
 
 
-#define IF_RETURN_FROM_NESTED_DISPATCH break; default:
-#define cv_save_continuation() (*context)->state = __LINE__
-
-
-static void reset_arguments(PyObject *args)
-{/* Switch out the weak ref with the real actor (assume it's still alive) */
-    PyObject *obj, *actor;
-
-    obj = PyTuple_GET_ITEM(args, 0);
-    actor = PyWeakref_GetObject(obj);
-    Py_INCREF(actor);
-    PyTuple_SET_ITEM(args, 0, actor);
-    //Py_DECREF(obj);
-}
-
-
-static void clean_cv_async_call(void *dummy_frame)
-{
-    Py_CLEAR((PyObject *)dummy_frame);
-}
-
-
-static PyObject* cv_create_py_frame(PyObject *args)
-{
-    PyObject *func, *args, *kwds=NULL;
-    
-    if (!PyArg_ParseTuple(args, "OO|O", &func, &args, &kwds)) {
-        return NULL;
-    }
-    else {
-        PyObject *frame = (PyObject *)(PyThreadState_GET()->frame);
-        CV_SetCoVars(frame);
-    }
-    reset_arguments(args);
-    return PyObject_Call(func, args, kwds); // cheating
-}
-
-
-static void cv_call_async_event(PyObject *args, PyObject *, PyObject *)
-{/* This is the special continuation for asynchronous events called *from* Python */
-    PyObject *result;
-
-    CV_ENTER_ROUTINE_HERE
-    cv_save_continuation();
-
-    /* Call python_function(args) */
-
-    IF_RETURNED_FROM_NESTED_DISPATCH
-        result = cv_coresume();
-
-    CV_EXIT_ROUTINE_HERE
-
-    CV_CoReturn(result);
-}
-
-
-static void cv_call_sync_event(PyObject *func, PyObject *args, PyObject *kwds)
-{/* This is the special continuation for synchronous events called *from* Python */
-    PyObject *result;
-
-    CV_ENTER_ROUTINE_HERE
-
-    cv_save_continuation();
-    PyThreadState_GET()->frame = NULL;
-    reset_arguments(args);
-    result = PyObject_Call(func, args, kwds); // cheating
-
-    IF_RETURNED_FROM_NESTED_DISPATCH
-        result = cv_coresume();
-
-    CV_EXIT_ROUTINE_HERE
-    
-    /* Cleanup resources and return */
-    Py_DECREF(args);
-    Py_XDECREF(kwds);
-    CV_CoReturn(result);
-}
-
-
-void cv_return_to_python(PyObject *, PyObject *args, PyObject *)
-{/* This is a special continuation for returning *back* to Python */
-    PyObject *result = cv_coresume();
-    PyThreadState *ts = PyThreadState_GET();
-
-    /* steal the reference to the frame */
-    Py_INCREF(args);
-    Py_INCREF(result); //?
-    cv_kill_current();
-
-    //ts->recursion_depth = CV_GetRoutineVars();
-    ts->frame = (PyFrameObject *)args;
-    *(ts->frame->f_stacktop++) = result;
-    result = PyEval_EvalFrame(ts->frame);
-    CV_CoReturn(result);
-}
-
-
 static void cv_user_loop(CVCoStack stack)
 {
     CVContinuation c;
@@ -464,98 +367,6 @@ static void cv_user_loop(CVCoStack stack)
         something = &c;
         c->cocall(c->coargs[0], c->coargs[1], c->coargs[2]);
     }
-}
-
-
-static void sdl_schedule(PyObject *target, Uint32 event_type, int depth)
-{
-    SDL_Event event;
-
-    SDL_zero(event);
-    event.type = event_type;
-    event.user.code = depth;
-    event.user.data1 = target;
-    Py_INCREF(target);
-    
-    if (SDL_PushEvent(&event) < 0) {
-        Py_DECREF(target);
-        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
-        return -1;
-    }
-    return 0;
-}
-
-
-static int cv_spawn_async_event(CVCoroutine coroutine, PyObject *a, PyObject *args)
-{
-    static struct _cvcontinuation acfp = {{0, NULL}, cv_call_async_event, clean_cv_async_call, {NULL, NULL, NULL}};
-
-    cfp.coargs[0] = a;
-    cfp.coargs[1] = args;
-
-    if (cv_costack_push(coroutine, &acfp) < 0) {
-        return -1;
-    }
-    else if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT, PyThreadState_GET()->recursion_depth) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-
-static int cv_spawn_sync_event(CVCoroutine coroutine, PyObject *a, PyObject *args, PyObject *kwds)
-{
-    static struct _cvcontinuation cfp = {{0, NULL}, cv_call_sync_event, NULL, {NULL, NULL, NULL}};
-    static struct _cvcontinuation rtp = {{0, NULL}, cv_return_to_python, NULL, {NULL, NULL, NULL}};
-    PyObject *frame;
-    int depth;
-
-    {
-        PyThreadState *tstate = PyThreadState_GET();
-
-        frame = (PyObject *)(tstate->frame);
-        depth = tstate->recursion_depth;
-    }
-
-    /*if (context != NULL) {
-        cv_costack_push(coroutine, *context);
-    }*/
-    rtp.coargs[1] = frame;
-
-    if (cv_costack_push(coroutine, &rtp) < 0) {
-        return -1;
-    }
-    cfp.coargs[0] = a;
-    cfp.coargs[1] = args;
-    cfp.coargs[2] = kwds;
-
-    if (cv_costack_push(coroutine, &cfp) < 0) {
-        return -1;
-    }
-
-    if (sdl_schedule(PyTuple_GET_ITEM(b, 0), CV_DISPATCHED_EVENT, depth) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-
-static int dispatch_sync_event(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
-{
-    CVCoroutine coro = cv_create_coroutine((PyObject *)actor);
-
-    if (coro == NULL) {
-        return -1;
-    }
-    else if (cv_spawn_sync_event(coro, a, b, c) < 0) {
-        cv_dealloc_coroutine(coro);
-        return -1;
-    }
-    else if (cv_object_queue_push(actor->cvprocesses, coro) < 0) {
-        cv_dealloc_coroutine(coro);
-        return -1;
-    }
-    return 0;
 }
 
 
@@ -573,7 +384,7 @@ static int reschedule_current_continuation(CVCoroutine C, int line)
 
 static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCallbackFunc *cocall, CVCleanupFunc *coclean, int from_python, int line)
 {
-    if (!CVEventDispatcher_Check(actor) {
+    if (!CVEventDispatcher_Check(actor)) {
         PyErr_SetString("Only EventDispatchers may be scheduled blahblah"); //fix
         /* Jump */
     }
