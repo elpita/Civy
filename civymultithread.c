@@ -61,7 +61,7 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
     /* steal the reference to the frame */
     Py_INCREF(args);
     Py_INCREF(result); //?
-    cv_kill_current(); //args should be set to NULL
+    cv_kill_current();
 
     //ts->recursion_depth = CV_GetRoutineVars();
     ts->frame = (PyFrameObject *)args;
