@@ -1,30 +1,30 @@
 #include "civycoroutinestack.h"
 
 
-struct _cvcostack {
-    CVContinuation s_ptr;
+typedef struct _cvcostack {
+    CVContinuation *s_ptr;
     struct _cvcontinuation items[CV_STACK_LENGTH];
-}
+} CVCoStack;
 
 
-static void cv_init_costack(CVCoStack s)
+static void cv_init_costack(CVCoStack *s)
 {
     s->s_ptr = s->items;
 }
 
 
-static void cv_dealloc_costack(CVCoStack s)
+static void cv_dealloc_costack(CVCoStack *s)
 {
-    CVContinuation c;
+    CVContinuation *c = cv_costack_pop(s));
 
-    while ((c = cv_costack_pop(s)) != NULL) { //Not ANSI C, but i don't care.
+    while (c != NULL) {
         cv_dealloc_continuation(c);
+        c = cv_costack_pop(s));
     }
-    //*s = NULL;
 }
 
 
-static int cv_costack_push(CVCoStack s, CVContinuation c)
+static int cv_costack_push(CVCoStack *s, CVContinuation *c)
 {
     if (s->s_ptr >= (s->items + CV_STACK_LENGTH)) {
        PyErr_SetString(PyExc_RuntimeError, "Overflow in coroutine's stack.");
@@ -35,7 +35,7 @@ static int cv_costack_push(CVCoStack s, CVContinuation c)
 }
 
 
-static CVContinuation cv_costack_pop(CVCoStack s)
+static CVContinuation* cv_costack_pop(CVCoStack *s)
 {
     if (s->s_ptr == s->items) {
        return NULL;
