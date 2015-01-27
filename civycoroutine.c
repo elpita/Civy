@@ -2,8 +2,8 @@
 
 
 typedef struct _cvcorostate {
-    CVCoroutine *parent;
     PyObject *actor_ptr;
+    CVCoroutine *parent;
 } CVCoroState;
 
 
@@ -17,7 +17,7 @@ static CVCoroutine* cv_create_coroutine(PyObject *actor)
 {
     CVStack self_stack;
     CVCoroState self_state;
-    CVCoroutine *self = (CVCoroutine *)PyMem_Malloc(sizeof(CVCoroutine));
+    CVCoroutine *self = (CVCoroutine *)PyMem_Malloc(sizeof(_cvcoroutine));
 
     if (self == NULL) {
         return PyErr_NoMemory();
@@ -61,14 +61,19 @@ static void cv_dealloc_coroutine(CVCoroutine *self)
 
 static int cv_check_continuation(CVCoroState *c)
 {
-    if (c->parent == NULL) {
-        return 1;
-    }
-    else if is_dead(c->actor_ptr) {
+    if is_dead(c->actor_ptr) {
         return 0;
     }
     else {
-        CVCoroState p = c->parent->state;
-        return cv_check_continuation(&p);
+        CVCoroutine *parent = c->parent;
+
+        if (parent == NULL) {
+            return 1;
+        }
+        else {
+            CVCoroState p_state = parent->state;
+
+            return cv_check_continuation(&p_state);
+        }
     }
 }
