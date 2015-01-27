@@ -1,11 +1,13 @@
 #include "civyobjectqueue.h"
 #define Q_IS_EMPTY(q) (q->head == NULL)
 
+
 typedef struct _cvobjectqueueentry {
-    CVCoroutine routine;
+    CVCoroutine *routine;
     CVObjectQEntry *previous;
     CVObjectQEntry *next;
 } CVObjectQEntry;
+
 
 struct _cvobjectqueue {
     CVObjectQEntry *head;
@@ -13,16 +15,16 @@ struct _cvobjectqueue {
 };
 
 
-static void cv_init_object_queue(CVObjectQ self)
+static void cv_init_object_queue(CVObjectQ *self)
 {
     self->head = self->tail = NULL;
 }
 
 
-static int cv_object_queue_push(CVObjectQ self, CVCoroutine coro)
+static int cv_object_queue_push(CVObjectQ *self, CVCoroutine *coro)
 {
     /* We're gonna borrow some of python's internals for a little bit */
-    CVObjectQEntry *new_entry = (CVObjectQEntry *)PyObject_Malloc(sizeof(struct _cvobjectqueueentry));
+    CVObjectQEntry *new_entry = (CVObjectQEntry *)PyObject_Malloc(sizeof(_cvobjectqueueentry));
 
     if (new_entry == NULL) {
         PyErr_NoMemory();
@@ -44,9 +46,9 @@ static int cv_object_queue_push(CVObjectQ self, CVCoroutine coro)
 }
 
 
-static CVCoroutine cv_object_queue_pop(CVObjectQ self)
+static CVCoroutine* cv_object_queue_pop(CVObjectQ *self)
 {
-    CVCoroutine coro;
+    CVCoroutine *coro;
     CVObjectQEntry *entry;
 
     if (Q_IS_EMPTY(self)) {
@@ -69,11 +71,12 @@ static CVCoroutine cv_object_queue_pop(CVObjectQ self)
 }
 
 
-static void cv_dealloc_object_queue(CVObjectQ self)
+static void cv_dealloc_object_queue(CVObjectQ *self)
 {
-    CVCoroutine c;
+    CVCoroutine *c = cv_object_queue_pop(self);
 
-    while ((c = cv_object_queue_pop(self)) != NULL) {
+    while (c != NULL) {
         cv_dealloc_coroutine(c);
+        c = cv_object_queue_pop(self);
     }
 }
