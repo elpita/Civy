@@ -15,11 +15,11 @@ static void cv_init_costack(CVCoStack *s)
 
 static void cv_dealloc_costack(CVCoStack *s)
 {
-    CVContinuation *c = cv_costack_pop(s));
+    CVContinuation *c = cv_costack_pop(s);
 
     while (c != NULL) {
         cv_dealloc_continuation(c);
-        c = cv_costack_pop(s));
+        c = cv_costack_pop(s);
     }
 }
 
