@@ -54,10 +54,10 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
 
 static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObject *kwds)
 {/* Used for creating a new coroutine called from python */
-    static struct _cvcontinuation cfp = {{0, NULL}, cv_exec, NULL, {NULL, NULL, NULL}};
+    static _cvcontinuation cfp = {{0, NULL}, cv_exec, NULL, {NULL, NULL, NULL}};
     PyObject *arguments[3] = {func, args, kwds};
 
-    cfp.coargs[0] = arguments;
+    cfp.coargs = arguments;
     
     if (cv_costack_push(coroutine, &cfp) < 0) {
         return -1;
