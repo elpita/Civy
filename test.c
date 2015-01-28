@@ -2,7 +2,7 @@
 
 #if defined ((unix) || defined(__unix__) || defined(__unix)) || defined (__APPLE__) /* If POSIX */
 #define cv_setjmp(jb) sigsetjmp(jb, 0)
-#define cv_longjmp(jb) siglongjmp(jb, 0)
+#define cv_longjmp(jb, v) siglongjmp(jb, v)
 static sigjmp_buf env[3];
 #else /* Use normal setjmp */
 #define cv_setjmp(jb) setjmp(jb)
