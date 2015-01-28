@@ -1,8 +1,22 @@
-#include "test.h"
-#define CV_ENTER_MAIN_LOOP_HERE switch(setjmp(to_main_loop)) { case 0: while(1) {
+#include <setjmp.h>
+
+#if defined ((unix) || defined(__unix__) || defined(__unix)) || defined (__APPLE__) /* If POSIX */
+#define cv_setjmp(jb) sigsetjmp(jb, 0)
+#define cv_longjmp(jb) siglongjmp(jb, 0)
+static sigjmp_buf env[3];
+#else /* Use normal setjmp */
+#define cv_setjmp(jb) setjmp(jb)
+#define cv_longjmp(jb, v) longjmp(jb, v)
+static jmp_buf env[3];
+#endif /* POSIX */
+
+#define to_civy_end env[0]
+#define to_main_loop env[1]
+#define to_event_loop env[2]
+#define CV_ENTER_MAIN_LOOP_HERE switch(cv_setjmp(to_main_loop)) { case 0: while(1) {
 #define CV_EXIT_MAIN_LOOP_HERE case 1: ; } break; case -1:
-#define CV_ENTER_EVENT_LOOP_HERE volatile int i; switch(setjmp(to_event_loop)) { case 0:
-#define CV_EXIT_EVENT_LOOP_HERE case 1:;} break; case -1: i = 0; longjmp(to_main_loop, 1); break;}
+#define CV_ENTER_EVENT_LOOP_HERE volatile int i; switch(cv_setjmp(to_event_loop)) { case 0:
+#define CV_EXIT_EVENT_LOOP_HERE case 1:;} break; case -1: i = 0; cv_longjmp(to_main_loop, 1); break;}
 #define EXIT_CV break; }
 static void (*cv_event_handlers[6]) (SDL_Event *);
 
@@ -12,8 +26,8 @@ static void cv_init_main_loop(void)
     //jmp_buf env[4];
     volatile PyFrameObject *main_frame = PyThreadState_GET()->frame;
 
-    //if setjmp(env[0]) {
-    if setjmp(to_civy_end) {
+    //if cv_setjmp(env[0]) {
+    if cv_setjmp(to_civy_end) {
         PyThreadState_GET()->frame = main_frame;
         PyErr_Print();
         //Py_Exit();
@@ -188,22 +202,22 @@ static void cv_handle_mouse_event(SDL_Event *event) {
     switch(event->type) {
         case SDL_MOUSEMOTION:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_MOUSEBUTTONDOWN:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_MOUSEBUTTONUP:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_MOUSEWHEEL:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         default:
-            longjmp(to_event_loop, 1);
+            cv_longjmp(to_event_loop, 1);
     }
 }
 
@@ -211,14 +225,14 @@ static void cv_handle_mouse_event(SDL_Event *event) {
 static void cv_handle_touch_event(SDL_Event *event) {
     if ((event->type == SDL_FINGERMOTION) || (event->type == SDL_FINGERDOWN) || (event->type == SDL_FINGERUP)) {
         /* call function */
-        longjmp(to_event_loop, -1);
+        cv_longjmp(to_event_loop, -1);
     }
     else if (event->type == SDL_MULTIGESTURE) {
         /* call function */
-        longjmp(to_event_loop, -1);
+        cv_longjmp(to_event_loop, -1);
     }
     else {
-        longjmp(to_event_loop, 1);
+        cv_longjmp(to_event_loop, 1);
     }
 }
 
@@ -226,10 +240,10 @@ static void cv_handle_touch_event(SDL_Event *event) {
 static void cv_handle_dropfile_event(SDL_Event *event) {
     if (event->type == SDL_DROPFILE) {
         /* call function */
-        longjmp(to_event_loop, -1);
+        cv_longjmp(to_event_loop, -1);
     }
     else {
-        longjmp(to_event_loop, 1);
+        cv_longjmp(to_event_loop, 1);
     }
 }
 
@@ -238,30 +252,30 @@ static void cv_handle_controller_event(SDL_Event *event) {
     switch(event->type) {
         case SDL_CONTROLLERAXISMOTION:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_CONTROLLERBUTTONDOWN:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_CONTROLLERBUTTONUP:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_CONTROLLERDEVICEADDED:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_CONTROLLERDEVICEREMOVED:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_CONTROLLERDEVICEREMAPPED:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         default:
-            longjmp(to_event_loop, 1);
+            cv_longjmp(to_event_loop, 1);
     }
 }
 
@@ -270,34 +284,34 @@ static void cv_handle_joystick_event(SDL_Event *event) {
     switch(event->type) {
         case SDL_JOYAXISMOTION:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_JOYBALLMOTION:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_JOYHATMOTION:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_JOYBUTTONDOWN:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_JOYBUTTONUP:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_JOYDEVICEADDED:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         case SDL_JOYDEVICEREMOVED:
             /* call function */
-            longjmp(to_event_loop, -1);
+            cv_longjmp(to_event_loop, -1);
             break;
         default:
-            longjmp(to_event_loop, 1);
+            cv_longjmp(to_event_loop, 1);
     }
 }
 
@@ -305,10 +319,10 @@ static void cv_handle_joystick_event(SDL_Event *event) {
 void cv_handle_clipboard_event(SDL_Event *event) {
     if (event->type == SDL_CLIPBOARDUPDATE) {
         /* Looks like we just need to send a `True` */
-        longjmp(to_event_loop, -1);
+        cv_longjmp(to_event_loop, -1);
     }
     else {
-        longjmp(to_event_loop, 1);
+        cv_longjmp(to_event_loop, 1);
     }
 }
 
@@ -316,10 +330,10 @@ void cv_handle_clipboard_event(SDL_Event *event) {
 void cv_handle_quit_event(SDL_Event *event) {
     if (event->type == SDL_QUIT) {
         /* do stuff */
-        longjmp(to_main_loop, -1);
+        cv_longjmp(to_main_loop, -1);
     }
     else {
-        longjmp(to_event_loop, 1);
+        cv_longjmp(to_event_loop, 1);
     }
 }
 
@@ -354,7 +368,7 @@ void cv_continuation_check(CVContinuation C)
             state->parent = NULL;
         }
         cv_dealloc_coroutine(C);
-        longjmp(to_main_loop, 1);
+        cv_longjmp(to_main_loop, 1);
     }
 }
 
@@ -432,6 +446,6 @@ static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCall
              cv_dealloc_coroutine(C);
             /* Jump */
         }
-        longjmp(back, 1);
+        cv_longjmp(back, 1);
     }
 }
