@@ -1,6 +1,7 @@
 #include <setjmp.h>
 
-#if defined ((unix) || defined(__unix__) || defined(__unix)) || defined (__APPLE__) /* If POSIX */
+/* POSIX */
+#if defined ((unix) || defined(__unix__) || defined(__unix)) || defined (__APPLE__)
 #define cv_setjmp(jb) sigsetjmp(jb, 0)
 #define cv_longjmp(jb, v) siglongjmp(jb, v)
 static sigjmp_buf env[3];
