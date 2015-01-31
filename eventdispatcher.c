@@ -225,7 +225,7 @@ static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args
             return NULL;
         }
         else if (!PyCallable_Check(callable)) {
-            PyErr_Format(PyExc_TypeError, "%s is not callable.", PYOBJECT_NAME(callback)); //fix this
+            PyErr_Format(PyExc_TypeError, "%s is not callable.", PYOBJECT_NAME(callback));
             return NULL;
         }
         else if (delay <= 0) {
