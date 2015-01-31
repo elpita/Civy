@@ -208,24 +208,43 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
         Py_DECREF(func);
         return NULL;
     }
-    longjmp(back, 1);
+    cv_longjmp(back, 1);
 }
 
 
-static PyObject* EventDispatcher_schedule_interval(CVEventDispatcher self, PyObject *args, PyObject *kwds)
+static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args, PyObject *kwargs)
 {
+    int repeat=0;
     Uint32 delay;
-    SDL_TimerID my_timer_id;
-    PyObject *callable, *timer_ids=self->timer_ids;
-    static char *kwargs[] = {"callback", "interval", NULL};
+    PyObject *callable;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OI", kwargs, &callable, &interval)) {
-        return -1;
+    {
+        static char *kwds[] = {"callback", "delay", "repeat", NULL};
+
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OI|i", kwds, &callable, &delay, &repeat)) {
+            return NULL;
+        }
+        else if (!PyCallable_Check(callable)) {
+            PyErr_Format(PyExc_TypeError, "%s is not callable.", PYOBJECT_NAME(callback)); //fix this
+            return NULL;
+        }
+        else if (delay <= 0) {
+            PyErr_SetString(PyExc_ValueError, "'delay' must be greater than 0 miliseconds.");
+            return NULL;
+        }
     }
-    else if (!PyCallable_Check(callable)) {
-        PyErr_Format(PyExc_TypeError, "%s is not callable.", ???); //fix this
+
+    if (!repeat && (cv_schedule_once((PyObject *)self, callback, delay, self->timer_ids) < 0)) {
         return NULL;
     }
+    else if (cv_schedule_interval((PyObject *)self, callback, delay, self->time_ids) < 0) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+
+static whatever
     my_timer_id = SDL_AddTimer(delay, my_callbackfunc, my_callback_param);
 
     if (!my_timer_id) {
