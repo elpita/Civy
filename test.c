@@ -21,6 +21,8 @@ static jmp_buf env[3];
 #define EXIT_CV break; }
 static void (*cv_event_handlers[6]) (SDL_Event *);
 
+#define PYOBJECT_NAME(ob) Py_TYPE(ob)->tp_name // For `PyErr_Format` handling
+
 
 static void cv_init_main_loop(void)
 {
