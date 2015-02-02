@@ -47,63 +47,6 @@ static PyTypeObject CVTimerStructType = {
 #define CV_END_DENY_THREADS PyGILState_Release(gstate); }
 #define fail_thread() do { Py_AddPendingCall(...); PyGILState_Release(gstate); } while(0)
 
-Uint32 inline_do_schedule(Uint32 interval, void *param)
-{
-    PyObject *actor, *args;
-    struct _cvtimerstruct *pyparams;
-
-    pyparams = (struct _cvtimerstruct *)param;
-    actor = pyparams->weak_actor;
-
-    if (is_dead(actor)) {
-        return 0;
-    }
-    Py_INCREF(actor);
-    args = Py_BuildValue("(OI)", actor, interval);
-    
-    if (args == NULL) {
-        return 0;
-    }
-    else if (async_dispatch(actor, pyparams->func, args, NULL) < 0) {
-        Py_DECREF(args);
-        return 0;
-    }
-    return interval;
-}
-
-
-Uint32 cv_schedule_interval(Uint32 interval, void *param)
-{
-    CV_BEGIN_DENY_THREADS
-
-    if (!inline_do_schedule(interval, param)) {
-        fail_thread();
-        return 0;
-    }
-    
-    CV_END_DENY_THREADS
-
-    return interval;
-
-
-Uint32 cv_schedule_once(Uint32 interval, void *param)
-{
-    PyObject *actor, *dict;
-
-    CV_BEGIN_DENY_THREADS
-
-    if (!inline_do_schedule(interval, param)) {
-        fail_thread();
-        return 0;
-    }
-    /* Remove param from actor's dict */
-
-    CV_END_DENY_THREADS
-
-    return 0;
-}
-
-
 /* EventDispatcher ********************************************************************************************************* */
 static int str_endswith(PyObject *key, const char *suffix)
 {
@@ -256,36 +199,7 @@ static void cv_schedule_once(PyObject **self, PyObject **callback, Uint32 *delay
 }
 
 
-static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args, PyObject *kwargs)
-{
-    int repeat=0;
-    Uint32 delay;
-    PyObject *callback;
 
-    {
-        static char *kwds[] = {"callback", "delay", "repeat", NULL};
-
-        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OI|i", kwds, &callable, &delay, &repeat)) {
-            return NULL;
-        }
-        else if (!PyCallable_Check(callable)) {
-            PyErr_Format(PyExc_TypeError, "%s is not callable.", PYOBJECT_NAME(callback));
-            return NULL;
-        }
-        else if (delay <= 0) {
-            PyErr_SetString(PyExc_ValueError, "'delay' must be greater than 0 miliseconds.");
-            return NULL;
-        }
-    }
-
-    if (!repeat && (cv_schedule_once(&self, &callback, &delay, self->timer_ids) < 0)) {
-        return NULL;
-    }
-    else if (cv_schedule_interval(&self, &callback, &delay, self->time_ids) < 0) {
-        return NULL;
-    }
-    Py_RETURN_NONE;
-}
 
 
 static whatever
