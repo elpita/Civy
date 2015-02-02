@@ -69,7 +69,7 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
 
 static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObject *kwds)
 {/* Used for creating a new coroutine called from python */
-    static _cvcontinuation cfp = {{0, NULL}, cv_exec, NULL, {NULL, NULL, NULL}};
+    _cvcontinuation cfp = {{0, NULL}, cv_exec, NULL, {NULL, NULL, NULL}}; //Also called in SDL Threads
     PyObject *arguments[3] = {func, args, kwds};
 
     cfp.coargs = arguments;
