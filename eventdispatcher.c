@@ -155,63 +155,6 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
 }
 
 
-static void cv_schedule_once(PyObject **self, PyObject **callback, Uint32 *delay, PyObject *ids)
-{
-    PyObject *key;
-    long int lint;
-    
-    lint = PyObject_Hash(*callback);
-    
-    if (lint < 0) {
-        return -1;
-    }
-    key = PyLong_FromLong(lint);
-    
-    if (key == NULL) {
-        return -1;
-    }
-    else {
-        PyObject *whatever = PyDict_GetItem(ids, key);
-
-        if (whatever != NULL) {
-            if (whatever->type == INTERVAL) {
-                PyErr_Format(PyExc_RuntimeError, "%s is already a scheduled periodic function.", PYOBJECT_NAME(*callback));
-                Py_DECREF(key);
-                return -1;
-            }
-            my_timer_id = SDL_AddTimer(*delay, schedule_once, my_callback_param);
-
-            if (!my_timer_id) {
-                PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
-                Py_DECREF(key);
-                return -1;
-            }
-            new_id = Py_BuildValue("i", my_timer_id);
-
-            if ((new_id == NULL) || (PyList_Append(whatever->sdl_ids, new_id) < 0)) {
-                Py_DECREF(key);
-                return -1;
-            }
-            Py_INCREF(whatever);
-            Py_DECREF(new_id);
-        }
-    }
-}
-
-
-
-
-
-static whatever
-    my_timer_id = SDL_AddTimer(delay, my_callbackfunc, my_callback_param);
-
-    if (!my_timer_id) {
-        PyErr_SetString(PyExc_TypeError, SDL_GetError());
-        return NULL;
-    }
-}
-
-
 /*
 static PyObject* EventDispatcherType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
