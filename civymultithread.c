@@ -34,6 +34,18 @@ static void cv_exec(PyObject *func, PyObject *args, PyObject *kwds)
 }
 
 
+static void cv_periodic_exec(PyObject *ids, PyObject *key, PyObject *)
+{/* This is the special continuation for events called *from* Python */
+    PyObject *result = CV_CoResume();
+
+    if ((result == Py_False) && (PyDict_Contains(ids, key)) {
+        /* delete */
+    }
+
+    CV_CoReturn(result);
+}
+
+
 void cv_join(PyObject *args, PyObject *, PyObject *)
 {/* This is a special continuation for returning *back* to Python */
     int throw_value=0;
