@@ -260,7 +260,7 @@ static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args
 {
     int repeat=0;
     Uint32 delay;
-    PyObject *callable;
+    PyObject *callback;
 
     {
         static char *kwds[] = {"callback", "delay", "repeat", NULL};
