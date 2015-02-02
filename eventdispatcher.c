@@ -1,11 +1,11 @@
 /* timer struct ************************************************************************************************************ */
+
 struct _cvtimerstruct {
     PyObject_HEAD
+    enum {ONCE, INTERVAL} type;
     PyObject *func;
     PyObject *weak_actor;
-    //PyObject *frame;
-    //int recursion_depth;
-    SDL_TimerID timer_id;
+    PyObject *sdl_ids;
 }
 
 
@@ -212,6 +212,50 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
 }
 
 
+static void cv_schedule_once(PyObject **self, PyObject **callback, Uint32 *delay, PyObject *ids)
+{
+    PyObject *key;
+    long int lint;
+    
+    lint = PyObject_Hash(*callback);
+    
+    if (lint < 0) {
+        return -1;
+    }
+    key = PyLong_FromLong(lint);
+    
+    if (key == NULL) {
+        return -1;
+    }
+    else {
+        PyObject *whatever = PyDict_GetItem(ids, key);
+
+        if (whatever != NULL) {
+            if (whatever->type == INTERVAL) {
+                PyErr_Format(PyExc_RuntimeError, "%s is already a scheduled periodic function.", PYOBJECT_NAME(*callback));
+                Py_DECREF(key);
+                return -1;
+            }
+            my_timer_id = SDL_AddTimer(*delay, schedule_once, my_callback_param);
+
+            if (!my_timer_id) {
+                PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
+                Py_DECREF(key);
+                return -1;
+            }
+            new_id = Py_BuildValue("i", my_timer_id);
+
+            if ((new_id == NULL) || (PyList_Append(whatever->sdl_ids, new_id) < 0)) {
+                Py_DECREF(key);
+                return -1;
+            }
+            Py_INCREF(whatever);
+            Py_DECREF(new_id);
+        }
+    }
+}
+
+
 static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args, PyObject *kwargs)
 {
     int repeat=0;
@@ -234,10 +278,10 @@ static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args
         }
     }
 
-    if (!repeat && (cv_schedule_once((PyObject *)self, callback, delay, self->timer_ids) < 0)) {
+    if (!repeat && (cv_schedule_once(&self, &callback, &delay, self->timer_ids) < 0)) {
         return NULL;
     }
-    else if (cv_schedule_interval((PyObject *)self, callback, delay, self->time_ids) < 0) {
+    else if (cv_schedule_interval(&self, &callback, &delay, self->time_ids) < 0) {
         return NULL;
     }
     Py_RETURN_NONE;
