@@ -39,9 +39,8 @@ static void cv_periodic_exec(PyObject *ids, PyObject *key, PyObject *)
     PyObject *result = CV_CoResume();
 
     if ((result == Py_False) && (PyDict_Contains(ids, key)) {
-        /* delete */
+        PyDict_DelItem(ids, key);
     }
-
     CV_CoReturn(result);
 }
 
