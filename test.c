@@ -15,11 +15,8 @@ static jmp_buf env[3];
 #define to_main_loop env[1]
 #define to_event_loop env[2]
 
-#define BEGIN_CV static PyFrameObject *main_frame; static int main_depth; {PyThreadState *tstate = PyThreadState_GET(); main_frame = tstate->frame; main_depth = tstate->recursion_depth;}
-#define CV_ENTER_MAIN_LOOP_HERE BEGIN_CV switch(cv_setjmp(to_main_loop)) { case 0: while(1) {
-#define IF_ERROR_OCCURRED case 1: ; } break; case -1:
-#define END_CV {PyThreadState *tstate = PyThreadState_GET(); tstate->frame = main_frame; tstate->recursion_depth = main_depth;}
-#define CV_EXIT_MAIN_LOOP_HERE break; default: break; } END_CV
+#define CV_ENTER_MAIN_LOOP_HERE switch(cv_setjmp(to_main_loop)) { case 0: while(1) {
+#define CV_EXIT_MAIN_LOOP_HERE case 1:;} break; }
 
 #define CV_ENTER_EVENT_LOOP_HERE volatile int i; switch(cv_setjmp(to_event_loop)) { case 0:
 #define CV_EXIT_EVENT_LOOP_HERE case 1:;} break; case -1: i = 0; cv_longjmp(to_main_loop, 1); break;}
@@ -28,21 +25,33 @@ static void (*cv_event_handlers[6]) (SDL_Event *);
 #define PYOBJECT_NAME(ob) Py_TYPE(ob)->tp_name // For `PyErr_Format` handling
 
 
-static void cv_init_main_loop(void)
+static void cv_run(void)
 {
-    //jmp_buf env[4];
-    volatile PyFrameObject *main_frame = PyThreadState_GET()->frame;
+    static PyFrameObject *main_frame;
+    static int main_depth
+    volatile int i;
+    
+    /* Begin CV by saving the current PyFrame, then restoring it when we're done. */
 
-    //if cv_setjmp(env[0]) {
-    if cv_setjmp(to_civy_end) {
-        PyThreadState_GET()->frame = main_frame;
-        PyErr_Print();
-        //Py_Exit();
+    i = cv_setjmp(to_civy_end);
+
+    if (!i) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        main_frame = tstate->frame;
+        main_depth = tstate->recursion_depth;
+        Py_AtExit(SDL_Quit);
+        cv_main_loop();
     }
     else {
-        //cv_main_loop(&env[1]);
-        //Py_AtExit(SDL_Quit);
-        cv_main_loop();
+        PyThreadState *tstate = PyThreadState_GET();
+
+        tstate->frame = main_frame;
+        tstate->recursion_depth = main_depth;
+
+        if (i < 0) {
+            PyErr_Print();
+        }
     }
 }
 
@@ -102,9 +111,6 @@ static void cv_main_loop(void)
             }
             break;
     }
-
-    IF_ERROR_OCCURRED 
-        PyErr_Print();
 
     CV_EXIT_MAIN_LOOP_HERE
 }
