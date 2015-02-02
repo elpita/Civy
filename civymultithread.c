@@ -36,18 +36,22 @@ static void cv_exec(PyObject *func, PyObject *args, PyObject *kwds)
 
 void cv_join(PyObject *args, PyObject *, PyObject *)
 {/* This is a special continuation for returning *back* to Python */
+    int throw_value=0;
     PyObject *result = cv_coresume();
     PyThreadState *ts = PyThreadState_GET();
 
-    /* steal the reference to the frame */
+    /* Steal the reference to the frame */
     Py_INCREF(args);
-    Py_INCREF(result); //?
+    Py_XINCREF(result); //?
     cv_kill_current();
 
-    //ts->recursion_depth = CV_GetRoutineVars();
+    /* If there was a problem, let the frame know */
+    if (PyErr_Occurred()) {
+        throw_value++;
+    }
     ts->frame = (PyFrameObject *)args;
     *(ts->frame->f_stacktop++) = result;
-    result = PyEval_EvalFrame(ts->frame);
+    result = PyEval_EvalFrameEx(ts->frame, throw_value);
     CV_CoReturn(result);
 }
 
