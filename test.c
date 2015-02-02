@@ -14,11 +14,15 @@ static jmp_buf env[3];
 #define to_civy_end env[0]
 #define to_main_loop env[1]
 #define to_event_loop env[2]
-#define CV_ENTER_MAIN_LOOP_HERE switch(cv_setjmp(to_main_loop)) { case 0: while(1) {
-#define CV_EXIT_MAIN_LOOP_HERE case 1: ; } break; case -1:
+
+#define BEGIN_CV static PyFrameObject *main_frame; static int main_depth; {PyThreadState *tstate = PyThreadState_GET(); main_frame = tstate->frame; main_depth = tstate->recursion_depth;}
+#define CV_ENTER_MAIN_LOOP_HERE BEGIN_CV switch(cv_setjmp(to_main_loop)) { case 0: while(1) {
+#define IF_ERROR_OCCURRED case 1: ; } break; case -1:
+#define END_CV {PyThreadState *tstate = PyThreadState_GET(); tstate->frame = main_frame; tstate->recursion_depth = main_depth;}
+#define CV_EXIT_MAIN_LOOP_HERE break; default: break; } END_CV
+
 #define CV_ENTER_EVENT_LOOP_HERE volatile int i; switch(cv_setjmp(to_event_loop)) { case 0:
 #define CV_EXIT_EVENT_LOOP_HERE case 1:;} break; case -1: i = 0; cv_longjmp(to_main_loop, 1); break;}
-#define EXIT_CV break; }
 static void (*cv_event_handlers[6]) (SDL_Event *);
 
 #define PYOBJECT_NAME(ob) Py_TYPE(ob)->tp_name // For `PyErr_Format` handling
@@ -99,10 +103,10 @@ static void cv_main_loop(void)
             break;
     }
 
-    CV_EXIT_MAIN_LOOP_HERE
+    IF_ERROR_OCCURRED 
+        PyErr_Print();
 
-    /* Call final function(s) */
-    EXIT_CV
+    CV_EXIT_MAIN_LOOP_HERE
 }
 
 
