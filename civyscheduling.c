@@ -57,7 +57,6 @@ static int cv_schedule_period(CVCoroutine *coro, PyObject *ids, PyObject *key)
     }
     Py_INCREF(ids);
     Py_INCREF(key);
-    Py_INCREF(func)
     return 0;
 }
 
