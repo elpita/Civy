@@ -1,3 +1,13 @@
+#define CV_BEGIN_DENY_THREADS {PyGILState_STATE gstate; gstate = PyGILState_Ensure();
+#define CV_FAIL_THREAD() Py_AddPendingCall(&_cv_fail_thread, NULL); PyGILState_Release(gstate); return 0
+#define CV_END_DENY_THREADS PyGILState_Release(gstate); }
+
+
+static int _cv_fail_thread(void *)
+{
+    cv_longjmp(to_cv_end, -1);
+}
+
 static Uint32 cv_periodic_function(Uint32 interval, void *param)
 {
     PyObject *v;
@@ -10,13 +20,11 @@ static Uint32 cv_periodic_function(Uint32 interval, void *param)
     v = Py_BuildValue("(OI)", this->weak_actor, interval);
 
     if (v == NULL) {
-        /* Schedule fail */
-        return 0;
+        CV_FAIL_THREAD();
     }
     else if ((cv_spawn(this->coro, this->func, v, NULL) < 0) || (cv_push_event(this->weak_actor, CV_DISPATCHED_EVENT, 0) < 0) || (cv_object_queue_push(this->q, this->coro) < 0)) {
         Py_DECREF(v);
-        /* Schedule Fail */
-        return 0;
+        CV_FAIL_THREAD();
     }
     Py_INCREF(this->func);
 
@@ -24,12 +32,10 @@ static Uint32 cv_periodic_function(Uint32 interval, void *param)
     coro = cv_create_coroutine(this->actor);
 
     if (coro == NULL) {
-        /* Schedule Fail */
-        return 0;
+        CV_FAIL_THREAD();
     }
     else if (cv_schedule_period(this->actor, this->ids, this->key) < 0) {
-        /* Schedule Fail */
-        return 0;
+        CV_FAIL_THREAD();
     }
     this->coro = coro;
 
