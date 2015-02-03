@@ -78,7 +78,7 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args
 
     /* First, check if function call is legal */
     if (s_size < 1) {
-        PyErr_SetString(PyExc_TypeError, "'dispatch' takes a string argument ending with '_event'"); //fix
+        PyErr_SetString(PyExc_ValueError, "'dispatch' takes a string argument ending with '_event'"); //fix
         return NULL;
     }
     else {
