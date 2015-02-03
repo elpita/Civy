@@ -1,9 +1,9 @@
 #define CV_BEGIN_DENY_THREADS {PyGILState_STATE gstate; gstate = PyGILState_Ensure();
-#define CV_FAIL_THREAD() Py_AddPendingCall(&_cv_fail_thread, NULL); PyGILState_Release(gstate); return 0
+#define CV_COLLAPSE_THREAD() Py_AddPendingCall(&_cv_fail, NULL); PyGILState_Release(gstate); return 0
 #define CV_END_DENY_THREADS PyGILState_Release(gstate); }
 
 
-static int _cv_fail_thread(void *)
+static int _cv_fail(void *)
 {
     cv_longjmp(to_cv_end, -1);
 }
@@ -20,11 +20,11 @@ static Uint32 cv_periodic_function(Uint32 interval, void *param)
     v = Py_BuildValue("(OI)", this->weak_actor, interval);
 
     if (v == NULL) {
-        CV_FAIL_THREAD();
+        CV_COLLAPSE_THREAD();
     }
     else if ((cv_spawn(this->coro, this->func, v, NULL) < 0) || (cv_push_event(this->weak_actor, CV_DISPATCHED_EVENT, 0) < 0) || (cv_object_queue_push(this->q, this->coro) < 0)) {
         Py_DECREF(v);
-        CV_FAIL_THREAD();
+        CV_COLLAPSE_THREAD();
     }
     Py_INCREF(this->func);
 
@@ -32,10 +32,10 @@ static Uint32 cv_periodic_function(Uint32 interval, void *param)
     coro = cv_create_coroutine(this->actor);
 
     if (coro == NULL) {
-        CV_FAIL_THREAD();
+        CV_COLLAPSE_THREAD();
     }
     else if (cv_schedule_period(this->actor, this->ids, this->key) < 0) {
-        CV_FAIL_THREAD();
+        CV_COLLAPSE_THREAD();
     }
     this->coro = coro;
 
@@ -109,16 +109,16 @@ static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args
 {
     int repeat=0;
     Uint32 delay;
-    PyObject *callback;
+    const char *name;
 
     {
-        static char *kwds[] = {"callback", "delay", "repeat", NULL};
+        static char *kwds[] = {"name", "delay", "repeat", NULL};
 
-        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OI|i", kwds, &callable, &delay, &repeat)) {
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sI|i", kwds, &name, &delay, &repeat)) {
             return NULL;
         }
-        else if (!PyCallable_Check(callable)) {
-            PyErr_Format(PyExc_TypeError, "%s is not callable.", PYOBJECT_NAME(callback));
+        else if (!str_startswith(name, "on_")) {
+            PyErr_SetString(PyExc_ValueError, "'schedule' takes a string argument starting with 'on_'.");
             return NULL;
         }
         else if (delay <= 0) {
