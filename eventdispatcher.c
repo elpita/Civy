@@ -42,12 +42,15 @@ static PyTypeObject CVTimerStructType = {
 };
 
 
-/* timer threads *********************************************************************************************************** */
-#define CV_BEGIN_DENY_THREADS { PyGILState_STATE gstate; gstate = PyGILState_Ensure();
-#define CV_END_DENY_THREADS PyGILState_Release(gstate); }
-#define fail_thread() do { Py_AddPendingCall(...); PyGILState_Release(gstate); } while(0)
-
 /* EventDispatcher ********************************************************************************************************* */
+static int str_startswith(const char *key, const char *prefix)
+{
+    size_t lenpre = strlen(prefix),
+           lenstr = strlen(key);
+    return lenstr < lenpre ? 0 : (strncmp(prefix, key, lenpre) == 0);
+}
+
+
 static int str_endswith(PyObject *key, const char *suffix)
 {
     if (!PyString_Check(key)) {
