@@ -8,6 +8,7 @@ static int _cv_fail(void *)
     cv_longjmp(to_cv_end, -1);
 }
 
+
 static Uint32 cv_periodic_function(Uint32 interval, void *param)
 {
     PyObject *v;
