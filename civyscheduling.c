@@ -128,10 +128,10 @@ static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args
         }
     }
 
-    if (!repeat && (cv_schedule_once(&self, &callback, &delay, self->timer_ids) < 0)) {
+    if (!repeat && (cv_schedule_once(&self, &name, &delay, self->timer_ids) < 0)) {
         return NULL;
     }
-    else if (cv_schedule_interval(&self, &callback, &delay, self->time_ids) < 0) {
+    else if (cv_schedule_interval(&self, &name, &delay, self->time_ids) < 0) {
         return NULL;
     }
     Py_RETURN_NONE;
