@@ -13,7 +13,7 @@ static Uint32 cv_periodic_function(Uint32 interval, void *param)
 {
     PyObject *v;
     CVCoroutine *coro;
-    PyObject *this = (PyObject *)param;
+    Something *this = (Something *)param;
     
     CV_BEGIN_DENY_THREADS
     
@@ -38,6 +38,8 @@ static Uint32 cv_periodic_function(Uint32 interval, void *param)
     else if (cv_schedule_period(this->actor, this->ids, this->key) < 0) {
         CV_COLLAPSE_THREAD();
     }
+    Py_INCREF(ids);
+    Py_INCREF(key);
     this->coro = coro;
 
     CV_END_DENY_THREADS
@@ -56,8 +58,93 @@ static int cv_schedule_period(CVCoroutine *coro, PyObject *ids, PyObject *key)
     if (cv_costack_push(coro, &period) < 0) {
         return -1;
     }
+    return 0;
+}
+
+
+static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, PyObject *ids)
+{
+    PyObject *func;
+    Something *t_struct;
+    PyObject *weak_actor;
+    PyObject *key;
+
+    if (PyDict_GetItemString(ids, name) != NULL) {
+        PyErr_Format(PyExc_RuntimeError, "'%s' is already a scheduled periodic event.", name);
+        return -1;
+    }
+    else {
+        PyObject *meth = PyObject_GetAttrString(self, name);
+
+        if (meth == NULL) {
+            PyErr_Format(PyExc_AttributeError, "'%s' has no event named '%s'.", PYOBJECT_NAME(self), name);
+            return -1;
+        }
+        else if (!PyMethod_Check(meth)) {
+            PyErr_Format(PyExc_AttributeError, "'%s' has no event named '%s'.", PYOBJECT_NAME(self), name);
+            Py_DECREF(meth);
+            return -1;
+        }
+        func = PyMethod_Function(meth);
+        Py_INCREF(func);
+        Py_DECREF(meth);
+    }
+    weak_actor = PyWeakref_NewRef(self, NULL);
+    
+    if (weak_actor == NULL) {
+        Py_DECREF(func);
+        return -1;
+    }
+    key = PyString_FromString(name);
+    
+    if (key == NULL) {
+        Py_DECREF(weak_actor);
+        Py_DECREF(func);
+        return -1;
+    }
+    coro = cv_create_coroutine(self);
+    
+    if (coro == NULL) {
+        Py_DECREF(key);
+        Py_DECREF(weak_actor);
+        Py_DECREF(func);
+        return -1;
+    }
+    else if (cv_schedule_period(coro, ids, key) < 0) {
+        cv_dealloc_coroutine(coro);
+        Py_DECREF(key);
+        Py_DECREF(weak_actor);
+        Py_DECREF(func);
+        return -1;
+    }
     Py_INCREF(ids);
     Py_INCREF(key);
+    t_struct = new_tstruct();
+
+    if (t_struct == NULL) {
+        cv_dealloc_coroutine(coro);
+        Py_DECREF(key);
+        Py_DECREF(weak_actor);
+        Py_DECREF(func);
+        return -1;
+    }
+    t_struct->actor = self;
+    t_struct->q = &(((CVObject *)self)->cvprocesses);
+    t_struct->coro = coro;
+    t_struct->weak_actor = weak_actor;
+    t_struct->key = key;
+    t_struct->func = func;
+    t_struct->timer_id = SDL_AddTimer(delay, &cv_periodic_function, (void *)t_struct);
+
+    if (!timer_id) {
+        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
+        destroy(t_struct); //Will take care of the rest.
+        return -1;
+    }
+    else if (PyDict_SetItemString(ids, name, (PyObject *)t_struct) < 0) {
+        destroy(t_struct);
+        return -1;
+    }
     return 0;
 }
 
@@ -110,7 +197,7 @@ static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args
 {
     int repeat=0;
     Uint32 delay;
-    const char *name;
+    char *name;
 
     {
         static char *kwds[] = {"name", "delay", "repeat", NULL};
@@ -128,10 +215,10 @@ static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args
         }
     }
 
-    if (!repeat && (cv_schedule_once(&self, &name, &delay, self->timer_ids) < 0)) {
+    if (!repeat && (cv_schedule_once(self, name, delay, self->timer_ids) < 0)) {
         return NULL;
     }
-    else if (cv_schedule_interval(&self, &name, &delay, self->time_ids) < 0) {
+    else if (cv_schedule_interval(self, name, delay, self->time_ids) < 0) {
         return NULL;
     }
     Py_RETURN_NONE;
