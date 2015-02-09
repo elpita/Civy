@@ -1,5 +1,5 @@
 #define CV_BEGIN_DENY_THREADS {PyGILState_STATE gstate; gstate = PyGILState_Ensure();
-#define CV_COLLAPSE_THREAD() Py_AddPendingCall(&_cv_fail, NULL); PyGILState_Release(gstate); return 0
+#define CV_COLLAPSE_THREAD() PyGILState_Release(gstate); Py_AddPendingCall(&_cv_fail, NULL); return 0
 #define CV_END_DENY_THREADS PyGILState_Release(gstate); }
 
 
@@ -35,7 +35,7 @@ static Uint32 cv_periodic_function(Uint32 interval, void *param)
     if (coro == NULL) {
         CV_COLLAPSE_THREAD();
     }
-    else if (cv_schedule_period(this->actor, this->ids, this->key) < 0) {
+    else if (cv_schedule_period(coro, this->ids, this->key) < 0) {
         CV_COLLAPSE_THREAD();
     }
     Py_INCREF(ids);
