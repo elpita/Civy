@@ -14,24 +14,38 @@ cdef class WeakList(list):
         items = items or []
         super(WeakList, self).__init__((_get_ref(x, self) for x in items))
 
+    def __add__(self, object items):
+        if not isinstance(items, WeakList):
+            raise TypeError("can only concatenate WeakList (not '{!s}') to WeakList".format(type(items)))
+        return super(WeakList, self).__add__(items)
+
     def __contains__(self, object item):
         return super(WeakList, self).__contains__(_get_ref(item, self))
 
+    def __delitem__(self, object item):
+        super(WeakList, self).__delitem__(_get_ref(item, self))
+
     def __getitem__(self, object i):
-        if not isinstance(i, slice):
+        if not PySlice_Check(i):
             return _get_object(super(WeakList, self).__getitem__(i))
         cdef object x
         cdef object gen = (_get_object(x) for x in super(WeakList, self).__getitem__(i))
         return list(gen)
 
     def __getslice__(self, Py_ssize_t i, Py_ssize_t j):
-        cdef slice s = PySlice_New(i, j, None)
+        cdef slice s = slice(i, j, None)
         return self.__getitem__(s)
+
+    def __iadd__(self, object items):
+        if isinstance(items, WeakList):
+            return super(WeakList, self).__iadd__(items)
+        cdef object x
+        return super(WeakList, self).__iadd__((_get_ref(x, self) for x in items))
 
     def __iter__(self):
         cdef object x
         for x in super(WeakList, self).__iter__():
-            yield _get_objectx)
+            yield _get_object(x)
 
     def __repr__(self):
         return "WeakList({!r})".format(list(self))
@@ -42,7 +56,7 @@ cdef class WeakList(list):
             yield _get_object(x)
 
     def __setitem__(self, object i, object item):
-        if not isinstance(i, slice):
+        if not PySlice_Check(i):
             super(WeakList, self).__setitem__(i, _get_ref(item, self))
             return
         cdef object x
@@ -50,7 +64,7 @@ cdef class WeakList(list):
         super(WeakList, self).__setitem__(i, gen)
 
     def __setslice__(self, Py_ssize_t i, Py_ssize_t j, object items):
-        cdef slice s = PySlice_New(i, j, None)
+        cdef slice s = slice(i, j, None)
         if not PySequence_Check(items):
             items = (items,)
         self.__setitem__(s, items)
