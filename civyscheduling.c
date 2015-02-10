@@ -22,7 +22,7 @@ typedef struct _cvperiodicslate {
 } CVPeriodicSlate;
 
 
-static void CVPeriodicSlate_dealloc(struct _cvtimerstruct *self)
+static void CVPeriodicSlate_dealloc(CVPeriodicSlate *self)
 {
     Py_DECREF(self->weak_actor);
     PyObject_Del( (PyObject *)self );
