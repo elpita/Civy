@@ -20,7 +20,7 @@ cdef class WeakCallback:
             list.remove(weak_list, item)
 
 
-cdef inline object _get_ref(object x, object self):
+cdef inline object _get_ref(object x, WeakList self):
     return PyWeakref_NewRef(x, self._remove)
 
 
