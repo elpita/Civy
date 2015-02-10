@@ -1,13 +1,33 @@
 cdef inline object _get_object(object x):
-    x = PyWeakref_GetObject(x)
+    x = PyWeakref_GET_OBJECT(x)
     Py_XINCREF(x)
     return x
+
+
+cdef class WeakCallback:
+    __slots__ = ('obj')
+    cdef object _obj
+
+    def __cinit__(self, WeakList obj):
+        self._obj = PyWeakref_NewRef(obj, None)
+
+    def __call__(self, object item):
+        cdef object weak_list = PyWeakref_GET_OBJECT(self._obj)
+
+        if (weak_list == None):
+            return
+        while list.__contains__(weak_list, item):
+            list.remove(weak_list, item)
+
 
 cdef inline object _get_ref(object x, object self):
     return PyWeakref_NewRef(x, self._remove)
 
 
 cdef class WeakList(list):
+
+    def __cinit__(self, *args):
+        self._remove = WeakCallback(self)
 
     def __init__(self, items=None):
         cdef object x
@@ -68,10 +88,6 @@ cdef class WeakList(list):
         if not PySequence_Check(items):
             items = (items,)
         self.__setitem__(s, items)
-
-    cpdef _remove(self, object item):
-        while super(WeakList, self).__contains__(item):
-            super(WeakList, self).remove(item)
 
     def append(self, object item):
         super(WeakList, self).append(_get_ref(item, self))
