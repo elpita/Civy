@@ -85,7 +85,7 @@ static Uint32 cv_periodic_function(Uint32 interval, void *param)
 {
     PyObject *v;
     CVCoroutine *coro;
-    Something *this = (Something *)param;
+    CVPeriodicSlate *this = (CVPeriodicSlate *)param;
     
     CV_BEGIN_DENY_THREADS
     
@@ -136,7 +136,7 @@ static int cv_schedule_period(CVCoroutine *coro, PyObject *ids, PyObject *key)
 
 static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, PyObject *ids)
 {
-    Something *t_struct = new_tstruct(self);
+    CVPeriodicSlate *t_struct = new_cv_preiodic_state(self);
 
     if (t_struct == NULL) {
         return -1;
@@ -176,7 +176,7 @@ static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, 
         PyObject *key = PyString_FromString(name);
 
         if (key == NULL) {
-            destroy(t_struct);
+            PyDict_DelItemString(ids, name);
             return -1;
         }
         else {
@@ -184,13 +184,13 @@ static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, 
 
             if (coro == NULL) {
                 Py_DECREF(key);
-                destroy(t_struct);
+                PyDict_DelItemString(ids, name);
                 return -1;
             }
             else if (cv_schedule_period(coro, ids, key) < 0) {
                 cv_dealloc_coroutine(coro);
                 Py_DECREF(key);
-                destroy(t_struct);
+                PyDict_DelItemString(ids, name);
                 return -1;
             }
             Py_INCREF(ids);
@@ -206,7 +206,7 @@ static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, 
 
     if (!t_struct->timer_id) {
         PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
-        destroy(t_struct); //Will take care of the rest.
+        PyDict_DelItemString(ids, name);; //Will take care of the rest.
         return -1;
     }
     return 0;
