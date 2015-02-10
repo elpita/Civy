@@ -1,11 +1,83 @@
-#define CV_BEGIN_DENY_THREADS {PyGILState_STATE gstate; gstate = PyGILState_Ensure();
-#define CV_COLLAPSE_THREAD() PyGILState_Release(gstate); Py_AddPendingCall(&_cv_fail, NULL); return 0
-#define CV_END_DENY_THREADS PyGILState_Release(gstate); }
-
-
 static int _cv_fail(void *)
 {
     cv_longjmp(to_cv_end, -1);
+}
+
+
+#define CV_BEGIN_DENY_THREADS {PyGILState_STATE gstate; gstate = PyGILState_Ensure();
+#define CV_COLLAPSE_THREAD() PyGILState_Release(gstate); Py_AddPendingCall(&_cv_fail, NULL); return 0
+#define CV_END_DENY_THREADS PyGILState_Release(gstate); }
+#define slate_doc_string ""
+
+
+typedef struct _cvperiodicslate {
+    PyObject_HEAD
+    PyObject *weak_actor;
+    PyObject *actor;
+    CVObjectQ *q;
+    CVCoroutine *coro;
+    PyObject *func;
+    PyObject *ids;
+    PyObject *key;
+} CVPeriodicSlate;
+
+
+static void CVPeriodicSlate_dealloc(struct _cvtimerstruct *self)
+{
+    Py_DECREF(self->weak_actor);
+    PyObject_Del( (PyObject *)self );
+}
+
+
+static PyTypeObject CVPeriodicSlateType = {
+    PyObject_HEAD_INIT(NULL)
+    0,                                  /* ob_size */
+    "CVPeriodicSlate",                      /* tp_name */
+    sizeof(CVPeriodicSlate),      /* tp_basicsize */
+    0,                                  /* tp_itemsize */
+    (destructor)CVPeriodicSlate_dealloc,  /* tp_dealloc */
+    0,                                  /* tp_print */
+    0,                                  /* tp_getattr */
+    0,                                  /* tp_setattr */
+    0,                                  /* tp_compare */
+    0,                                  /* tp_repr */
+    0,                                  /* tp_as_number */
+    0,                                  /* tp_as_sequence */
+    0,                                  /* tp_as_mapping */
+    0,                                  /* tp_hash */
+    0,                                  /* tp_call */
+    0,                                  /* tp_str */
+    0,                                  /* tp_getattro */
+    0,                                  /* tp_setattro */
+    0,                                  /* tp_as_buffer */
+    0,                                  /* tp_flags */
+    slate_doc_string,                    /* tp_doc */
+};
+
+
+static CVPeriodicSlate* new_cv_preiodic_state(PyObject *actor)
+{
+    CVPeriodicSlate *slate = PyObject_New(CVPeriodicSlate, &CVPeriodicSlateType);
+
+    if (slate == NULL) {
+        return NULL;
+    }
+    else {
+        PyObject *weak_actor = PyWeakref_NewRef(actor, NULL);
+        
+        if (weak_actor == NULL) {
+            Py_DECREF(slate);
+            return NULL;
+        }
+        slate->actor = actor;
+        slate->weak_actor = weak_actor;
+        slate->q = ((CVObject *)actor)->cvprocesses;
+        slate->ids = ((EventDispatcher *)actor)->timer_ids;
+    }
+    slate->coro = NULL;
+    slate->func = NULL;
+    slate->key = NULL;
+    return slate;
 }
 
 
