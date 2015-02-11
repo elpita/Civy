@@ -10,6 +10,7 @@ static int _cv_fail(void *)
 #define slate_doc_string ""
 
 
+/* Periodic Event Dispatching ********************************************************************************************* */
 typedef struct _cvperiodicslate {
     PyObject_HEAD
     PyObject *weak_actor;
@@ -25,11 +26,21 @@ typedef struct _cvperiodicslate {
 static void CVPeriodicSlate_dealloc(CVPeriodicSlate *self)
 {
     Py_DECREF(self->weak_actor);
+
+    if (self->coro) {
+        cv_dealloc_coroutine(self->coro);
+    }
+    if (self->func) {
+        Py_CLEAR(self->func);
+    }
+    if (self->key) {
+        Py_DECREF(self->key);
+    }
     PyObject_Del( (PyObject *)self );
 }
 
 
-static PyTypeObject CVPeriodicSlateType = {
+static PyTypeObject CVPeriodicSlate_Type = {
     PyObject_HEAD_INIT(NULL)
     0,                                  /* ob_size */
     "CVPeriodicSlate",                      /* tp_name */
@@ -51,11 +62,12 @@ static PyTypeObject CVPeriodicSlateType = {
     0,                                  /* tp_setattro */
     0,                                  /* tp_as_buffer */
     0,                                  /* tp_flags */
-    slate_doc_string,                    /* tp_doc */
+    slate_doc_string,                   /* tp_doc */
 };
 
+#define CVPeriodicSlate_Check(op) PyObject_TypeCheck(op, &CVPeriodicSlate_Type)
 
-static CVPeriodicSlate* new_cv_preiodic_state(PyObject *actor)
+static CVPeriodicSlate* new_cv_preiodic_state(PyObject *actor, PyObject *ids)
 {
     CVPeriodicSlate *slate = PyObject_New(CVPeriodicSlate, &CVPeriodicSlateType);
 
@@ -69,10 +81,10 @@ static CVPeriodicSlate* new_cv_preiodic_state(PyObject *actor)
             Py_DECREF(slate);
             return NULL;
         }
+        slate->ids = ids;
         slate->actor = actor;
         slate->weak_actor = weak_actor;
         slate->q = ((CVObject *)actor)->cvprocesses;
-        slate->ids = ((EventDispatcher *)actor)->timer_ids;
     }
     slate->coro = NULL;
     slate->func = NULL;
@@ -81,7 +93,7 @@ static CVPeriodicSlate* new_cv_preiodic_state(PyObject *actor)
 }
 
 
-static Uint32 cv_periodic_function(Uint32 interval, void *param)
+static Uint32 cv_slate_periodic_callback(Uint32 interval, void *param)
 {
     PyObject *v;
     CVCoroutine *coro;
@@ -136,9 +148,10 @@ static int cv_schedule_period(CVCoroutine *coro, PyObject *ids, PyObject *key)
 
 static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, PyObject *ids)
 {
-    CVPeriodicSlate *t_struct = new_cv_preiodic_state(self);
+    int i;
+    CVPeriodicSlate *timer_data = new_cv_preiodic_state(self, ids);
 
-    if (t_struct == NULL) {
+    if (timer_data == NULL) {
         return -1;
     }
     else if (PyDict_GetItemString(ids, name) != NULL) {
@@ -153,23 +166,24 @@ static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, 
 
         if (meth == NULL) {
             PyErr_Format(PyExc_AttributeError, "'%s' has no event named '%s'.", PYOBJECT_NAME(self), name);
-            destroy(t_struct);
+            Py_DECREF((PyObject *)timer_data);
             return -1;
         }
         else if (!PyMethod_Check(meth)) {
             Py_DECREF(meth);
             PyErr_Format(PyExc_AttributeError, "'%s' has no event named '%s'.", PYOBJECT_NAME(self), name);
-            destroy(t_struct);
+            Py_DECREF((PyObject *)timer_data);
             return -1;
         }
         func = PyMethod_Function(meth);
-        t_struct->func = func;
+        timer_data->func = func;
         Py_INCREF(func);
         Py_DECREF(meth);
     }
+    i = PyDict_SetItemString(ids, name, (PyObject *)timer_data);
+    Py_DECREF((PyObject *)timer_data);// Ref-count now == 1
 
-    if (PyDict_SetItemString(ids, name, (PyObject *)t_struct) < 0) {
-        destroy(t_struct);
+    if (i < 0) {
         return -1;
     }
     else {
@@ -195,71 +209,192 @@ static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, 
             }
             Py_INCREF(ids);
             Py_INCREF(key);
-            t_struct->key = key;
-            t_struct->coro = coro;
+            timer_data->key = key;
+            timer_data->coro = coro;
         }
     }
-    //t_struct->actor = self;
-    //t_struct->q = &(((CVObject *)self)->cvprocesses);
-    //t_struct->weak_actor = weak_actor;
-    t_struct->timer_id = SDL_AddTimer(delay, &cv_periodic_function, (void *)t_struct);
+    //timer_data->actor = self;
+    //timer_data->q = &(((CVObject *)self)->cvprocesses);
+    //timer_data->weak_actor = weak_actor;
+    timer_data->timer_id = SDL_AddTimer(delay, &cv_slate_periodic_callback, (void *)timer_data);
 
-    if (!t_struct->timer_id) {
+    if (!timer_data->timer_id) {
         PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
-        PyDict_DelItemString(ids, name);; //Will take care of the rest.
+        PyDict_DelItemString(ids, name); //Will take care of the rest.
         return -1;
     }
     return 0;
 }
 
 
-static void cv_schedule_once(PyObject **self, PyObject **callback, Uint32 *delay, PyObject *ids)
+/* Scheduled Once Event Dispatch ****************************************************************************************** */
+typedef struct _cvslate {
+    PyObject_HEAD
+    PyObject *weak_actor;
+    PyObject *func;
+    CVObjectQ coro_q;
+    CVObjectQ *actor_q;
+} CVSlate;
+
+
+static void CVSlate_dealloc(CVSlate *self)
 {
-    PyObject *key;
-    long int lint;
-    
-    lint = PyObject_Hash(*callback);
-    
-    if (lint < 0) {
-        return -1;
+    Py_DECREF(self->weak_actor);
+    Py_DECREF(self->ids);
+
+    if (self->coro) {
+        cv_dealloc_coroutine(self->coro);
     }
-    key = PyLong_FromLong(lint);
+    if (self->func) {
+        Py_CLEAR(self->func);
+    }
+    if (self->key) {
+        Py_DECREF(self->key);
+    }
+    PyObject_Del( (PyObject *)self );
+}
+
+
+static PyTypeObject CVSlate_Type = {
+    PyObject_HEAD_INIT(NULL)
+    0,                                  /* ob_size */
+    "CVSlate",                      /* tp_name */
+    sizeof(CVSlate),      /* tp_basicsize */
+    0,                                  /* tp_itemsize */
+    (destructor)CVSlate_dealloc,  /* tp_dealloc */
+    0,                                  /* tp_print */
+    0,                                  /* tp_getattr */
+    0,                                  /* tp_setattr */
+    0,                                  /* tp_compare */
+    0,                                  /* tp_repr */
+    0,                                  /* tp_as_number */
+    0,                                  /* tp_as_sequence */
+    0,                                  /* tp_as_mapping */
+    0,                                  /* tp_hash */
+    0,                                  /* tp_call */
+    0,                                  /* tp_str */
+    0,                                  /* tp_getattro */
+    0,                                  /* tp_setattro */
+    0,                                  /* tp_as_buffer */
+    0,                                  /* tp_flags */
+    slate_doc_string,                   /* tp_doc */
+};
+
+
+static Uint32 cv_slate_callback(Uint32 interval, void *param)
+{
+    PyObject *v;
+    CVCoroutine *coro;
+    CVSlate *the = (CVSlate *)param;
     
-    if (key == NULL) {
+    CV_BEGIN_DENY_THREADS
+    
+    /* Pass the interval's value to the coroutine */
+    v = Py_BuildValue("(OI)", the->weak_actor, interval);
+
+    if (v == NULL) {
+        CV_COLLAPSE_THREAD();
+    }
+    coro = pop(the->coro_q);
+    SDL_assert(coro != NULL);
+
+    if ((cv_spawn(coro, the->func, v, NULL) < 0) || (cv_push_event(the->weak_actor, CV_DISPATCHED_EVENT, 0) < 0) || (cv_object_queue_push(the->actor_q, coro) < 0)) {
+        Py_DECREF(v);
+        CV_COLLAPSE_THREAD();
+    }
+
+    CV_END_DENY_THREADS
+
+    return 0;
+}
+
+
+static int cv_schedule_once(PyObject *self, const char *name, Uint32 delay, PyObject *ids)
+{
+    CVSlateData *slate_data = cv_create_slate_data(self);
+
+    if (slate_data == NULL) {
+        PyDict_DelItemString(ids, name);
         return -1;
     }
     else {
-        PyObject *whatever = PyDict_GetItem(ids, key);
+        CVSlate *timer_data;
 
-        if (whatever != NULL) {
-            if (whatever->type == INTERVAL) {
-                PyErr_Format(PyExc_RuntimeError, "%s is already a scheduled periodic function.", PYOBJECT_NAME(*callback));
-                Py_DECREF(key);
+        {
+            PyObject *something = PyDict_GetItemString(ids, name);
+        
+            if (something == NULL) {
+                timer_data = New();
+        
+                if (timer_data == NULL) {
+                    cv_dealloc_slate_data(slate_data);
+                    return -1;
+                }
+                else if (PyDict_SetItemString(ids, name, (PyObject *)timer_data)) {
+                    Py_DECREF((PyObject *)timer_data);
+                    cv_dealloc_slate_data(slate_data);
+                    return -1;
+                }
+                else {
+                    PyObject *meth;
+
+                    Py_DECREF((PyObject *)timer_data); // Borrow the reference from `ids` going forward
+                    meth = PyObject_GetAttrString(self, name);
+    
+                    if (meth == NULL) {
+                        PyErr_Format(PyExc_AttributeError, "'%s' has no event named '%s'.", PYOBJECT_NAME(self), name);
+                        PyDict_DelItemString(ids, name);
+                        cv_dealloc_slate_data(slate_data);
+                        return -1;
+                    }
+                    else if (!PyMethod_Check(meth)) {
+                        Py_DECREF(meth);
+                        PyErr_Format(PyExc_AttributeError, "'%s' has no event named '%s'.", PYOBJECT_NAME(self), name);
+                        PyDict_DelItemString(ids, name);
+                        cv_dealloc_slate_data(slate_data);
+                        return -1;
+                    }
+                    timer_data->func = PyMethod_Function(meth);
+                    Py_INCREF(timer_data->func);
+                    Py_DECREF(meth);
+                }
+                timer_data->key = PyString_FromString(name);
+
+                if (timer_data->key == NULL) {
+                    PyDict_DelItemString(ids, name);
+                    cv_dealloc_slate_data(slate_data);
+                    return -1;
+                }
+            }
+            else if (CVPeriodicSlate_Check(something)) {
+                PyErr_Format(PyExc_RuntimeError, "'%s' is already a scheduled periodic event.", name);
+                cv_dealloc_slate_data(slate_data);
                 return -1;
             }
-            my_timer_id = SDL_AddTimer(*delay, schedule_once, my_callback_param);
-
-            if (!my_timer_id) {
-                PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
-                Py_DECREF(key);
-                return -1;
+            else {
+                timer_data = (CVSlate *)something;
             }
-            new_id = Py_BuildValue("i", my_timer_id);
-
-            if ((new_id == NULL) || (PyList_Append(whatever->sdl_ids, new_id) < 0)) {
-                Py_DECREF(key);
-                return -1;
-            }
-            Py_INCREF(whatever);
-            Py_DECREF(new_id);
+        }
+        if ((cv_schedule_period((CVCoroutine *)slate_data, ids, timer_data->key) < 0) || (push(timer_data, (CVCoroutine *)slate_data) < 0)) {
+            cv_dealloc_slate_data(slate_data);
+            return -1;
         }
     }
+
+    slate_data->timer_id = SDL_AddTimer(delay, &cv_slate_callback, (void *)timer_data);
+
+    if (!slate_data->timer_id) {
+        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
+        cv_dealloc_slate_data(slate_data);
+        return -1;
+    }
+    return 0;
 }
 
 
 static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args, PyObject *kwargs)
 {
-    int repeat=0;
+    int repeat = 0;
     Uint32 delay;
     char *name;
 
@@ -273,16 +408,16 @@ static PyObject* EventDispatcher_schedule(CVEventDispatcher self, PyObject *args
             PyErr_SetString(PyExc_ValueError, "'schedule' takes a string argument starting with 'on_'.");
             return NULL;
         }
-        else if (delay <= 0) {
-            PyErr_SetString(PyExc_ValueError, "'delay' must be greater than 0 miliseconds.");
+        else if (delay < 0) {
+            PyErr_SetString(PyExc_ValueError, "'delay' must be greater than, or equal to, 0 miliseconds.");
             return NULL;
         }
     }
 
-    if (!repeat && (cv_schedule_once(self, name, delay, self->timer_ids) < 0)) {
+    if (!repeat && (cv_schedule_once((PyObject *)self, name, delay, self->timer_ids) < 0)) {
         return NULL;
     }
-    else if (cv_schedule_interval(self, name, delay, self->time_ids) < 0) {
+    else if (cv_schedule_interval((PyObject *)self, name, delay, self->time_ids) < 0) {
         return NULL;
     }
     Py_RETURN_NONE;
