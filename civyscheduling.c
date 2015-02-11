@@ -67,9 +67,10 @@ static PyTypeObject CVPeriodicSlate_Type = {
 
 #define CVPeriodicSlate_Check(op) PyObject_TypeCheck(op, &CVPeriodicSlate_Type)
 
+
 static CVPeriodicSlate* new_cv_preiodic_state(PyObject *actor, PyObject *ids)
 {
-    CVPeriodicSlate *slate = PyObject_New(CVPeriodicSlate, &CVPeriodicSlateType);
+    CVPeriodicSlate *slate = PyObject_New(CVPeriodicSlate, &CVPeriodicSlate_Type);
 
     if (slate == NULL) {
         return NULL;
@@ -78,13 +79,13 @@ static CVPeriodicSlate* new_cv_preiodic_state(PyObject *actor, PyObject *ids)
         PyObject *weak_actor = PyWeakref_NewRef(actor, NULL);
         
         if (weak_actor == NULL) {
-            Py_DECREF(slate);
+            PyObject_Del((PyObject *)slate);
             return NULL;
         }
         slate->ids = ids;
         slate->actor = actor;
         slate->weak_actor = weak_actor;
-        slate->q = ((CVObject *)actor)->cvprocesses;
+        slate->q = &(((CVObject *)actor)->cvprocesses);
     }
     slate->coro = NULL;
     slate->func = NULL;
@@ -228,6 +229,12 @@ static int cv_schedule_interval(PyObject *self, const char *name, Uint32 delay, 
 
 
 /* Scheduled Once Event Dispatch ****************************************************************************************** */
+typedef struct _cvslatedata {
+    CVCoroutine super;
+    SDL_TimerID timer_id;
+} CVSlateData;
+
+
 typedef struct _cvslate {
     PyObject_HEAD
     PyObject *weak_actor;
@@ -281,21 +288,72 @@ static PyTypeObject CVSlate_Type = {
 };
 
 
+static CVSlateData* new_cv_slate_data(PyObject *actor)
+{/* Taken from `cv_create_coroutine` */
+    CVStack self_stack;
+    CVCoroState self_state;
+    CVSlateData *self = (CVSlateData *)PyMem_Malloc(_cvslate);
+
+    if (self == NULL) {
+        return PyErr_NoMemory();
+    }
+    else {
+        PyObject *state_actor_ptr = PyWeakref_NewRef(actor, NULL);
+
+        if (state_actor_ptr == NULL) {
+            PyMem_Free(self);
+            return NULL;
+        }
+        self_state.actor_ptr = state_actor_ptr;
+        self_state.parent = NULL;
+    }
+    cv_init_costack(&self_stack);
+    self->super.stack = self_stack;
+    self->super.state = self_state;
+    self->timer_id = 0;
+    return self;
+}
+
+
+static CVSlate* new_cv_slate(PyObject *actor, PyObject *ids)
+{
+    CVSlate *slate = PyObject_New(CVSlate, &CVSlate_Type);
+
+    if (slate == NULL) {
+        return NULL;
+    }
+    else {
+        PyObject *weak_actor = PyWeakref_NewRef(actor, NULL);
+
+        if (weak_actor == NULL) {
+            PyObject_Del((PyObject *)slate);
+            return NULL;
+        }
+        slate->weak_actor = weak_actor;
+    }
+    slate->ids = ids;
+    slate->func = NULL;
+    cv_init_object_queue(&slate->coro_q);
+    slate->actor_q = &(((CVObject *)actor)->cvprocesses);
+    return slate;
+}
+
+
 static Uint32 cv_slate_callback(Uint32 interval, void *param)
 {
     PyObject *v;
     CVCoroutine *coro;
     CVSlate *the = (CVSlate *)param;
-    
+
     CV_BEGIN_DENY_THREADS
-    
+
     /* Pass the interval's value to the coroutine */
     v = Py_BuildValue("(OI)", the->weak_actor, interval);
 
     if (v == NULL) {
         CV_COLLAPSE_THREAD();
     }
-    coro = pop(the->coro_q);
+    coro = cv_object_queue_pop(&the->coro_q);
     SDL_assert(coro != NULL);
 
     if ((cv_spawn(coro, the->func, v, NULL) < 0) || (cv_push_event(the->weak_actor, CV_DISPATCHED_EVENT, 0) < 0) || (cv_object_queue_push(the->actor_q, coro) < 0)) {
@@ -324,7 +382,7 @@ static int cv_schedule_once(PyObject *self, const char *name, Uint32 delay, PyOb
             PyObject *something = PyDict_GetItemString(ids, name);
         
             if (something == NULL) {
-                timer_data = New();
+                timer_data = new_cv_slate(self, ids);
         
                 if (timer_data == NULL) {
                     cv_dealloc_slate_data(slate_data);
@@ -375,7 +433,7 @@ static int cv_schedule_once(PyObject *self, const char *name, Uint32 delay, PyOb
                 timer_data = (CVSlate *)something;
             }
         }
-        if ((cv_schedule_period((CVCoroutine *)slate_data, ids, timer_data->key) < 0) || (push(timer_data, (CVCoroutine *)slate_data) < 0)) {
+        if ((cv_schedule_period((CVCoroutine *)slate_data, ids, timer_data->key) < 0) || (cv_object_queue_push(timer_data->coro_q, (CVCoroutine *)slate_data) < 0)) {
             cv_dealloc_slate_data(slate_data);
             return -1;
         }
