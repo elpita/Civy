@@ -25,6 +25,14 @@ static void (*cv_event_handlers[6]) (SDL_Event *);
 #define PYOBJECT_NAME(ob) Py_TYPE(ob)->tp_name // For `PyErr_Format` handling
 
 
+static int _cv_fail(void *)
+{/* Function to be called from the main interpreter thread
+    in the event of an error, triggered in a different thread.*/
+    cv_longjmp(to_cv_end, -1);
+    return -1;
+}
+
+
 static void cv_run(void)
 {
     static PyFrameObject *main_frame;
