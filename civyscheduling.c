@@ -1,9 +1,3 @@
-static int _cv_fail(void *)
-{
-    cv_longjmp(to_cv_end, -1);
-}
-
-
 #define CV_BEGIN_DENY_THREADS {PyGILState_STATE gstate; gstate = PyGILState_Ensure();
 #define CV_COLLAPSE_THREAD() PyGILState_Release(gstate); Py_AddPendingCall(&_cv_fail, NULL); return 0
 #define CV_END_DENY_THREADS PyGILState_Release(gstate); }
