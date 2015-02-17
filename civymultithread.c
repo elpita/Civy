@@ -84,12 +84,10 @@ static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObj
 static int cv_wait(CVCoroutine coroutine)
 {/* Used for creating the coroutine that returns to python */
     static _cvcontinuation rtp = {{0, NULL}, cv_join, NULL, {NULL, NULL, NULL}};
-    PyThreadState *tstate;
     PyObject *frame;
     int depth;
 
-    tstate = PyThreadState_GET();
-    frame = (PyObject *)(tstate->frame);
+    frame = (PyObject *)PyEval_GetFrame();
     rtp.coargs[0] = frame;
 
     if (cv_costack_push(coroutine, &rtp) < 0) {
