@@ -1,5 +1,5 @@
 #define CV_BEGIN_DENY_THREADS {PyGILState_STATE gstate; gstate = PyGILState_Ensure();
-#define CV_COLLAPSE_THREAD() PyGILState_Release(gstate); Py_AddPendingCall(&_cv_fail, NULL); return 0
+#define CV_COLLAPSE_THREAD() PyGILState_Release(gstate); _cv_fail(); return 0
 #define CV_END_DENY_THREADS PyGILState_Release(gstate); }
 #define slate_doc_string ""
 
