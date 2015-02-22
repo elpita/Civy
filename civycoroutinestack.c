@@ -3,7 +3,7 @@
 
 typedef struct _cvcostack {
     CVContinuation *s_ptr;
-    struct _cvcontinuation items[CV_STACK_LENGTH];
+    _cvcontinuation items[CV_STACK_LENGTH];
 } CVCoStack;
 
 
