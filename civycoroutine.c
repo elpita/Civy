@@ -23,13 +23,10 @@ static CVCoroutine* cv_create_coroutine(PyObject *actor)
         return PyErr_NoMemory();
     }
     else {
-        PyObject *state_actor_ptr = PyWeakref_NewRef(actor, NULL);
+        PyObject *state_actor_ptr = actor->weak_ref;
 
-        if (state_actor_ptr == NULL) {
-            PyMem_Free(self);
-            return NULL;
-        }
         self_state.actor_ptr = state_actor_ptr;
+        Py_INCREF(state_actor_ptr);
         self_state.parent = NULL;
     }
     cv_init_costack(&self_stack);
@@ -42,7 +39,7 @@ static CVCoroutine* cv_create_coroutine(PyObject *actor)
 static void kill_cvcoroutine(CVCoroutine *c)
 {
     cv_dealloc_costack(&c->stack);
-    Py_DECREF((c->state).actor_ptr);
+    Py_DECREF( ((CVCoroState *)c)->actor_ptr );
     PyMem_Free(c);
 }
 
@@ -51,8 +48,8 @@ static void cv_dealloc_coroutine(CVCoroutine *self)
 {
     CVCoroutine *p, *c;
 
-    for (p = (self->state).parent; p != NULL; p = c) {
-        c = (p->state).parent;
+    for (p = ( ((CVCoroState *)c)->actor_ptr; p != NULL; p = c ) {
+        c = ((CVCoroState *)p)->parent;
         kill_cvcoroutine(p);
     }
     kill_cvcoroutine(self);
