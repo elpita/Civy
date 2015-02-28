@@ -48,7 +48,7 @@ static void cv_dealloc_coroutine(CVCoroutine *self)
 {
     CVCoroutine *p, *c;
 
-    for (p = ((CVCoroState *)c)->actor_ptr; p != NULL; p = c ) {
+    for (p = ((CVCoroState *)c)->actor_ptr; p != NULL; p = c) {
         c = ((CVCoroState *)p)->parent;
         kill_cvcoroutine(p);
     }
