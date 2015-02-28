@@ -5,7 +5,7 @@
 struct _cvobject {
     PyObject_HEAD
     char alive;
-    _cvobjectqueue cvprocesses;
+    PyObject *weak_ref;
     PyObject *in_weakreflist;
 };
 
@@ -63,17 +63,25 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         return NULL;
     }
     self->in_weakreflist = NULL;
-    cv_init_object_queue(&self->cvprocesses);
+    self->weak_ref = NULL;
     return (PyObject *)self;
 }
 
 
 static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 {
+    PyObject *weak_ref;
+
     if (main_loop == NULL) { /* To be set when the main loop starts */
         PyErr_SetString(PyExc_TypeError, "The App's Main Loop must be started first.");
         return -1;
     }
+    weak_ref = PyWeakref_NewRef((PyObject *)self, NULL);
+
+    if (weak_ref == NULL) {
+        return -1;
+    }
+    self->weak_ref = weak_ref;
     self->alive = 1;
     return 0;
 }
@@ -86,6 +94,7 @@ static void CVObject_dealloc(CVObject self)
             PyObject_ClearWeakRefs((PyObject *)self);
         default:
             self->alive = 0;
+            Py_XDECREF(self->weak_ref);
             cv_dealloc_object_queue(&self->cvprocesses);
             self->ob_type->tp_free( (PyObject *)self );
             break;
