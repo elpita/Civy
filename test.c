@@ -127,75 +127,35 @@ static void cv_main_loop(void)
 
 static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
-    Uint32 mask;
-    int i, cv_m, cv_tch, cv_a, cv_gc, cv_j, cv_ff, cv_df, cv_c;
-    
+    int i=0, cv_m=0, cv_tch=0;
+    Uint32 mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
+
     if PyObject_TypeCheck(self, &CVAppType) {
-        PyErr_Format(PyExc_NotImplementedError, "<%s> cannot be instantiated directly.", CVAppType.tp_name);
+        PyErr_Format(PyExc_NotImplementedError, "<%s> cannot be instantiated directly.", PYOBJECT_NAME(self));
         return -1;
     }
-    else if (args && (args != Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "init flags must be specified as keyword arguments.");
+    else if (global_app_pointer) {
+        PyErr_SetString(PyExc_RuntimeError, "Another application is in progress.");
         return -1;
     }
     else {
-        static char *kwargs[] = {"CV_MOUSE", "CV_TOUCH", "CV_AUDIO", "CV_GAME_CONTROLLER", "CV_JOYSTICK", "CV_FORCE_FEEDBACK", "CV_DROP_FILE", "CV_CLIPBOARD", NULL};
+        static char *kwargs[] = {"CV_MOUSE", "CV_TOUCH", NULL};
 
-        if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiiiiiii", kwargs, &cv_m, &cv_tch, &cv_a, &cv_gc, &cv_j, &cv_ff, &cv_df, &cv_c)) {
+        if (!PyArg_ParseTupleAndKeywords(args, kwds, "|ii", kwargs, &cv_m, &cv_tch)) {
             return -1;
         }
     }
     SDL_assert(!SDL_WasInit(SDL_INIT_EVERYTHING));
-    mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
-    MAX_CV_INPUTS = i = 1 + (cv_m || cv_tch) + cv_gc + cv_j + cv_df + cv_c;
-    cv_event_handlers[i] = cv_handle_quit_event;
-    i--;
+    MAX_CV_INPUTS = cv_m + cv_tch;
 
-    if cv_ff {
-        mask |= SDL_INIT_HAPTIC;
-    }
-    if cv_a {
-        mask |= SDL_INIT_AUDIO;
-    }
-    if cv_j {
-        mask |= SDL_INIT_JOYSTICK;
-        cv_event_handlers[i] = cv_handle_joystick_event;
-        i--;
-    }
-    if cv_gc {
-        mask |= SDL_INIT_GAMECONTROLLER;
-        cv_event_handlers[i] = cv_handle_controller_event;
-        i--;
-    }
     if (SDL_Init(mask) < 0) {
         PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
         return -1;
     }
-    if cv_c {
-        SDL_EventState(SDL_CLIPBOARDUPDATE, 1);
-        cv_event_handlers[i] = cv_handle_clipboard_event;
-        i--;
-    }
-    if cv_df {
-        SDL_EventState(SDL_DROPFILE, 1);
-        cv_event_handlers[i] = cv_handle_dropfile_event;
-        i--;
-    }
-
-    if cv_tch {
-        cv_event_handlers[i] = cv_handle_touch_event;
-        i--;
-    }
-    else {
-        SDL_EventState(SDL_FINGERMOTION, 0);
-        SDL_EventState(SDL_FINGERDOWN, 0);
-        SDL_EventState(SDL_FINGERUP, 0);
-        SDL_EventState(SDL_MULTIGESTURE, 0);
-    }
 
     if cv_m {
         cv_event_handlers[i] = cv_handle_mouse_event;
-        i--;
+        i++;
     }
     else {
         SDL_EventState(SDL_MOUSEMOTION, 0);
@@ -204,7 +164,16 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
         SDL_EventState(SDL_MOUSEWHEEL, 0);
     }
 
-    tbd_global_app_pointer = self;
+    if cv_tch {
+        cv_event_handlers[i] = cv_handle_touch_event;
+        i++;
+    }
+    else {
+        SDL_EventState(SDL_FINGERMOTION, 0);
+        SDL_EventState(SDL_FINGERDOWN, 0);
+        SDL_EventState(SDL_FINGERUP, 0);
+        SDL_EventState(SDL_MULTIGESTURE, 0);
+    }
     return 0;
 }
 
