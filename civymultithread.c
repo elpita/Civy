@@ -47,7 +47,7 @@ static void cv_periodic_exec(PyObject *ids, PyObject *key, PyObject *)
 
 void cv_join(PyObject *args, PyObject *, PyObject *)
 {/* This is a special continuation for returning *back* to Python */
-    int throw_value=0;
+    int throw_value;
     PyObject *result = cv_coresume();
     PyThreadState *ts = PyThreadState_GET();
 
@@ -57,9 +57,8 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
     cv_kill_current();
 
     /* If there was a problem, let the frame know */
-    if (PyErr_Occurred()) {
-        throw_value++;
-    }
+    throw_value = 1 ? PyErr_Occurred() : 0;
+
     ts->frame = (PyFrameObject *)args;
     *(ts->frame->f_stacktop++) = result;
     result = PyEval_EvalFrameEx(ts->frame, throw_value);
