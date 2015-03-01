@@ -57,7 +57,7 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
     cv_kill_current();
 
     /* If there was a problem, let the frame know */
-    throw_value = 1 ? PyErr_Occurred() : 0;
+    throw_value = PyErr_Occurred() ? 1 : 0;
 
     ts->frame = (PyFrameObject *)args;
     *(ts->frame->f_stacktop++) = result;
