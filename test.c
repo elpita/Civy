@@ -22,6 +22,8 @@ static jmp_buf env[3];
 #define CV_EXIT_EVENT_LOOP_HERE case 1:;} break; case -1: i = 0; cv_longjmp(to_main_loop, 1); break;}
 static void (*cv_event_handlers[6]) (SDL_Event *);
 
+static PyThreadState *_main_thread;
+
 #define PYOBJECT_NAME(ob) Py_TYPE(ob)->tp_name // For `PyErr_Format` handling
 
 
@@ -45,18 +47,17 @@ static void cv_run(void)
     i = cv_setjmp(to_civy_end);
 
     if (!i) {
-        PyThreadState *tstate = PyThreadState_GET();
+        _main_thread = PyEval_SaveThread();
 
-        main_frame = tstate->frame;
-        main_depth = tstate->recursion_depth;
+        main_frame = _main_thread->frame;
+        main_depth = _main_thread->recursion_depth;
         Py_AtExit(SDL_Quit);
         cv_main_loop();
     }
     else {
-        PyThreadState *tstate = PyThreadState_GET();
-
-        tstate->frame = main_frame;
-        tstate->recursion_depth = main_depth;
+        _main_thread->frame = main_frame;
+        _main_thread->recursion_depth = main_depth;
+        PyEval_RestoreThread(_main_thread);
 
         if (i < 0) {
             PyErr_Print();
@@ -73,9 +74,7 @@ static void cv_main_loop(void)
 
     switch(SDL_PollEvent(&main_event)) {
         case 0:
-            Py_BEGIN_ALLOW_THREADS
             SDL_Delay(0.02);
-            Py_END_ALLOW_THREADS
             break;
         default:
             switch(main_event.type) {
@@ -387,7 +386,7 @@ static int reschedule_current_continuation(CVCoroutine C, int line)
 }
 
 
-static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCallbackFunc *cocall, CVCleanupFunc *coclean, int from_python, int line)
+static cv_switch_routine(PyObject *actor, PyObject *args, PyObject *kwds, CVCallbackFunc *cocall, CVCleanupFunc *coclean, int from_python, int line
 {
     if (!CVEventDispatcher_Check(actor)) {
         PyErr_SetString("Only EventDispatchers may be scheduled blahblah"); //fix
