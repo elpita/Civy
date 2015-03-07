@@ -15,10 +15,16 @@ struct _cvwindow {
 static PyObject* CVWindow_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     char *name;
+    CVWindow *self;
     SDL_Window *window;
     SDL_GLContext gl_context;
     int x=SDL_WINDOWPOS_UNDEFINED, y=SDL_WINDOWPOS_UNDEFINED, w=800, h=600;
-    CVWindow self = (struct _cvwindow *)CVObject_new(type, args, kwds);
+    
+    if (main_loop == NULL) { /* To be set when the main loop starts */
+        PyErr_SetString(PyExc_TypeError, "The App's Main Loop must be started first.");
+        return NULL;
+    }
+    self = (struct _cvwindow *)CVObject_new(type, args, kwds);
 
     if (self == NULL) {
         return NULL;
