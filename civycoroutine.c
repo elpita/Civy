@@ -56,7 +56,7 @@ static void cv_dealloc_coroutine(CVCoroutine *self)
 }
 
 
-static int cv_check_continuation(CVCoroState *c)
+static int cv_check_coroutine(CVCoroState *c)
 {
     if is_dead(c->actor_ptr) {
         return 0;
