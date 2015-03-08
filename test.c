@@ -124,6 +124,18 @@ static void cv_main_loop(void)
 }
 
 
+static PyObject* cv_app_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    CVApp *self = (_cvapp *)type->tp_alloc(type, 0);
+    
+    if (self == NULL) {
+        return NULL;
+    }
+    PyEval_InitThreads();
+    return (PyObject *)self;
+}
+
+
 static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
     int i=0, cv_m=0, cv_tch=0;
