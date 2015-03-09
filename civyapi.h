@@ -8,7 +8,13 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
 #define CV_GetRoutineVars() (void *)((*context)->vars)
 #define CV_SetRoutineVars(largs) (*context)->vars = (void *)largs
 #define CV_ENTER_ROUTINE_HERE switch((*context)->state) { case 0:
-#define cv_coresume() (*passaround)
+#define cv_coresume() \
+    do {
+        PyObject *r = (*passaround); \
+        Py_XDECREF(r); \
+        return r; \
+    } while(0) //This is WRONG
+
 #define CV_SwitchRoutine(r, a, b, c) \
     do { \
         sleep_the(context); \
@@ -27,6 +33,7 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
 #define CV_CoReturn(r) \
     do { \
         (*passaround) = (PyObject *)r; \
+        Py_XINCREF(r); \
         cv_kill_current(); \
         return; \
     } while(0)
