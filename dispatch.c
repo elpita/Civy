@@ -40,7 +40,6 @@ static void cv_control(SDL_UserEvent *event)
                 int depth = _main_thread->recursion_depth;
 
                 if (cv_push_event(parent, event->data2, CV_DISPATCHED_EVENT, depth) < 0) {
-                    Py_DECREF(global_actor);
                     /* cleanup */
                     cv_longjmp(to_main_loop, -1);
                 }
