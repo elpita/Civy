@@ -13,7 +13,7 @@ static void cv_control(SDL_UserEvent *event)
 
     {
         PyGILState_STATE gstate;
-        CVCoroState *state = &(coro->state); 
+        CVCoroState *state = (CVCoroState *)coro; 
 
         gstate = PyGILState_Ensure();
 
@@ -26,12 +26,26 @@ static void cv_control(SDL_UserEvent *event)
         global_actor = PyWeakref_GET_OBJECT(state->actor_ptr);
         Py_INCREF(global_actor);
         PyGILState_Release(gstate);
+        global_coroutine = coro;
     }
 
     switch(cv_setjmp(to_whatever)) {
         case 0: {
             CVStack *stack = &(coro->stack)
             coroutine_call(stack);
+        }{
+            CVCoroutine *parent = ((CVCoroState *)coro)->parent;
+
+            if (parent != NULL) {
+                int depth = _main_thread->recursion_depth;
+
+                if (cv_push_event(parent, event->data2, CV_DISPATCHED_EVENT, depth) < 0) {
+                    Py_DECREF(global_actor);
+                    /* cleanup */
+                    cv_longjmp(to_main_loop, -1);
+                }
+                ((CVCoroState *)coro)->parent = NULL;
+            }
         }
         case -1:
             cv_dealloc_coroutine(coro);
@@ -60,5 +74,10 @@ static void coroutine_call(CVCoStack *stack)
                 cocall(args[0], args[1], args[2]);
                 /* assert zero */
                 case 1: c = cv_costack_pop(stack);}
+    }
+    
+    if (PyErr_Occurred()) {
+        cv_dealloc_coroutine(global_coroutine);
+        cv_longjmp(to_whatever, -1);
     }
 }   
