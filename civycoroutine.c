@@ -8,8 +8,8 @@ typedef struct _cvcorostate {
 
 
 typedef struct _cvcoroutine {
-    CVStack stack;
     CVCoroState state;
+    CVStack stack;
 } CVCoroutine;
 
 
