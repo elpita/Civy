@@ -88,4 +88,4 @@ static void coroutine_call(CVCoStack *stack)
         }
     }
     cv_longjmp(to_whatever, 1);
-}   
+}
