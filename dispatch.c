@@ -37,8 +37,8 @@ static void cv_control(SDL_UserEvent *event)
             CVCoroutine *parent = ((CVCoroState *)coro)->parent;
 
             if (parent != NULL) {
-                PyObject *result = event->data2;
                 int depth = _main_thread->recursion_depth;
+                PyObject *result = (PyObject *)event->data2;
 
                 if (cv_push_event(parent, result, CV_DISPATCHED_EVENT, depth) < 0) {
                     /* cleanup */
@@ -62,7 +62,6 @@ static void cv_control(SDL_UserEvent *event)
 
 static void coroutine_call(CVCoStack *stack)
 {
-    PyObject *error_occurred;
     volatile CVContinuation *c = cv_costack_pop(stack);
 
     global_continuation = &c;
@@ -76,13 +75,17 @@ static void coroutine_call(CVCoStack *stack)
                 /* assert zero */
                 case 1: c = cv_costack_pop(stack);}
     }{
-        PyGILState_STATE gstate = PyGILState_Ensure();
+        PyGILState_STATE gstate;
+        PyObject *error_occurred;
+
+        gstate = PyGILState_Ensure();
         error_occurred = PyErr_Occurred();
         PyGILState_Release(gstate);
-    }
 
-    if (error_occurred) {
-        cv_dealloc_coroutine(global_coroutine);
-        cv_longjmp(to_whatever, -1);
+        if (error_occurred) {
+            cv_dealloc_coroutine(global_coroutine);
+            cv_longjmp(to_whatever, -1);
+        }
     }
+    cv_longjmp(to_whatever, 1);
 }   
