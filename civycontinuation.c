@@ -17,9 +17,12 @@ typedef struct _cvcontinuation {
 
 static void cv_dealloc_args(PyObject **args)
 {
+    PyGILState_STATE gstate = PyGILState_Ensure();
+
     Py_CLEAR(args[0]);
     Py_CLEAR(args[1]);
     Py_CLEAR(args[2]);
+    PyGILState_Release(gstate);
     
 }
 
