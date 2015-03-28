@@ -138,7 +138,7 @@ static PyObject* cv_app_new(PyTypeObject *type, PyObject *args, PyObject *kwargs
 
 static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
 {
-    int i=0, cv_m=0, cv_tch=0;
+    int i=0, cv_m=0, cv_mm=0, cv_tch=0;
     Uint32 mask = SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_EVENTS;
 
     if PyObject_TypeCheck(self, &CVAppType) {
@@ -150,9 +150,9 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
         return -1;
     }
     else {
-        static char *kwargs[] = {"CV_MOUSE", "CV_TOUCH", NULL};
+        static char *kwargs[] = {"CV_MOUSE", "CV_MOUSE_MOTION", "CV_TOUCH", NULL};
 
-        if (!PyArg_ParseTupleAndKeywords(args, kwds, "|ii", kwargs, &cv_m, &cv_tch)) {
+        if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iii", kwargs, &cv_m, &cv_mm, &cv_tch)) {
             return -1;
         }
     }
@@ -167,6 +167,10 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
     if cv_m {
         cv_event_handlers[i] = cv_handle_mouse_event;
         i++;
+
+        if (!cv_mm) {
+            SDL_EventState(SDL_MOUSEMOTION, 0);
+        }
     }
     else {
         SDL_EventState(SDL_MOUSEMOTION, 0);
