@@ -1,6 +1,3 @@
-#include "civycoroutine.h"
-
-
 typedef struct _cvcorostate {
     PyObject *actor_ptr;
     CVCoroutine *parent;
@@ -8,48 +5,59 @@ typedef struct _cvcorostate {
 
 
 typedef struct _cvcoroutine {
-    CVCoroState state;
-    CVStack stack;
+    _cvcorostate state;
+    _cvstack stack;
 } CVCoroutine;
 
 
-static CVCoroutine* cv_create_coroutine(PyObject *actor)
+static CVCoroutine* cv_create_coroutine(PyObject *actor_ptr)
 {
-    CVStack self_stack;
     CVCoroState self_state;
     CVCoroutine *self = (CVCoroutine *)PyMem_Malloc(sizeof(_cvcoroutine));
 
     if (self == NULL) {
-        return PyErr_NoMemory();
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        PyErr_NoMemory();
+        PyGILState_Release(gstate);
+        return NULL;
     }
     else {
-        PyObject *state_actor_ptr = actor->weak_ref;
-
-        self_state.actor_ptr = state_actor_ptr;
-        Py_INCREF(state_actor_ptr);
-        self_state.parent = NULL;
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        Py_INCREF(actor_ptr);
+        PyGILState_Release(gstate);
     }
-    cv_init_costack(&self_stack);
-    self->stack = self_stack;
+
+    self_state.actor_ptr = actor_ptr;
+    self_state.parent = NULL;
     self->state = self_state;
+    cv_init_costack(self->stack);
     return self;
 }
 
 
 static void kill_cvcoroutine(CVCoroutine *c)
 {
-    cv_dealloc_costack(&c->stack);
-    Py_DECREF( ((CVCoroState *)c)->actor_ptr );
+    {
+        CVCostack stack = c->stack;
+        cv_dealloc_costack(&stack);
+    }{
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        PyObject *actor_ptr = ((CVCoroState *)c)->actor_ptr;
+
+        Py_DECREF(actor_ptr);
+        PyGILState_Release(gstate);
+    }
     PyMem_Free(c);
 }
 
 
 static void cv_dealloc_coroutine(CVCoroutine *self)
 {
-    CVCoroutine *p, *c;
+    CVCoroutine *p;
+    CVCoroState *state = (CVCoroState *)self;
 
-    for (p = ((CVCoroState *)c)->actor_ptr; p != NULL; p = c) {
-        c = ((CVCoroState *)p)->parent;
+    for (p = state->parent; p != NULL; p = state->parent) {
+        state = ((CVCoroState *)p);
         kill_cvcoroutine(p);
     }
     kill_cvcoroutine(self);
