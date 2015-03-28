@@ -95,7 +95,6 @@ static void CVObject_dealloc(CVObject *self)
         default:
             self->alive = 0;
             Py_XDECREF(self->weak_ref);
-            cv_dealloc_object_queue(&self->cvprocesses);
             self->ob_type->tp_free( (PyObject *)self );
             break;
     }
