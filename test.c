@@ -168,9 +168,9 @@ static int cv_app_init(PyObject *self, PyObject *args, PyObject *kwds)
         cv_event_handlers[i] = cv_handle_mouse_event;
         i++;
 
-        if (!cv_mm) {
+        /* if (!cv_mm) {
             SDL_EventState(SDL_MOUSEMOTION, 0);
-        }
+        } */
     }
     else {
         SDL_EventState(SDL_MOUSEMOTION, 0);
