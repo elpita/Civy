@@ -34,6 +34,7 @@ static void cv_dealloc_continuation(CVContinuation *c)
     cv_dealloc_args(c->coargs);
 
     if (cleanup) {
-        cleanup(c->context->covars);
+        void *vars = c->context->covars;
+        cleanup(vars);
     }
 }
