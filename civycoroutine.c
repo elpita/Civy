@@ -76,9 +76,9 @@ static int cv_check_coroutine(CVCoroState *c)
             return 1;
         }
         else {
-            CVCoroState *p_state = parent->state;
+            CVCoroState *p_state = (CVCoroState *)parent;
 
-            return cv_check_continuation(&p_state);
+            return cv_check_continuation(p_state);
         }
     }
 }
