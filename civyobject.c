@@ -1,19 +1,18 @@
-#include "civyobject.h"
 #define cv_object_is_dead(o) !o->alive
 
 
-struct _cvobject {
+typedef struct _cvobject {
     PyObject_HEAD
     char alive;
     PyObject *weak_ref;
     PyObject *in_weakreflist;
-};
+} CVObject;
 
 static PyTypeObject CVObject_Type = {
     PyObject_HEAD_INIT(NULL)
     0,                                          /* ob_size */
     "CVObject",                                 /* tp_name */
-    sizeof(struct _cvobject),                   /* tp_basicsize */
+    sizeof(_cvobject),                          /* tp_basicsize */
     0,                                          /* tp_itemsize */
     (destructor)CVObject_dealloc,               /* tp_dealloc */
     0,                                          /* tp_print */
@@ -35,7 +34,7 @@ static PyTypeObject CVObject_Type = {
     0,                                          /* tp_traverse */
     0,                                          /* tp_clear */
     0,                                          /* tp_richcompare */
-    offsetof(struct _cvobject, in_weakreflist), /* tp_weaklistoffset */
+    offsetof(_cvobject, in_weakreflist),        /* tp_weaklistoffset */
     0,                                          /* tp_iter */
     0,                                          /* tp_iternext */
     0,                                          /* tp_methods */
@@ -57,26 +56,27 @@ static PyTypeObject CVObject_Type = {
 
 static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    CVObject self = (struct _cvobject *)type->tp_alloc(type, 0);
+    CVObject *self = (CVObject *)type->tp_alloc(type, 0);
 
     if (self == NULL) {
         return NULL;
     }
     self->in_weakreflist = NULL;
     self->weak_ref = NULL;
+    self->alive = 0;
     return (PyObject *)self;
 }
 
 
-static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
+static int CVObject_init(CVObject *self, PyObject *args, PyObject *kwargs)
 {
     PyObject *weak_ref;
 
-    if (main_loop == NULL) { /* To be set when the main loop starts */
+    /* if (main_loop == NULL) {
         PyErr_SetString(PyExc_TypeError, "The App's Main Loop must be started first.");
         return -1;
-    }
-    weak_ref = PyWeakref_NewRef((PyObject *)self, NULL);
+    }*/
+    weak_ref = PyWeakref_NewProxy((PyObject *)self, NULL);
 
     if (weak_ref == NULL) {
         return -1;
@@ -87,7 +87,7 @@ static int CVObject_init(CVObject self, PyObject *args, PyObject *kwargs)
 }
 
 
-static void CVObject_dealloc(CVObject self)
+static void CVObject_dealloc(CVObject *self)
 {
     switch(self->in_weakreflist != NULL) {
         case 1:
