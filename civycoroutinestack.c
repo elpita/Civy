@@ -1,4 +1,6 @@
-#include "civycoroutinestack.h"
+#ifndef CV_STACK_LENGTH
+#define CV_STACK_LENGTH 128
+#endif /* CV_STACK_LENGTH */
 
 
 typedef struct _cvcostack {
