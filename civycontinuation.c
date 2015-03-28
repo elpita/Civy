@@ -1,14 +1,15 @@
-#include "civycontinuation.h"
+typedef void (*CVCallbackFunc)(PyObject *, PyObject *, PyObject *);
+typedef void (*CVCleanupFunc)(void *);
 
 
-struct _cvcontext {
+typedef struct _cvcontext {
     int state;
     void *covars;
-};
+} CVContext;
 
 
 typedef struct _cvcontinuation {
-    struct _cvcontext context;
+    _cvcontext context;
     CVCallbackFunc cocall;
     CVCleanupFunc coclean;
     PyObject *coargs[3];
@@ -23,7 +24,6 @@ static void cv_dealloc_args(PyObject **args)
     Py_CLEAR(args[1]);
     Py_CLEAR(args[2]);
     PyGILState_Release(gstate);
-    
 }
 
 
