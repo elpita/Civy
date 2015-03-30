@@ -14,8 +14,8 @@ static void reset_arguments(PyObject *args)
 }
 
 
-static void cv_exec(PyObject *func, PyObject *args, PyObject *kwds)
-{/* This is the special continuation for events called *from* Python */
+/* static void cv_exec(PyObject *func, PyObject *args, PyObject *kwds)
+{ This is the special continuation for events called *from* Python 
     PyObject *result;
 
     CV_ENTER_ROUTINE_HERE
@@ -30,6 +30,26 @@ static void cv_exec(PyObject *func, PyObject *args, PyObject *kwds)
 
     CV_EXIT_ROUTINE_HERE
 
+    CV_CoReturn(result);
+} */
+
+
+static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
+{/* This is the special continuation for events called *from* Python  */
+
+    PyObject *result;
+
+    CV_ENTER_ROUTINE_HERE
+
+    cv_save_continuation();
+    _main_thread->frame = NULL;
+    result = PyObject_CallMethodObjArgs(actor_ptr, name, args, NULL);
+
+    IF_RETURNED_FROM_NESTED_DISPATCH
+        result = cv_coresume();
+
+    CV_EXIT_ROUTINE_HERE
+    
     CV_CoReturn(result);
 }
 
@@ -48,20 +68,35 @@ static void cv_periodic_exec(PyObject *ids, PyObject *key, PyObject *)
 void cv_join(PyObject *args, PyObject *, PyObject *)
 {/* This is a special continuation for returning *back* to Python */
     int throw_value;
-    PyObject *result = cv_coresume();
-    PyThreadState *ts = PyThreadState_GET();
+    PyObject *result;
 
-    /* Steal the reference to the frame */
-    Py_INCREF(args);
-    Py_XINCREF(result); //?
+    {
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        result = cv_coresume();
+    
+        /* Steal the reference to the frame */
+        Py_INCREF(args);
+        Py_XINCREF(result); //?
+
+        /* If there was a problem, let the frame know */
+        throw_value = PyErr_Occurred() ? 1 : 0;
+
+        PyGILState_Release(gstate);
+    }
     cv_kill_current();
+    
+    {
+        PyFrameObject *_frame;
+        {
+            PyThreadState *tstate = _main_thread;
 
-    /* If there was a problem, let the frame know */
-    throw_value = PyErr_Occurred() ? 1 : 0;
-
-    ts->frame = (PyFrameObject *)args;
-    *(ts->frame->f_stacktop++) = result;
-    result = PyEval_EvalFrameEx(ts->frame, throw_value);
+            _frame = (PyFrameObject *)args;
+            tstate->frame = _frame;
+        }
+        *(_frame->f_stacktop++) = result;
+        PyEval_RestoreThread(_main_thread);
+        result = PyEval_EvalFrameEx(_frame, throw_value);
+    }
     CV_CoReturn(result);
 }
 
