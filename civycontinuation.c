@@ -16,6 +16,20 @@ typedef struct _cvcontinuation {
 } CVContinuation;
 
 
+static CVContinuation cv_create_continuation(PyObject *actor_ptr, PyObject *args, PyObject *kwargs, CVCallbackFunc cocall, CVCleanupFunc coclean, void *covars)
+{
+    CVContinuation self = {{0, covars}, cocall, coclean, {actor_ptr, args, kwargs}};
+    {
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        Py_INCREF(actor_ptr);
+        Py_XINCREF(args);
+        Py_XINCREF(kwargs);
+        PyGILState_Release(gstate);
+    }
+    return self;
+}
+
+
 static void cv_dealloc_args(PyObject **args)
 {
     PyGILState_STATE gstate = PyGILState_Ensure();
