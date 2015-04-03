@@ -135,39 +135,19 @@ static int cv_push_event(CVCoroutine *coro, Uint32 event_type, int depth)
 }
 
 
-static void cv_dispatch(CVCoroutine *coro, PyObject *actor_ptr, PyObject *args, PyObject *kwargs, CVCallbackFunc cocall, CVCleanupFunc coclean, void *covars, int depth)
+static int cv_dispatch(CVCoroutine *coro, PyObject *actor_ptr, PyObject *args, PyObject *kwargs, CVCallbackFunc cocall, CVCleanupFunc coclean, void *covars, int depth)
 {
-    if (from_python) {
-        CVContinuation contin;
-        CVCoStack *stack = &(coro->stack);
-        PyObject *_frame = (PyObject *)(_main_thread->frame);
+    CVCoStack *stack = &(coro->stack);
+    CVContinuation contin = cv_create_continuation(actor_ptr, args, kwargs, cocall, coclean, covars);
 
-        contin = cv_create_continuation(_frame, NULL, NULL, cv_join, NULL, NULL);
-
-        /* Keep the frame's reference count at 1 */
-        {
-            PyGILState_STATE gstate = PyGILState_Ensure();
-            Py_DECREF(_frame);
-            PyGILState_Release(gstate);
-        }
-
-        if (!cv_costack_push(stack, &contin)) {
-            FAIL();
-        }
-    }{
-        CVCoStack *stack = &(coro->stack);
-        CVContinuation contin = cv_create_continuation(actor_ptr, args, kwargs, cv_exec, NULL, NULL);
-
-        if (!cv_costack_push(stack, &contin)) {
-            FAIL();
-        }
-    }{
-        int depth = _main_thread->recursion_depth;
-
-        if (!cv_push_event(coro, CV_DISPATCHED_EVENT, depth)) {
-            FAIL();
-        }
+    if (!cv_costack_push(stack, &contin)) {
+        return 0;
     }
+    else if (!cv_push_event(coro, CV_DISPATCHED_EVENT, depth)) {
+        cv_dealloc_continuation(contin);
+        return 0;
+    }
+    return 1;
 }
 
 
