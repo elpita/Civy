@@ -1,39 +1,6 @@
 #define IF_RETURN_FROM_NESTED_DISPATCH break; default:
 #define cv_save_continuation() (*context)->state = __LINE__
 
-
-/*static void reset_arguments(PyObject *args)
-{ Switch out the weak ref with the real actor (assume it's still alive)
-    PyObject *obj, *actor;
-
-    obj = PyTuple_GET_ITEM(args, 0);
-    actor = PyWeakref_GET_OBJECT(obj);
-    Py_INCREF(actor);
-    PyTuple_SET_ITEM(args, 0, actor);
-    //Py_DECREF(obj);
-}*/
-
-
-/* static void cv_exec(PyObject *func, PyObject *args, PyObject *kwds)
-{ This is the special continuation for events called *from* Python 
-    PyObject *result;
-
-    CV_ENTER_ROUTINE_HERE
-
-    cv_save_continuation();
-    PyThreadState_GET()->frame = NULL;
-    reset_arguments(args);
-    result = PyObject_Call(func, args, kwds); // cheating
-
-    IF_RETURNED_FROM_NESTED_DISPATCH
-        result = CV_CoResume();
-
-    CV_EXIT_ROUTINE_HERE
-
-    CV_CoReturn(result);
-} */
-
-
 static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
 {/* This is the special continuation for events called *from* Python  */
 
@@ -101,20 +68,6 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
 }
 
 
-static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObject *kwds)
-{/* Used for creating a new coroutine called from python */
-    _cvcontinuation cfp = {{0, NULL}, cv_exec, NULL, {NULL, NULL, NULL}}; //Also called in SDL Threads
-    PyObject *arguments[3] = {func, args, kwds};
-
-    cfp.coargs = arguments;
-    
-    if (cv_costack_push(coroutine, &cfp) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-
 static int cv_push_event(CVCoroutine *coro, Uint32 event_type, int depth)
 {
     SDL_Event event;
@@ -148,57 +101,6 @@ static int cv_dispatch(CVCoroutine *coro, PyObject *actor_ptr, PyObject *args, P
         return 0;
     }
     return 1;
-}
-
-
-static int cv_wait(CVCoroutine coroutine)
-{/* Used for creating the coroutine that returns to python */
-    static _cvcontinuation rtp = {{0, NULL}, cv_join, NULL, {NULL, NULL, NULL}};
-    PyObject *frame;
-    int depth;
-
-    frame = (PyObject *)PyEval_GetFrame();
-    rtp.coargs[0] = frame;
-
-    if (cv_costack_push(coroutine, &rtp) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-
-static int cv_fork(CVCoroutine coro, PyObject *func, PyObject *args, PyObject *kwds)
-{/* Used for creating a synchronous python event */
-
-    if (cv_wait(coro) < 0) {
-        return -1;
-    }
-    else if (cv_spawn(coro, func, args, kwds) < 0) {
-        return -1;
-    }
-    else if (cv_push_event(PyTuple_GET_ITEM(args, 0), CV_DISPATCHED_EVENT, PyThreadState_GET()->recursion_depth) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-
-static int dispatch_sync_event(CVObject actor, PyObject *a, PyObject *b, PyObject *c)
-{
-    CVCoroutine coro = cv_create_coroutine((PyObject *)actor);
-
-    if (coro == NULL) {
-        return -1;
-    }
-    else if (cv_spawn_sync_event(coro, a, b, c) < 0) {
-        //cv_dealloc_coroutine(coro);
-        return -1;
-    }
-    else if (cv_object_queue_push(actor->cvprocesses, coro) < 0) {
-        //cv_dealloc_coroutine(coro);
-        return -1;
-    }
-    return 0;
 }
 
 
