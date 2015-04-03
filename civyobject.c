@@ -4,7 +4,7 @@
 typedef struct _cvobject {
     PyObject_HEAD
     char alive;
-    PyObject *weak_ref;
+    PyObject *proxy_ref;
     PyObject *in_weakreflist;
 } CVObject;
 
@@ -62,7 +62,7 @@ static PyObject* CVObject_new(PyTypeObject *type, PyObject *args, PyObject *kwar
         return NULL;
     }
     self->in_weakreflist = NULL;
-    self->weak_ref = NULL;
+    self->proxy_ref = NULL;
     self->alive = 0;
     return (PyObject *)self;
 }
@@ -81,7 +81,7 @@ static int CVObject_init(CVObject *self, PyObject *args, PyObject *kwargs)
     if (weak_ref == NULL) {
         return -1;
     }
-    self->weak_ref = weak_ref;
+    self->proxy_ref = weak_ref;
     self->alive = 1;
     return 0;
 }
@@ -94,7 +94,7 @@ static void CVObject_dealloc(CVObject *self)
             PyObject_ClearWeakRefs((PyObject *)self);
         default:
             self->alive = 0;
-            Py_XDECREF(self->weak_ref);
+            Py_XDECREF(self->proxy_ref);
             self->ob_type->tp_free( (PyObject *)self );
             break;
     }
