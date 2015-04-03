@@ -115,15 +115,58 @@ static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObj
 }
 
 
-static void cv_dispatch(CVObject *actor, PyObject *args, PyObject *kwargs, CVCallbackFunc cocall, CVCleanupFunc coclean, void *covars, int from_python)
+static int cv_push_event(CVCoroutine *coro, Uint32 event_type, int depth)
 {
-    PyObject *actor_ptr = actor->proxy_ref;
+    SDL_Event event;
 
-    if (from_python) {
-        doda;
+    SDL_zero(event);
+    event.type = event_type;
+    event.user.code = depth;
+    event.user.data1 = (void *)coro;
+    event.user.data2 = (void *)cv_coreturn(); // Keep an eye on this...
+
+    if (SDL_PushEvent(&event) < 0) {
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
+        PyGILState_Release(gstate);
+        return 0;
     }
-    else {
-        
+    return 1;
+}
+
+
+static void cv_dispatch(CVCoroutine *coro, PyObject *actor_ptr, PyObject *args, PyObject *kwargs, CVCallbackFunc cocall, CVCleanupFunc coclean, void *covars, int depth)
+{
+    if (from_python) {
+        CVContinuation contin;
+        CVCoStack *stack = &(coro->stack);
+        PyObject *_frame = (PyObject *)(_main_thread->frame);
+
+        contin = cv_create_continuation(_frame, NULL, NULL, cv_join, NULL, NULL);
+
+        /* Keep the frame's reference count at 1 */
+        {
+            PyGILState_STATE gstate = PyGILState_Ensure();
+            Py_DECREF(_frame);
+            PyGILState_Release(gstate);
+        }
+
+        if (!cv_costack_push(stack, &contin)) {
+            FAIL();
+        }
+    }{
+        CVCoStack *stack = &(coro->stack);
+        CVContinuation contin = cv_create_continuation(actor_ptr, args, kwargs, cv_exec, NULL, NULL);
+
+        if (!cv_costack_push(stack, &contin)) {
+            FAIL();
+        }
+    }{
+        int depth = _main_thread->recursion_depth;
+
+        if (!cv_push_event(coro, CV_DISPATCHED_EVENT, depth)) {
+            FAIL();
+        }
     }
 }
 
@@ -138,25 +181,6 @@ static int cv_wait(CVCoroutine coroutine)
     rtp.coargs[0] = frame;
 
     if (cv_costack_push(coroutine, &rtp) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-
-static void cv_push_event(PyObject *target, Uint32 event_type, int depth)
-{
-    SDL_Event event;
-
-    SDL_zero(event);
-    event.type = event_type;
-    event.user.code = depth;
-    event.user.data1 = target;
-    Py_INCREF(target);
-
-    if (SDL_PushEvent(&event) < 0) {
-        Py_DECREF(target);
-        PyErr_SetString(PyExc_RuntimeError, SDL_GetError());
         return -1;
     }
     return 0;
