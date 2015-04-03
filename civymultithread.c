@@ -144,7 +144,7 @@ static int cv_dispatch(CVCoroutine *coro, PyObject *actor_ptr, PyObject *args, P
         return 0;
     }
     else if (!cv_push_event(coro, CV_DISPATCHED_EVENT, depth)) {
-        cv_dealloc_continuation(contin);
+        cv_dealloc_continuation(cv_costack_pop(stack));
         return 0;
     }
     return 1;
