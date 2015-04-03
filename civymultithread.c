@@ -2,8 +2,8 @@
 #define cv_save_continuation() (*context)->state = __LINE__
 
 
-static void reset_arguments(PyObject *args)
-{/* Switch out the weak ref with the real actor (assume it's still alive) */
+/*static void reset_arguments(PyObject *args)
+{ Switch out the weak ref with the real actor (assume it's still alive)
     PyObject *obj, *actor;
 
     obj = PyTuple_GET_ITEM(args, 0);
@@ -11,7 +11,7 @@ static void reset_arguments(PyObject *args)
     Py_INCREF(actor);
     PyTuple_SET_ITEM(args, 0, actor);
     //Py_DECREF(obj);
-}
+}*/
 
 
 /* static void cv_exec(PyObject *func, PyObject *args, PyObject *kwds)
@@ -112,6 +112,17 @@ static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObj
         return -1;
     }
     return 0;
+}
+
+
+static void cv_dispatch(PyObject *actor_ptr, PyObject *args, PyObject *kwargs, CVCallbackFunc cocall, CVCleanupFunc coclean, void *covars, int from_python)
+{
+    if (from_python) {
+        doda;
+    }
+    else {
+        
+    }
 }
 
 
