@@ -115,8 +115,10 @@ static int cv_spawn(CVCoroutine coroutine, PyObject *func, PyObject *args, PyObj
 }
 
 
-static void cv_dispatch(PyObject *actor_ptr, PyObject *args, PyObject *kwargs, CVCallbackFunc cocall, CVCleanupFunc coclean, void *covars, int from_python)
+static void cv_dispatch(CVObject *actor, PyObject *args, PyObject *kwargs, CVCallbackFunc cocall, CVCleanupFunc coclean, void *covars, int from_python)
 {
+    PyObject *actor_ptr = actor->proxy_ref;
+
     if (from_python) {
         doda;
     }
