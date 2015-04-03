@@ -32,10 +32,10 @@ static int cv_costack_push(CVCoStack *s, CVContinuation *c)
         PyGILState_STATE gstate = PyGILState_Ensure();
         PyErr_SetString(PyExc_RuntimeError, "Overflow in coroutine's stack.");
         PyGILState_Release(gstate);
-        return -1;
+        return 0;
     }
     *s->s_ptr++ = *c;
-    return 0;
+    return 1;
 }
 
 
