@@ -15,17 +15,6 @@ static void cv_init_costack(CVCoStack *s)
 }
 
 
-static void cv_dealloc_costack(CVCoStack *s)
-{
-    CVContinuation *c = cv_costack_pop(s);
-
-    while (c != NULL) {
-        cv_dealloc_continuation(c);
-        c = cv_costack_pop(s);
-    }
-}
-
-
 static int cv_costack_push(CVCoStack *s, CVContinuation *c)
 {
     if (s->s_ptr >= (s->items + CV_STACK_LENGTH)) {
@@ -45,4 +34,15 @@ static CVContinuation* cv_costack_pop(CVCoStack *s)
        return NULL;
     }
     return --s->s_ptr;
+}
+
+
+static void cv_dealloc_costack(CVCoStack *s)
+{
+    CVContinuation *c = cv_costack_pop(s);
+
+    while (c != NULL) {
+        cv_dealloc_continuation(c);
+        c = cv_costack_pop(s);
+    }
 }
