@@ -10,7 +10,7 @@ typedef struct _cvcoroutine {
 } CVCoroutine;
 
 
-static CVCoroutine* cv_create_coroutine(PyObject *actor_ptr)
+static CVCoroutine* cv_create_coroutine(PyObject *actor_ptr, CVCoroutine *parent)
 {
     CVCoroState self_state;
     CVCoroutine *self = (CVCoroutine *)PyMem_Malloc(sizeof(_cvcoroutine));
@@ -28,7 +28,7 @@ static CVCoroutine* cv_create_coroutine(PyObject *actor_ptr)
     }
 
     self_state.actor_ptr = actor_ptr;
-    self_state.parent = NULL;
+    self_state.parent = parent;
     self->state = self_state;
     cv_init_costack(self->stack);
     return self;
