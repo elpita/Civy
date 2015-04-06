@@ -70,77 +70,58 @@ static int str_endswith(PyObject *key, const char *suffix)
 }
 
 
-static PyObject* EventDispatcher_dispatch(CVEventDispatcher self, PyObject *args, PyObject *kwds)
+static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *args, PyObject *kwds)
 {
-    CVCoroutine coro;
-    PyObject *func, *positional_args;
+    CVCoroutine *coro;
+    PyObject *actor_ptr, *name, *p_args;
     Py_ssize_t s_size = PyTuple_GET_SIZE(args);
 
     /* First, check if function call is legal */
-    if (s_size < 1) {
+    if (PyGILState_GetThisThreadState()) {
+        /* CV FAIL THREAD */
+    }
+    else if (s_size < 1) {
         PyErr_SetString(PyExc_ValueError, "'dispatch' takes a string argument ending with '_event'"); //fix
         return NULL;
     }
-    else {
-        PyObject *name = PyTuple_GET_ITEM(args, 0);
+    name = PyTuple_GET_ITEM(args, 0);
 
-        if (!str_endswith(name, "_event")) {
-            PyErr_SetString(PyExc_TypeError, "'dispatch' takes a string argument ending with '_event'"); //fix
-            return NULL;
-        }
-        else if (!PyObject_HasAttr((PyObject *)self, name)) {
-            PyErr_SetString(PyExc_TypeError, "No event found"); //fix
-            return NULL;
-        }
-        else {
-            PyObject *meth = PyObject_GetAttr((PyObject *)self, name);
-
-            if (meth == NULL) {
-                return NULL;
-            }
-            func = PyMethod_GET_FUNCTION(meth);
-            Py_INCREF(func);
-            Py_DECREF(meth);
-        }
+    if (!str_endswith(name, "_event")) {
+        PyErr_SetString(PyExc_TypeError, "'dispatch' takes a string argument ending with '_event'"); //fix
+        return NULL;
     }
-
-    /* Next, create the passaround positional arguments */
-    {
-        /* Make `self` argument a weak-reference to avoid unintentionally keeping it alive */
-        PyObject *self_arg;
-        PyObject *weak_self = PyWeakref_NewRef((PyObject *)self, NULL);
-
-        if (weak_self == NULL) {
-            Py_DECREF(func);
-            return NULL;
-        }
-        self_arg = PyTuple_Pack(1, weak_self);
-
-        if (self_arg == NULL) {
-            Py_DECREF(weak_self);
-            Py_DECREF(func);
-            return NULL;
-        }
+    else if (!PyObject_HasAttr((PyObject *)self, name)) {
+        PyErr_SetString(PyExc_TypeError, "No event found"); //fix
+        return NULL;
+    }
+    else {
+        actor_ptr = ((CVObject *)self)->proxy_ref;
 
         if (s_size > 1) {
-            PyObject *tup = PyTuple_GetSlice(args, 1, s_size);
-
-            if (tup == NULL) {
-                Py_DECREF(self_arg);
-                Py_DECREF(weak_self);
-                Py_DECREF(func);
-                return NULL;
-            }
-            positional_args = PySequence_Concat(self_arg, tup);
-            Py_DECREF(tup);
-            Py_DECREF(self_arg);
+            p_args = PyTuple_GetSlice(args, 1, s_size);
         }
         else {
-            positional_args = self_arg;
+            p_args = PyTuple_New(0);
         }
-        Py_DECREF(weak_self);
+
+        if (p_args == NULL) {
+            return NULL;
+        }
     }
 
+    if (!PyObject_RichCompareBool((PyObject *)self, global_actor, Py_EQ)) {
+        _main_thread = PyEval_SaveThread();
+        coro = cv_create_coroutine(actor_ptr);
+
+        if (coro == NULL) {
+            PyEval_RestoreThread(_main_thread);
+            Py_DECREF(p_args);
+            return NULL;
+        }
+    }
+    else {
+        _main_thread = PyEval_SaveThread();
+    }
     /* Finally, create the coroutine and fork the 'thread' */
     coro = get_current_coroutine((PyObject *)self);
 
