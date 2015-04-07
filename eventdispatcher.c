@@ -73,7 +73,7 @@ static int str_endswith(PyObject *key, const char *suffix)
 static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *args, PyObject *kwds)
 {
     CVCoroutine *coro;
-    PyObject *actor_ptr, *name, *p_args;
+    PyObject *actor_ptr, *name, *p_args, *frame;
     Py_ssize_t s_size = PyTuple_GET_SIZE(args);
 
     /* First, check if function call is legal */
@@ -110,10 +110,24 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *arg
     }
 
     if (!PyObject_RichCompareBool((PyObject *)self, global_actor, Py_EQ)) {
+        frame = (PyObject *)PyEval_GetFrame();
         _main_thread = PyEval_SaveThread();
-        coro = cv_create_coroutine(actor_ptr);
+
+        coro = cv_create_coroutine(actor_ptr, _cv_current_coroutine);
 
         if (coro == NULL) {
+            PyEval_RestoreThread(_main_thread);
+            Py_DECREF(p_args);
+            return NULL;
+        }
+        else if (!cv_costack_push(coro->stack, cv_create_continuation(coro, frame, NULL, NULL, cv_join, NULL, NULL))) {
+            cv_dealloc_coroutine(coro);
+            PyEval_RestoreThread(_main_thread);
+            Py_DECREF(p_args);
+            return NULL;
+        }
+        else if (!cv_costack_push(coro->stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, NULL, NULL))) {
+            cv_dealloc_coroutine(coro);
             PyEval_RestoreThread(_main_thread);
             Py_DECREF(p_args);
             return NULL;
@@ -121,6 +135,17 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *arg
     }
     else {
         _main_thread = PyEval_SaveThread();
+        coro = _cv_current_coroutine;
+
+        if (!cv_costack_push(coro->stack, cv_create_continuation(coro, frame, NULL, NULL, cv_join, NULL, NULL))) {
+            PyEval_RestoreThread(_main_thread);
+            Py_DECREF(p_args);
+            return NULL;
+        }
+        else if (!cv_costack_push(coro->stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, NULL, NULL))) {
+            PyEval_RestoreThread(_main_thread);
+            Py_DECREF(p_args);
+            return NULL;
     }
     /* Finally, create the coroutine and fork the 'thread' */
     coro = get_current_coroutine((PyObject *)self);
