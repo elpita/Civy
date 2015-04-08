@@ -72,61 +72,74 @@ static int str_endswith(PyObject *key, const char *suffix)
 
 static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *args, PyObject *kwds)
 {
-    CVCoroutine *coro;
     PyObject *actor_ptr, *name, *p_args, *frame;
-    Py_ssize_t s_size = PyTuple_GET_SIZE(args);
 
     /* First, check if function call is legal */
     if (PyGILState_GetThisThreadState()) {
         /* CV FAIL THREAD */
     }
-    else if (s_size < 1) {
-        PyErr_SetString(PyExc_ValueError, "'dispatch' takes a string argument ending with '_event'"); //fix
-        return NULL;
-    }
-    name = PyTuple_GET_ITEM(args, 0);
-
-    if (!str_endswith(name, "_event")) {
-        PyErr_SetString(PyExc_TypeError, "'dispatch' takes a string argument ending with '_event'"); //fix
-        return NULL;
-    }
-    else if (!PyObject_HasAttr((PyObject *)self, name)) {
-        PyErr_SetString(PyExc_TypeError, "No event found"); //fix
-        return NULL;
-    }
     else {
-        actor_ptr = ((CVObject *)self)->proxy_ref;
+        Py_ssize_t s_size = PyTuple_GET_SIZE(args);
 
-        if (s_size > 1) {
-            p_args = PyTuple_GetSlice(args, 1, s_size);
+        if (s_size < 1) {
+            PyErr_SetString(PyExc_ValueError, "'dispatch' takes a string argument ending with '_event'"); //fix
+            return NULL;
+        }
+        name = PyTuple_GET_ITEM(args, 0);
+    
+        if (!str_endswith(name, "_event")) {
+            PyErr_SetString(PyExc_TypeError, "'dispatch' takes a string argument ending with '_event'"); //fix
+            return NULL;
+        }
+        else if (!PyObject_HasAttr((PyObject *)self, name)) {
+            PyErr_SetString(PyExc_TypeError, "No event found"); //fix
+            return NULL;
         }
         else {
-            p_args = PyTuple_New(0);
-        }
-
-        if (p_args == NULL) {
-            return NULL;
+            actor_ptr = ((CVObject *)self)->proxy_ref;
+    
+            if (s_size > 1) {
+                p_args = PyTuple_GetSlice(args, 1, s_size);
+            }
+            else {
+                p_args = PyTuple_New(0);
+            }
+    
+            if (p_args == NULL) {
+                return NULL;
+            }
         }
     }
 
     if (!PyObject_RichCompareBool((PyObject *)self, global_actor, Py_EQ)) {
+        int depth;
+        CVCoStack *stack;
+        CVCoroutine *coro;
+
         frame = (PyObject *)PyEval_GetFrame();
         _main_thread = PyEval_SaveThread();
-
+        depth = _main_thread->recursion_depth;
         coro = cv_create_coroutine(actor_ptr, _cv_current_coroutine);
+        stack = &(coro->stack);
 
         if (coro == NULL) {
             PyEval_RestoreThread(_main_thread);
             Py_DECREF(p_args);
             return NULL;
         }
-        else if (!cv_costack_push(coro->stack, cv_create_continuation(coro, frame, NULL, NULL, cv_join, NULL, NULL))) {
+        else if (!cv_costack_push(stack, cv_create_continuation(coro, frame, NULL, NULL, cv_join, NULL, NULL))) {
             cv_dealloc_coroutine(coro);
             PyEval_RestoreThread(_main_thread);
             Py_DECREF(p_args);
             return NULL;
         }
-        else if (!cv_costack_push(coro->stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, NULL, NULL))) {
+        else if (!cv_costack_push(stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, NULL, NULL))) {
+            cv_dealloc_coroutine(coro);
+            PyEval_RestoreThread(_main_thread);
+            Py_DECREF(p_args);
+            return NULL;
+        }
+        else if (!cv_push_event(coro, CV_DISPATCHED_EVENT, depth)) {
             cv_dealloc_coroutine(coro);
             PyEval_RestoreThread(_main_thread);
             Py_DECREF(p_args);
@@ -134,32 +147,35 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *arg
         }
     }
     else {
-        _main_thread = PyEval_SaveThread();
-        coro = _cv_current_coroutine;
+        int depth;
+        CVCoStack *stack;
+        CVCoroutine *coro;
 
-        if (!cv_costack_push(coro->stack, cv_create_continuation(coro, frame, NULL, NULL, cv_join, NULL, NULL))) {
+        frame = (PyObject *)PyEval_GetFrame();
+        _main_thread = PyEval_SaveThread();
+        depth = _main_thread->recursion_depth;
+        coro = _cv_current_coroutine;
+        stack = &(coro->stack);
+
+        if (!cv_costack_push(stack, cv_create_continuation(coro, frame, NULL, NULL, cv_join, NULL, NULL))) {
             PyEval_RestoreThread(_main_thread);
             Py_DECREF(p_args);
             return NULL;
         }
-        else if (!cv_costack_push(coro->stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, NULL, NULL))) {
+        else if (!cv_costack_push(stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, NULL, NULL))) {
             PyEval_RestoreThread(_main_thread);
             Py_DECREF(p_args);
             return NULL;
+        }
+        else if (!cv_push_event(coro, CV_DISPATCHED_EVENT, depth)) {
+            PyEval_RestoreThread(_main_thread);
+            Py_DECREF(p_args);
+            return NULL;
+        }
     }
-    /* Finally, create the coroutine and fork the 'thread' */
-    coro = get_current_coroutine((PyObject *)self);
-
-    if (coro == NULL) {
-        Py_DECREF(positional_args);
-        Py_DECREF(func);
-        return NULL;
-    }
-    else if (cv_fork(coro, func, positional_args, kwds) < 0) {
-        Py_DECREF(positional_args);
-        Py_DECREF(func);
-        return NULL;
-    }
+    Py_DECREF(frame);
+    Py_DECREF((PyObject *)self);
+    Py_DECREF(args);
     cv_longjmp(back, 1);
 }
 
