@@ -172,10 +172,13 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *arg
             Py_DECREF(p_args);
             return NULL;
         }
+    }{
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        Py_DECREF(frame);
+        Py_DECREF((PyObject *)self);
+        Py_DECREF(args);
+        PyGILState_Release(gstate);
     }
-    Py_DECREF(frame);
-    Py_DECREF((PyObject *)self);
-    Py_DECREF(args);
     cv_longjmp(back, 1);
 }
 
