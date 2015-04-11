@@ -76,7 +76,7 @@ static int cv_push_event(CVCoroutine *coro, Uint32 event_type, int depth)
     event.type = event_type;
     event.user.code = depth;
     event.user.data1 = (void *)coro;
-    event.user.data2 = (void *)cv_coreturn(); // Keep an eye on this...
+    event.user.data2 = (void *)(*_cv_globals.passaround);
 
     if (SDL_PushEvent(&event) < 0) {
         PyGILState_STATE gstate = PyGILState_Ensure();
