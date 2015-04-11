@@ -4,6 +4,10 @@ cdef inline object _get_object(object x):
     return x
 
 
+cdef inline object _get_ref(object x, WeakList self):
+    return PyWeakref_NewRef(x, self._remove)
+
+
 cdef class WeakCallback:
     __slots__ = ('obj')
     cdef object _obj
@@ -18,10 +22,6 @@ cdef class WeakCallback:
             return
         while list.__contains__(weak_list, item):
             list.remove(weak_list, item)
-
-
-cdef inline object _get_ref(object x, WeakList self):
-    return PyWeakref_NewRef(x, self._remove)
 
 
 cdef class WeakList(list):
