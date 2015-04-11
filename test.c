@@ -1,10 +1,19 @@
 #include <setjmp.h>
 
 /* POSIX */
-#if (defined(unix) || defined(__unix__) || defined(__unix)) || defined(__APPLE__)
+#if !defined(POSIX) && ((defined(unix) || defined(__unix__) || defined(__unix)) || defined(__APPLE__))
+#define POSIX
+#endif
+#if defined POSIX
 #define cv_setjmp(jb) sigsetjmp(jb, 0)
 #define cv_longjmp(jb, v) siglongjmp(jb, v)
-static sigjmp_buf env[3];
+
+struct _cv_global_s {
+    sigjmp_buf env[3];
+    PyObject *main_thread;
+    
+};
+
 #else /* Use normal setjmp */
 #define cv_setjmp(jb) setjmp(jb)
 #define cv_longjmp(jb, v) longjmp(jb, v)
