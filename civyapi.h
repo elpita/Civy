@@ -8,12 +8,13 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
 #define CV_GetRoutineVars() (void *)((*context)->vars)
 #define CV_SetRoutineVars(largs) (*context)->vars = (void *)largs
 #define CV_ENTER_ROUTINE_HERE switch((*context)->state) { case 0:
-#define cv_coresume() \
-    do {
-        PyObject *r = (*passaround); \
-        Py_XDECREF(r); \
-        return r; \
-    } while(0) //This is WRONG
+#define cv_coresume(r) \
+    do { \
+        PyObject *ret = (*_cv_globals.passaround); \
+        (*_cv_globals.passaround) = NULL; \
+        Py_XDECREF(ret); \
+        r = ret; \
+    } while(0)
 
 #define CV_SwitchRoutine(r, a, b, c) \
     do { \
@@ -22,7 +23,7 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
         (*context)->state = __LINE__; \
         longjmp(back, 1); \
         case __LINE__: \
-            r = cv_coresume(); \
+            cv_coresume(r); \
     } while(0)
 
 #define cv_kill_current() \
@@ -32,10 +33,11 @@ void (*func)(PyObject* actor, PyObject* args, PyObject *kwds);
     } while(0)
 #define CV_CoReturn(r) \
     do { \
-        (*passaround) = (PyObject *)r; \
-        Py_XINCREF(r); \
-        cv_kill_current(); \
-        return; \
+        PyObject *ret = (PyObject *)r; \
+        (*_cv_globals.passaround) = ret \
+        Py_XINCREF(ret); \
+        _cv_globals._main_thread = PyEval_SaveThread(); \
+        cv_longjmp(to_continuation, 1); \
     } while(0)
 
 #define CV_EXIT_ROUTINE_HERE break;}
