@@ -29,7 +29,7 @@ static void cv_control(SDL_UserEvent *event)
         global_coroutine = coro;
     }
 
-    switch(cv_setjmp(to_whatever)) {
+    switch(cv_setjmp(to_coroutine)) {
         case 0: {
             CVStack *stack = &(coro->stack)
             coroutine_call(stack);
@@ -65,7 +65,7 @@ static void coroutine_call(CVCoStack *stack)
     volatile CVContinuation *c = cv_costack_pop(stack);
 
     global_continuation = &c;
-    switch(cv_setjmp(to_this)) {
+    switch(cv_setjmp(to_continuation)) {
         case 0:
             while (c != NULL) {
                 CVCallbackFunc cocall = c->cocall;
@@ -84,8 +84,8 @@ static void coroutine_call(CVCoStack *stack)
 
         if (error_occurred) {
             cv_dealloc_coroutine(global_coroutine);
-            cv_longjmp(to_whatever, -1);
+            cv_longjmp(to_coroutine, -1);
         }
     }
-    cv_longjmp(to_whatever, 1);
+    //cv_longjmp(to_whatever, 1);
 }
