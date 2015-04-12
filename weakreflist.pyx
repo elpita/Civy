@@ -26,7 +26,7 @@ cdef class WeakCallback:
     def __call__(self, object item):
         cdef object weak_list = PyWeakref_GET_OBJECT(self._obj)
 
-        if (weak_list == None):
+        if (weak_list is None):
             return
         while list.__contains__(weak_list, item):
             list.remove(weak_list, item)
