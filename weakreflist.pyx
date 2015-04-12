@@ -17,7 +17,6 @@ cdef inline object _get_ref(object x, WeakList self):
 
 
 cdef class WeakCallback:
-    __slots__ = ('obj')
     cdef object _obj
 
     def __cinit__(self, WeakList obj):
