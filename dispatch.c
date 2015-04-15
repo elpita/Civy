@@ -18,15 +18,19 @@ static void cv_control(SDL_UserEvent *event)
         gstate = PyGILState_Ensure();
 
         if (!cv_check_coroutine(state)) {
-            Py_XDECREF((PyObject *)(event->data2)); //Fix me
-            cv_dealloc_coroutine(coro);
+            PyObject *ret = event->data2;
+            Py_XDECREF(ret);
             PyGILState_Release(gstate);
+            cv_dealloc_coroutine(coro);
             return;
         }
-        global_actor = PyWeakref_GET_OBJECT(state->actor_ptr);
-        Py_INCREF(global_actor);
-        PyGILState_Release(gstate);
-        global_coroutine = coro;
+        else {
+            PyObject *current = PyWeakref_GET_OBJECT(state->actor_ptr);
+            Py_INCREF(current);
+            PyGILState_Release(gstate);
+            _cv_globals.current_actor = current;
+        }
+        _cv_globals.current_coroutine = coro;
     }
 
     switch(cv_setjmp(to_coroutine)) {
@@ -47,13 +51,26 @@ static void cv_control(SDL_UserEvent *event)
                 ((CVCoroState *)coro)->parent = NULL;
             }
         }
-        case -1:
+        case -1: {
+            PyObject *current;
+            PyGILState_STATE gstate;
+
             cv_dealloc_coroutine(coro);
-            /* Cleanup */
-        case 1: {
-            PyGILState_STATE gstate = PyGILState_Ensure();
+            current = _cv_globals.current_actor;
+            gstate = PyGILState_Ensure();
             Py_DECREF(global_actor);
             PyGILState_Release(gstate);
+            cv_longjmp(to_main_loop, -1);
+        }
+        case 1: {
+            PyObject *current;
+            PyGILState_STATE gstate;
+
+            current = _cv_globals.current_actor;
+            gstate = PyGILState_Ensure();
+            Py_DECREF(global_actor);
+            PyGILState_Release(gstate);
+            cv_longjmp(to_main_loop, 1);
         }
     }
     /* Cleanup */
