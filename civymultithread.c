@@ -1,5 +1,5 @@
 #define IF_RETURN_FROM_NESTED_DISPATCH break; default:
-#define cv_save_continuation() (*context)->state = __LINE__
+#define CV_ENTER_EXEC_ROUTINE_HERE CV_ENTER_ROUTINE_HERE _cv_globals.current_continuation->state = __LINE__;
 
 
 static void cv_exec_cleanup(void *vars)
@@ -16,9 +16,8 @@ static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
 
     PyObject *result, *callback;
 
-    CV_ENTER_ROUTINE_HERE
+    CV_ENTER_EXEC_ROUTINE_HERE
 
-    cv_save_continuation();
     callback = PyObject_GetAttr(actor_ptr, name);
 
     if (!callback) {
@@ -32,7 +31,7 @@ static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
 
     IF_RETURNED_FROM_NESTED_DISPATCH
         result = cv_coresume();
-        
+
         /* Cleanup what `PyObject_CallObject` left off */
         Py_DECREF(args);
         Py_LeaveRecursiveCall(); //?
