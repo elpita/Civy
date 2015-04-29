@@ -4,19 +4,34 @@
 static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
 {/* This is the special continuation for events called *from* Python  */
 
-    PyObject *result;
+    PyObject *result, *callback;
 
     CV_ENTER_ROUTINE_HERE
 
     cv_save_continuation();
-    _main_thread->frame = NULL;
-    result = PyObject_CallMethodObjArgs(actor_ptr, name, args, NULL);
+    callback = PyObject_GetAttr(actor_ptr, name);
+
+    if (!callback) {
+        result = NULL;
+    }
+    else {
+        /* Cheating */
+        _cv_globals.current_continuation->coargs[1] = callback;
+        Py_DECREF(name);
+
+        _cv_globals._main_thread->frame = NULL;
+        result = PyObject_CallObject(callback, args);
+    }
 
     IF_RETURNED_FROM_NESTED_DISPATCH
         result = cv_coresume();
+        
+        /* Cleanup what `PyObject_CallObject` left off */
+        Py_DECREF(args);
+        Py_LeaveRecursiveCall(); //?
 
     CV_EXIT_ROUTINE_HERE
-    
+
     CV_CoReturn(result);
 }
 
@@ -46,7 +61,7 @@ void cv_join(PyObject *args, PyObject *, PyObject *)
         Py_XINCREF(result); //?
 
         /* If there was a problem, let the frame know */
-        throw_value = PyErr_Occurred() ? 1 : 0;
+        throw_value = result? 0 : 1;
 
         PyGILState_Release(gstate);
     }
