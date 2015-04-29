@@ -1,6 +1,16 @@
 #define IF_RETURN_FROM_NESTED_DISPATCH break; default:
 #define cv_save_continuation() (*context)->state = __LINE__
 
+
+static void cv_exec_cleanup(void *vars)
+{
+    PyObject *callback;
+
+    callback = (PyObject *)vars;
+    Py_XDECREF(callback);
+}
+
+
 static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
 {/* This is the special continuation for events called *from* Python  */
 
@@ -15,10 +25,7 @@ static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
         result = NULL;
     }
     else {
-        /* Cheating */
-        _cv_globals.current_continuation->coargs[1] = callback;
-        Py_DECREF(name);
-
+        CV_SetRoutineVars(callback);
         _cv_globals._main_thread->frame = NULL;
         result = PyObject_CallObject(callback, args);
     }
