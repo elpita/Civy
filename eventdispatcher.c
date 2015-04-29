@@ -133,7 +133,7 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *arg
             Py_DECREF(p_args);
             return NULL;
         }
-        else if (!cv_costack_push(stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, NULL, NULL))) {
+        else if (!cv_costack_push(stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, cv_exec_cleanup, NULL))) {
             cv_dealloc_coroutine(coro);
             PyEval_RestoreThread(_main_thread);
             Py_DECREF(p_args);
@@ -162,7 +162,7 @@ static PyObject* EventDispatcher_dispatch(CVEventDispatcher *self, PyObject *arg
             Py_DECREF(p_args);
             return NULL;
         }
-        else if (!cv_costack_push(stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, NULL, NULL))) {
+        else if (!cv_costack_push(stack, cv_create_continuation(coro, actor_ptr, name, p_args, cv_exec, cv_exec_cleanup, NULL))) {
             PyEval_RestoreThread(_main_thread);
             Py_DECREF(p_args);
             return NULL;
