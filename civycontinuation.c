@@ -2,14 +2,9 @@ typedef void (*CVCallbackFunc)(PyObject *, PyObject *, PyObject *);
 typedef void (*CVCleanupFunc)(void *);
 
 
-typedef struct _cvcontext {
+typedef struct _cvcontinuation {
     int state;
     void *covars;
-} CVContext;
-
-
-typedef struct _cvcontinuation {
-    _cvcontext context;
     CVCallbackFunc cocall;
     CVCleanupFunc coclean;
     PyObject *coargs[3];
