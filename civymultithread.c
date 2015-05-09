@@ -1,5 +1,5 @@
-#define IF_RETURN_FROM_NESTED_DISPATCH break; default:
 #define CV_ENTER_EXEC_ROUTINE_HERE CV_ENTER_ROUTINE_HERE _cv_globals.current_continuation->state = __LINE__;
+#define IF_RETURN_FROM_NESTED_DISPATCH break; default:
 
 
 static void cv_exec_cleanup(void *vars)
