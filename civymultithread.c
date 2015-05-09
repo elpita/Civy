@@ -32,8 +32,8 @@ static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
     IF_RETURNED_FROM_NESTED_DISPATCH
         result = cv_coresume();
 
-        /* Cleanup what `PyObject_Call` left off */
-        Py_LeaveRecursiveCall(); //?
+        /* Cleanup what `PyObject_Call` left off? */
+        //Py_LeaveRecursiveCall(); //implicitly handled in `cv_join`
 
     CV_EXIT_ROUTINE_HERE
 
