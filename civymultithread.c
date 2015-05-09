@@ -26,14 +26,13 @@ static void cv_exec(PyObject *actor_ptr, PyObject *name, PyObject *args)
     else {
         CV_SetRoutineVars(callback);
         _cv_globals._main_thread->frame = NULL;
-        result = PyObject_CallObject(callback, args);
+        result = PyObject_Call(callback, args, NULL);
     }
 
     IF_RETURNED_FROM_NESTED_DISPATCH
         result = cv_coresume();
 
-        /* Cleanup what `PyObject_CallObject` left off */
-        Py_DECREF(args);
+        /* Cleanup what `PyObject_Call` left off */
         Py_LeaveRecursiveCall(); //?
 
     CV_EXIT_ROUTINE_HERE
