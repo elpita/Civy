@@ -1,17 +1,15 @@
 cdef class LShaderProgram(object):
 
-    property GLuint  m_program_id:
-        def __get__(self):
-            return self.m_program_id
+    cdef GLuint  m_program_id:
     
     def __cinit__(self):
         self.m_program_id = NULL
     
+    cdef void free_program(LShaderProgram self):
+        glDeleteProgram(self.m_program_id)
+    
     def load_program(self):
         pass
-    
-    def free_program(self):
-        glDeleteProgram(self.m_program_id)
     
     def bind(self):
         ### use shader ###
@@ -155,3 +153,107 @@ cdef class LPlainPolygonProgram2D(LShaderProgram):
             return False
             
         return True
+
+
+cdef bool init_GL():
+    ### initialize GLEW? ###
+    cdef GLenum glew_error = glewInit()
+    
+    if glew_error != GLEW_OK:
+        print "Error initializing GLEW! %s\n".format(glewGetErrorString(glew_error))
+        return False
+    elif !GLEW_VERSION_2_1: # make sure OpenGL 3.1 is supported
+        print "OpenGL 2.1. not supported!\n"
+        return False
+
+    ### set the viewport ###
+    glViewport(0.f, 0.f, SCREEN_WIDTH, SCREEN_HEIGHT)
+    
+    ### initialize projection matrix ###
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    glOrtho(0.0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0, 1.0, -1.0)
+    
+    ### initialize modelview matrix ###
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    
+    ### initialize modelview matrix ###
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    
+    ### initialize clear color ###
+    glClearColor(0.f, 0.f, 0.f, 1.f)
+    
+    ### enable texturing ###
+    glEnable(GL_TEXTURE_2D)
+    
+    ###start blending ###
+    glEnable(GL_BLEND)
+    glDisable(GL_DEPTH_TEST)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    
+    ### check for error ###
+    cdef GLenum error glGetError()
+    
+    if error != GL_NO_ERROR:
+        print "Error initializing OpenGL! %s\n".format(gluErrorString(error))
+        return False
+        
+    ### initialize DevIL and DevILU ###
+    iLInit()
+    iluInit()
+    ilClearColor(255, 255, 255, 000)
+    
+    ### check for error ###
+    cdef ILenum il_error = ilGetError()
+    
+    if il_error != IL_NO_ERROR:
+        print "Error initializing DevIL! %s\n".format(iluErrorString(il_error))
+        return False
+    
+    return True
+
+
+cdef bool load_GP(LShaderProgram polygon):
+    ### load basic shader program ###
+    if !polygon.load_program():
+        print "Unable to load basic shader!\n"
+        return False
+    
+    polygon.bind()
+    return True
+
+
+cdef void render():
+    ### clear color buffer ###
+    glClear(GL_COLOR_BUFFER_BIT)
+    
+    ### reset transformations ###
+    glLoadIdentity()
+    
+    ### solid red quad in the center ###
+    glTranslatef(SCREEN_WIDTH/2.f, SCREEN_HEIGHT/2.f, 0.f)
+
+    glBegin(GL_QUADS)
+    glColor3f(0.f, 1.f, 1.f)
+    glVertex2f(-50.f, -50.f);
+    glVertex2f(50.f, -50.f);
+    glVertex2f(50.f, 50.f);
+    glVertex2f(-50.f, 50.f);
+    glEnd()
+    
+    ### update screen ###
+    glutSwapBuffers()
+    
+
+if __name__ == "__main__":
+    if !init_GL():
+        print "Unable to initialize graphics library!\n"
+        return 1
+    elif !load_GP():
+        print "Unable to load shader programs!\n"
+        return 1
+    elif !load_media():
+        print "Unable to load media!\n"
+        return 2
